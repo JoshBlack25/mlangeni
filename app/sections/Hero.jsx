@@ -9,8 +9,7 @@ export default function Hero() {
     setActive((prev) => (prev === side ? null : side));
   };
 
-  const baseTransition =
-    "transition-all duration-700 ease-[cubic-bezier(0.77,0,0.175,1)]";
+  const baseTransition = "transition-all duration-500 ease-in";
 
   // Calculate the exact shift needed for the logo based on the flex ratios
   let logoTransform = "translate-x-0 translate-y-0";
@@ -52,29 +51,38 @@ export default function Hero() {
         />
 
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center text-white px-6 max-w-md">
-            <h1 className="text-4xl md:text-5xl font-light font-[Playfair_Display] mb-4">
-              MLANGENI Events
+          <div className="text-center md:text-left px-4 md:px-0">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-light font-[Playfair_Display] mt-4 tracking-wide text-white ">
+              Hospitality Collection
             </h1>
 
             <div
-              className={`transition-all duration-500 ${
+              className={`transition-all duration-500 ease-out ${
                 active === "left"
                   ? "opacity-100 translate-y-0"
                   : "opacity-0 translate-y-6"
               }`}
             >
-              <p className="text-sm opacity-80 mb-6">
-                Creating the world’s most memorable events with precision, style
-                and imagination.
+              <p className="text-xs sm:text-sm md:text-base leading-relaxed text-white/80 mb-0 max-w-md mx-auto md:mx-0">
+                Premium catering and curated dining experiences crafted for
+                every occasion.
               </p>
 
               <button
-                // Stop propagation so clicking the button doesn't trigger the background tap/close
                 onClick={(e) => e.stopPropagation()}
-                className="border border-white px-6 py-2 text-xs tracking-[0.2em] hover:bg-white hover:text-black transition"
+                className="
+        group relative inline-flex items-center justify-center
+        px-6 py-3 text-xs tracking-[0.25em] uppercase
+        border border-amber-300/60 text-amber-200
+        hover:text-black hover:bg-amber-300
+        transition-all duration-400
+        overflow-hidden
+      "
               >
-                START PLANNING
+                <span className="relative z-10">View Menus</span>
+
+                {/* subtle gold glow hover effect */}
+                <span className="absolute inset-0 bg-gradient-to-r from-amber-300/0 via-amber-300/20 to-amber-300/0 opacity-0 group-hover:opacity-100 transition duration-500" />
               </button>
             </div>
           </div>
@@ -129,7 +137,7 @@ ${active === "left" ? "brightness-75 md:blur-[1px]" : ""}
         px-6 py-3 text-xs tracking-[0.25em] uppercase
         border border-amber-300/60 text-amber-200
         hover:text-black hover:bg-amber-300
-        transition-all duration-300
+        transition-all duration-400
         overflow-hidden
       "
               >
