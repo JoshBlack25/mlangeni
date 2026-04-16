@@ -52,9 +52,9 @@ export default function Hero() {
         />
 
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center md:text-left px-4 md:px-0">
+          <div className="text-center md:text-left px-4 md:px-0 flex flex-col gap-4">
             <h1
-              className={`text-3xl sm:text-4xl md:text-5xl font-light font-[Playfair_Display] tracking-wide text-white transition-all duration-500 ease-in-out
+              className={`text-3xl sm:text-3xl md:text-4xl font-light font-[Playfair_Display] tracking-wide text-white transition-all duration-500 ease-in-out
     ${active === "left" ? "mt-4" : "mt-20 md:mt-50"}
   `}
             >
@@ -73,22 +73,47 @@ export default function Hero() {
                 every occasion.
               </p>
 
-              <button
+              <motion.button
                 onClick={(e) => e.stopPropagation()}
                 className="
-        group relative inline-flex items-center justify-center
-        px-6 py-3 text-xs tracking-[0.25em] uppercase
-         text-amber-200
-        hover:text-black hover:bg-amber-300
+        relative inline-flex items-center justify-center
+        px-0 py-3 text-xs tracking-[0.25em] uppercase
+        text-amber-200 
         transition-all duration-400
-        overflow-hidden
+        overflow-hidden cursor-pointer
       "
+                initial="rest"
+                animate="rest"
+                whileHover="hover"
               >
                 <span className="relative z-10">Start Planning</span>
 
-                {/* subtle gold glow hover effect */}
-                <span className="absolute inset-0 bg-gradient-to-r from-amber-300/0 via-amber-300/20 to-amber-300/0 opacity-0 group-hover:opacity-100 transition duration-500" />
-              </button>
+                {/* underline */}
+                <motion.span
+                  className="absolute left-0 bottom-1 h-[1px] bg-amber-200"
+                  variants={{
+                    rest: { width: "0%" },
+                    hover: { width: "75%" },
+                  }}
+                  transition={{
+                    duration: 0.6,
+                    ease: [0.77, 0, 0.175, 1],
+                  }}
+                />
+
+                {/* glow layer */}
+                <motion.span
+                  className="absolute left-0 bottom-1 h-[1px] bg-amber-300 blur-[2px] opacity-60"
+                  variants={{
+                    rest: { width: "0%" },
+                    hover: { width: "75%" },
+                  }}
+                  transition={{
+                    duration: 0.6,
+                    ease: [0.77, 0, 0.175, 1],
+                  }}
+                />
+              </motion.button>
             </div>
           </div>
         </div>
@@ -118,8 +143,12 @@ ${active === "left" ? "brightness-75 md:blur-[1px]" : ""}
         />
 
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center md:text-left px-4 md:px-0">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-light font-[Playfair_Display] mt-4 tracking-wide text-white ">
+          <div className="text-center md:text-left px-4 md:px-0 flex flex-col gap-6">
+            <h1
+              className={`text-3xl sm:text-3xl md:text-4xl font-light font-[Playfair_Display] tracking-wide text-white transition-all duration-500 ease-in-out
+    ${active === "right" ? "mt-4 md:pl-0" : "mt-20 md:mt-50 md:pl-16"}
+  `}
+            >
               Hospitality Collection
             </h1>
 
@@ -135,22 +164,47 @@ ${active === "left" ? "brightness-75 md:blur-[1px]" : ""}
                 every occasion.
               </p>
 
-              <button
+              <motion.button
                 onClick={(e) => e.stopPropagation()}
                 className="
-        group relative inline-flex items-center justify-center
-        px-6 py-3 text-xs tracking-[0.25em] uppercase
-         text-amber-200
-        hover:text-black hover:bg-amber-300
+        relative inline-flex items-center justify-center
+        px-0 py-3 text-xs tracking-[0.25em] uppercase
+        text-amber-200 
         transition-all duration-400
-        overflow-hidden
+        overflow-hidden cursor-pointer
       "
+                initial="rest"
+                animate="rest"
+                whileHover="hover"
               >
                 <span className="relative z-10">View Menus</span>
 
-                {/* subtle gold glow hover effect */}
-                <span className="absolute inset-0 bg-gradient-to-r from-amber-300/0 via-amber-300/20 to-amber-300/0 opacity-0 group-hover:opacity-100 transition duration-500" />
-              </button>
+                {/* underline */}
+                <motion.span
+                  className="absolute left-0 bottom-1 h-[1px] bg-amber-200"
+                  variants={{
+                    rest: { width: "0%" },
+                    hover: { width: "75%" },
+                  }}
+                  transition={{
+                    duration: 0.6,
+                    ease: [0.77, 0, 0.175, 1],
+                  }}
+                />
+
+                {/* glow layer */}
+                <motion.span
+                  className="absolute left-0 bottom-1 h-[1px] bg-amber-300 blur-[2px] opacity-60"
+                  variants={{
+                    rest: { width: "0%" },
+                    hover: { width: "75%" },
+                  }}
+                  transition={{
+                    duration: 0.6,
+                    ease: [0.77, 0, 0.175, 1],
+                  }}
+                />
+              </motion.button>
             </div>
           </div>
         </div>
