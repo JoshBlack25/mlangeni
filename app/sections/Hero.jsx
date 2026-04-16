@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion } from "framer-motion";
 
 export default function Hero() {
   const [active, setActive] = useState(null); // "left" | "right" | null
@@ -52,8 +53,12 @@ export default function Hero() {
 
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center md:text-left px-4 md:px-0">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-light font-[Playfair_Display] mt-4 tracking-wide text-white ">
-              Hospitality Collection
+            <h1
+              className={`text-3xl sm:text-4xl md:text-5xl font-light font-[Playfair_Display] tracking-wide text-white transition-all duration-500 ease-in-out
+    ${active === "left" ? "mt-4" : "mt-20 md:mt-50"}
+  `}
+            >
+              MLANGENI Events
             </h1>
 
             <div
@@ -73,13 +78,13 @@ export default function Hero() {
                 className="
         group relative inline-flex items-center justify-center
         px-6 py-3 text-xs tracking-[0.25em] uppercase
-        border border-amber-300/60 text-amber-200
+         text-amber-200
         hover:text-black hover:bg-amber-300
         transition-all duration-400
         overflow-hidden
       "
               >
-                <span className="relative z-10">View Menus</span>
+                <span className="relative z-10">Start Planning</span>
 
                 {/* subtle gold glow hover effect */}
                 <span className="absolute inset-0 bg-gradient-to-r from-amber-300/0 via-amber-300/20 to-amber-300/0 opacity-0 group-hover:opacity-100 transition duration-500" />
@@ -135,7 +140,7 @@ ${active === "left" ? "brightness-75 md:blur-[1px]" : ""}
                 className="
         group relative inline-flex items-center justify-center
         px-6 py-3 text-xs tracking-[0.25em] uppercase
-        border border-amber-300/60 text-amber-200
+         text-amber-200
         hover:text-black hover:bg-amber-300
         transition-all duration-400
         overflow-hidden
@@ -153,10 +158,17 @@ ${active === "left" ? "brightness-75 md:blur-[1px]" : ""}
 
       {/* CENTER LOGO */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center z-20">
-        <img
+        <motion.img
           src="/logo2.png"
-          className={`w-24 md:w-40 opacity-90 ${baseTransition} ${logoTransform}`}
           alt="Center Logo"
+          className={`w-24 md:w-40 opacity-90 ${baseTransition} ${logoTransform}`}
+          initial={{ opacity: 0, scale: 1, y: 20 }}
+          animate={{ opacity: 0.9, scale: 2.2, y: 0 }}
+          exit={{ opacity: 0, scale: 0.8, y: 20 }}
+          transition={{
+            duration: 0.8,
+            ease: [0.77, 0, 0.175, 1],
+          }}
         />
       </div>
     </div>
