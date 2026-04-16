@@ -42,7 +42,7 @@ export default function Hero() {
           /* MOBILE FLEX EXPANSION */
           ${active === "left" ? "flex-[2.6] " : active === "right" ? "flex-[0.8]" : "flex-1 "}
           
-          ${active === "right" ? "brightness-75 md:blur-[1px]" : ""}
+          ${active === "right" ? "brightness-60 md:blur-[1px]" : ""}
         `}
       >
         <img
@@ -133,7 +133,7 @@ export default function Hero() {
           /* MOBILE FLEX EXPANSION */
           ${active === "right" ? "flex-[1.6]" : active === "left" ? "flex-[0.9]" : "flex-1"}
 
-${active === "left" ? "brightness-75 md:blur-[1px]" : ""}
+${active === "left" ? "brightness-60 md:blur-[1px]" : ""}
         `}
       >
         <img
