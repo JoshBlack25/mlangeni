@@ -71,27 +71,27 @@ export default function NavBar() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: "100%" }}
             transition={{ duration: 0.4 }}
-            className="fixed top-0 right-0 h-screen w-3/4 bg-black/95 backdrop-blur-2xl z-50 p-8 flex flex-col"
+            className="fixed top-0 right-0 h-screen w-3/4 bg-black/95 backdrop-blur-2xl z-50 p-8 flex flex-col pt-12"
           >
             <button
               onClick={() => setIsOpen(false)}
-              className="text-white mb-10 self-end text-2xl"
+              className="text-white mb-14 self-end text-2xl"
             >
               ✕
             </button>
 
-            <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-10 mt-6">
               {NAV_LINKS.map((link) => (
                 <span
                   key={link}
-                  className="text-white/80 text-sm tracking-widest uppercase"
+                  className="text-left text-white/80 text-sm tracking-widest uppercase py-3 hover:text-white transition"
                 >
                   {link}
                 </span>
               ))}
             </div>
 
-            <button className="mt-10 h-11 bg-gradient-to-r from-[#e8c085] to-[#ae8b55] text-black text-xs tracking-widest uppercase px-6 rounded-sm font-semibold">
+            <button className="mt-10 pt-10 h-11 bg-gradient-to-r from-[#e8c085] to-[#ae8b55] text-black text-xs tracking-widest uppercase px-6 rounded-sm font-semibold">
               Reserve Your Date
             </button>
           </motion.div>
