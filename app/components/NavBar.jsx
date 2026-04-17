@@ -104,7 +104,7 @@ export default function Navbar() {
       {/* NAVBAR */}
       {/* NAVBAR */}
       <header
-        className={`fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 md:px-12 py-6 transition-all duration-500 border-b
+        className={`fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 md:px-12 py-6 transition-all duration-500 
           ${inHero && !open ? "bg-transparent border-transparent" : "bg-[#0a0a0a] border-white/10 shadow-2xl"}`}
       >
         {/* LOGO */}
@@ -127,7 +127,7 @@ export default function Navbar() {
         <div className="flex items-center gap-8">
           {/* CTA */}
           <button
-            className={`text-[0.7rem] tracking-[0.3em] uppercase font-medium ${gold} border-b ${goldBorder} pb-1 hover:text-white hover:border-white transition-all duration-300`}
+            className={`text-[0.7rem] tracking-[0.3em] uppercase font-medium ${gold} border-b ${goldBorder} pb-1 hover:text-white hover:border-white transition-all duration-300 cursor-pointer [text-shadow:0_0_6px_rgba(212,175,55,0.8),0_0_18px_rgba(212,175,55,0.6),0_0_30px_rgba(212,175,55,0.4)]`}
           >
             Get in Touch
           </button>
@@ -139,19 +139,21 @@ export default function Navbar() {
             aria-label="Toggle menu"
           >
             {open ? (
-              <span className={`text-[1.8rem] leading-none ${gold} font-light`}>
+              <span
+                className={`text-[1.8rem] leading-none ${gold} font-light `}
+              >
                 ✕
               </span>
             ) : (
               <div className="space-y-1.5">
                 <span
-                  className={`block w-6 h-[1px] ${goldBg} transition-all group-hover:w-8`}
+                  className={`block w-6 h-[1px] ${goldBg} transition-all group-hover:w-8 [text-shadow:0_0_6px_rgba(212,175,55,0.8),0_0_18px_rgba(212,175,55,0.6),0_0_30px_rgba(212,175,55,0.4)]`}
                 />
                 <span
-                  className={`block w-8 h-[1px] ${goldBg} transition-all`}
+                  className={`block w-8 h-[1px] ${goldBg} transition-all [text-shadow:0_0_6px_rgba(212,175,55,0.8),0_0_18px_rgba(212,175,55,0.6),0_0_30px_rgba(212,175,55,0.4)]`}
                 />
                 <span
-                  className={`block w-5 h-[1px] ${goldBg} transition-all group-hover:w-8`}
+                  className={`block w-5 h-[1px] ${goldBg} transition-all group-hover:w-8 [text-shadow:0_0_6px_rgba(212,175,55,0.8),0_0_18px_rgba(212,175,55,0.6),0_0_30px_rgba(212,175,55,0.4)]`}
                 />
               </div>
             )}
