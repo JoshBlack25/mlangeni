@@ -109,14 +109,14 @@ export default function Hero() {
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center md:text-left px-4 md:px-0 flex flex-col gap-4">
             <h1
-              className={`text-3xl sm:text-3xl md:text-4xl font-light font-[Playfair_Display] tracking-wide text-white transition-all duration-500 ease-in-out ${active === "left" ? "mt-4" : "mt-20 md:mt-50"}`}
+              className={`text-3xl sm:text-3xl md:text-4xl font-light font-[Playfair_Display] tracking-wide text-white transition-all duration-500 ease-in-out drop-shadow-[0_0_18px_rgba(255,255,255,0.9)] ${active === "left" ? "mt-4" : "mt-20 md:mt-50"}`}
             >
               MLANGENI Events
             </h1>
             <div
               className={`transition-all duration-500 ease-out ${active === "left" ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}
             >
-              <p className="text-xs sm:text-sm md:text-base leading-relaxed text-white/80 mb-0 max-w-md mx-auto md:mx-0">
+              <p className="text-xs sm:text-sm md:text-base leading-relaxed text-white/80 mb-0 max-w-md mx-auto md:mx-0 drop-shadow-[0_0_18px_rgba(255,255,255,0.9)]">
                 Premium catering and curated dining experiences crafted for
                 every occasion.
               </p>
@@ -129,8 +129,11 @@ export default function Hero() {
               >
                 <span className="relative z-10">Start Planning</span>
                 <motion.span
-                  className="absolute left-0 bottom-1 h-[1px] bg-amber-200"
-                  variants={{ rest: { width: "0%" }, hover: { width: "75%" } }}
+                  className="absolute left-0 bottom-1 h-[1px] bg-amber-200 drop-shadow-[0_0_10px_rgba(251,191,36,0.9)]"
+                  variants={{
+                    rest: { width: "0%" },
+                    hover: { width: "75%" },
+                  }}
                   transition={{ duration: 0.6, ease: [0.77, 0, 0.175, 1] }}
                 />
               </motion.button>
@@ -189,7 +192,7 @@ export default function Hero() {
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center md:text-left px-4 md:px-0 flex flex-col gap-6">
             <h1
-              className={`text-3xl sm:text-3xl md:text-4xl font-light font-[Playfair_Display] tracking-wide text-white transition-all duration-500 ease-in-out ${active === "right" ? "mt-4 md:pl-0" : "mt-20 md:mt-50 md:pl-16"}`}
+              className={`text-3xl sm:text-3xl md:text-4xl font-light font-[Playfair_Display] tracking-wide text-white transition-all duration-500 ease-in-out drop-shadow-[0_0_18px_rgba(255,255,255,0.9)] ${active === "right" ? "mt-4" : "mt-20 md:mt-50"}`}
             >
               Hospitality Collection
             </h1>
