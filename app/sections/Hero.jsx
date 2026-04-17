@@ -10,7 +10,7 @@ export default function Hero() {
     setActive((prev) => (prev === side ? null : side));
   };
 
-  const baseTransition = "transition-all duration-500 ease-in";
+  const baseTransition = "transition-all duration-650 ease-in";
 
   // Calculate the exact shift needed for the logo based on the flex ratios
   let logoTransform = "translate-x-0 translate-y-0";
@@ -25,7 +25,10 @@ export default function Hero() {
   }
 
   return (
-    <div className="relative h-screen w-full flex flex-col md:flex-row overflow-hidden bg-black">
+    <section
+      id="hero"
+      className="relative h-screen w-full flex flex-col md:flex-row overflow-hidden bg-black"
+    >
       {/* LEFT */}
       <div
         // Use pointerType "mouse" to ensure these only fire on desktop hovers.
@@ -78,7 +81,7 @@ export default function Hero() {
                 className="
         relative inline-flex items-center justify-center
         px-0 py-3 text-xs tracking-[0.25em] uppercase
-        text-amber-200 
+        text-[#D4AF37]
         transition-all duration-400
         overflow-hidden cursor-pointer
       "
@@ -169,7 +172,7 @@ ${active === "left" ? "brightness-60 md:blur-[1px]" : ""}
                 className="
         relative inline-flex items-center justify-center
         px-0 py-3 text-xs tracking-[0.25em] uppercase
-        text-amber-200 
+        text-[#D4AF37]
         transition-all duration-400
         overflow-hidden cursor-pointer
       "
@@ -225,6 +228,6 @@ ${active === "left" ? "brightness-60 md:blur-[1px]" : ""}
           }}
         />
       </div>
-    </div>
+    </section>
   );
 }
