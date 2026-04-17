@@ -219,11 +219,11 @@ ${active === "left" ? "brightness-60 md:blur-[1px]" : ""}
           src="/logo2.png"
           alt="Center Logo"
           className={`w-24 md:w-40 opacity-90 ${baseTransition} ${logoTransform}`}
-          initial={{ opacity: 0, scale: 1, y: 20 }}
-          animate={{ opacity: 0.9, scale: 2.2, y: 0 }}
+          initial={{ opacity: 1, scale: 1, y: 20 }}
+          animate={{ opacity: 1, scale: 2.2, y: 0 }}
           exit={{ opacity: 0, scale: 0.8, y: 20 }}
           transition={{
-            duration: 0.8,
+            duration: 0.5,
             ease: [0.77, 0, 0.175, 1],
           }}
         />

@@ -5,8 +5,8 @@ import { useEffect, useState } from "react";
 
 const NAV_COLUMNS = [
   {
-    title: "Rhubarb Events",
-    cta: "Discover",
+    title: "Mlangeni Events",
+    cta: "START PLANNING",
     image:
       "https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=700&q=80",
     links: [
@@ -24,7 +24,7 @@ const NAV_COLUMNS = [
   },
   {
     title: "Hospitality Collection",
-    cta: "Discover",
+    cta: "VIEW MENUS",
     image:
       "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=700&q=80",
     links: [
@@ -36,7 +36,7 @@ const NAV_COLUMNS = [
     ],
   },
   {
-    title: "Why Rhubarb?",
+    title: "Why Mlangeni?",
     cta: "About Us",
     image:
       "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=700&q=80",
@@ -102,9 +102,10 @@ export default function Navbar() {
   return (
     <>
       {/* NAVBAR */}
+      {/* NAVBAR */}
       <header
-        className={`fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 md:px-12 py-6 transition-all duration-500
-          ${inHero && !open ? "bg-transparent" : "bg-[#0a0a0a] border-b border-white/10 shadow-2xl"}`}
+        className={`fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 md:px-12 py-6 transition-all duration-500 border-b
+          ${inHero && !open ? "bg-transparent border-transparent" : "bg-[#0a0a0a] border-white/10 shadow-2xl"}`}
       >
         {/* LOGO */}
         <motion.img
