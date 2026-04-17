@@ -104,12 +104,12 @@ export default function Navbar() {
       {/* NAVBAR */}
       {/* NAVBAR */}
       <header
-        className={`fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 md:px-12 py-6 transition-all duration-500 
-          ${inHero && !open ? "bg-transparent border-transparent" : "bg-[#0a0a0a] border-white/10 shadow-2xl"}`}
+        className={`fixed top-0 left-0 right-0 z-50 h-18 md:h-20 flex items-center justify-between px-8 md:px-12 transition-all duration-500 
+  ${inHero && !open ? "bg-transparent border-transparent" : "bg-[#0a0a0a] border-white/10 shadow-2xl"}`}
       >
         {/* LOGO */}
         <motion.img
-          src="/logo2.png"
+          src="/logo.png"
           alt="Logo"
           initial={false}
           animate={{
@@ -121,7 +121,7 @@ export default function Navbar() {
             duration: 0.5,
             ease: [0.22, 1, 0.36, 1],
           }}
-          className="h-12 md:h-14 object-contain brightness-110"
+          className="h-24 md:h-32 object-contain brightness-110 "
         />
 
         <div className="flex items-center gap-8">
