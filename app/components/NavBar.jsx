@@ -121,13 +121,19 @@ export default function Navbar() {
             duration: 0.5,
             ease: [0.22, 1, 0.36, 1],
           }}
-          className="h-24 md:h-32 object-contain brightness-110 "
+          className="h-24 md:h-32 object-contain brightness-110 pt-2"
         />
 
         <div className="flex items-center gap-8">
           {/* CTA */}
           <button
-            className={`text-[0.7rem] tracking-[0.3em] uppercase font-medium ${gold} border-b ${goldBorder} pb-1 hover:text-white hover:border-white transition-all duration-300 cursor-pointer [text-shadow:0_0_6px_rgba(212,175,55,0.8),0_0_18px_rgba(212,175,55,0.6),0_0_30px_rgba(212,175,55,0.4)]`}
+            className={`text-[0.7rem] tracking-[0.3em] uppercase font-medium pb-1 transition-all duration-300 cursor-pointer border-b
+    ${
+      inHero && !open
+        ? "text-white border-white"
+        : `${gold} ${goldBorder} [text-shadow:0_0_6px_rgba(212,175,55,0.8),0_0_18px_rgba(212,175,55,0.6)]`
+    } 
+    hover:text-white hover:border-white`}
           >
             Get in Touch
           </button>
@@ -139,22 +145,21 @@ export default function Navbar() {
             aria-label="Toggle menu"
           >
             {open ? (
-              <span
-                className={`text-[1.8rem] leading-none ${gold} font-light `}
-              >
+              // The "X" - Always gold when menu is open based on your requirement
+              <span className={`text-[1.8rem] leading-none ${gold} font-light`}>
                 ✕
               </span>
             ) : (
               <div className="space-y-1.5">
-                <span
-                  className={`block w-6 h-[1px] ${goldBg} transition-all group-hover:w-8 [text-shadow:0_0_6px_rgba(212,175,55,0.8),0_0_18px_rgba(212,175,55,0.6),0_0_30px_rgba(212,175,55,0.4)]`}
-                />
-                <span
-                  className={`block w-8 h-[1px] ${goldBg} transition-all [text-shadow:0_0_6px_rgba(212,175,55,0.8),0_0_18px_rgba(212,175,55,0.6),0_0_30px_rgba(212,175,55,0.4)]`}
-                />
-                <span
-                  className={`block w-5 h-[1px] ${goldBg} transition-all group-hover:w-8 [text-shadow:0_0_6px_rgba(212,175,55,0.8),0_0_18px_rgba(212,175,55,0.6),0_0_30px_rgba(212,175,55,0.4)]`}
-                />
+                {[6, 8, 5].map((width, index) => (
+                  <span
+                    key={index}
+                    className={`block h-[1px] transition-all duration-300
+            ${inHero ? "bg-white" : `${goldBg} [text-shadow:0_0_6px_rgba(212,175,55,0.8)]`}
+            ${index === 1 ? "w-8" : `w-${width} group-hover:w-8`}
+          `}
+                  />
+                ))}
               </div>
             )}
           </button>

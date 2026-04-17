@@ -111,14 +111,14 @@ export default function Hero() {
             <h1
               className={`text-3xl sm:text-3xl md:text-4xl font-light font-[Playfair_Display] tracking-wide text-white transition-all duration-500 ease-in-out drop-shadow-[0_0_18px_rgba(255,255,255,0.9)] ${active === "left" ? "mt-4" : "mt-20 md:mt-50"}`}
             >
-              MLANGENI Events
+              Mlangeni Events
             </h1>
             <div
               className={`transition-all duration-500 ease-out ${active === "left" ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}
             >
               <p className="text-xs sm:text-sm md:text-base leading-relaxed text-white/80 mb-0 max-w-md mx-auto md:mx-0 drop-shadow-[0_0_18px_rgba(255,255,255,0.9)]">
-                Premium catering and curated dining experiences crafted for
-                every occasion.
+                Creating the world's most memorable events with precision, style
+                and imagination.
               </p>
               <motion.button
                 onClick={(e) => e.stopPropagation()}
@@ -200,8 +200,8 @@ export default function Hero() {
               className={`transition-all duration-500 ease-out ${active === "right" ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}
             >
               <p className="text-xs sm:text-sm md:text-base leading-relaxed text-white/80 mb-0 max-w-md mx-auto md:mx-0">
-                Premium catering and curated dining experiences crafted for
-                every occasion.
+                Delivering unique dining experiences and venue management at
+                world famous locations.
               </p>
               <motion.button
                 onClick={(e) => e.stopPropagation()}
