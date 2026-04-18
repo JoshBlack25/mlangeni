@@ -45,7 +45,7 @@ export default function Footer() {
             ].map((item) => (
               <p
                 key={item}
-                className="cursor-pointer transition-all duration-300 hover:text-white hover:translate-x-1"
+                className="cursor-pointer transition-all duration-300 hover:text-[#D4AF37] hover:translate-x-1"
               >
                 {item}
               </p>
@@ -62,7 +62,7 @@ export default function Footer() {
             ].map((item) => (
               <p
                 key={item}
-                className="cursor-pointer transition-all duration-300 hover:text-white hover:translate-x-1"
+                className="cursor-pointer transition-all duration-300 hover:text-[#D4AF37] hover:translate-x-1"
               >
                 {item}
               </p>
