@@ -78,7 +78,6 @@ const colVariants = {
   }),
 };
 
-// Refined Gold and Dark Theme Constants
 const gold = "text-[#D4AF37]";
 const goldBorder = "border-[#D4AF37]";
 const goldBg = "bg-[#D4AF37]";
@@ -100,14 +99,16 @@ export default function Navbar() {
   }, []);
 
   return (
-    <>
-      {/* NAVBAR */}
+    <div className="font-[Playfair_Display]">
       {/* NAVBAR */}
       <header
         className={`fixed top-0 left-0 right-0 z-50 h-18 md:h-20 flex items-center justify-between px-8 md:px-12 transition-all duration-500 
-  ${inHero && !open ? "bg-transparent border-transparent" : "bg-[#0a0a0a] border-white/10 shadow-2xl"}`}
+        ${
+          inHero && !open
+            ? "bg-transparent border-transparent"
+            : "bg-[#0a0a0a] border-white/10 shadow-2xl"
+        }`}
       >
-        {/* LOGO */}
         <motion.img
           src="/logo.png"
           alt="Logo"
@@ -117,23 +118,19 @@ export default function Navbar() {
             y: inHero && !open ? -20 : 0,
             pointerEvents: inHero && !open ? "none" : "auto",
           }}
-          transition={{
-            duration: 0.5,
-            ease: [0.22, 1, 0.36, 1],
-          }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           className="h-24 md:h-32 object-contain brightness-110 pt-2"
         />
 
         <div className="flex items-center gap-8">
-          {/* CTA */}
           <button
             className={`text-[0.7rem] tracking-[0.3em] uppercase font-medium pb-1 transition-all duration-300 cursor-pointer border-b
-    ${
-      inHero && !open
-        ? "text-white border-white"
-        : `${gold} ${goldBorder} [text-shadow:0_0_6px_rgba(212,175,55,0.8),0_0_18px_rgba(212,175,55,0.6)]`
-    } 
-    hover:text-white hover:border-white`}
+            ${
+              inHero && !open
+                ? "text-white border-white"
+                : `${gold} ${goldBorder} [text-shadow:0_0_6px_rgba(212,175,55,0.8),0_0_18px_rgba(212,175,55,0.6)]`
+            }
+            hover:text-white hover:border-white`}
           >
             Get in Touch
           </button>
@@ -145,19 +142,27 @@ export default function Navbar() {
             aria-label="Toggle menu"
           >
             {open ? (
-              // The "X" - Always gold when menu is open based on your requirement
-              <span className={`text-[1.8rem] leading-none ${gold} font-light`}>
+              <span
+                className={`text-[1.8rem] leading-none font-light transition-all duration-300
+      ${
+        inHero
+          ? "text-[#D4AF37]"
+          : `${gold} [text-shadow:0_0_6px_rgba(212,175,55,0.8),0_0_18px_rgba(212,175,55,0.6),0_0_30px_rgba(212,175,55,0.4)]`
+      }`}
+              >
                 ✕
               </span>
             ) : (
               <div className="space-y-1.5">
-                {[6, 8, 5].map((width, index) => (
+                {[6, 8, 5].map((w, i) => (
                   <span
-                    key={index}
-                    className={`block h-[1px] transition-all duration-300
-            ${inHero ? "bg-white" : `${goldBg} [text-shadow:0_0_6px_rgba(212,175,55,0.8)]`}
-            ${index === 1 ? "w-8" : `w-${width} group-hover:w-8`}
-          `}
+                    key={i}
+                    className={`block h-[1px] transition-all duration-300 group-hover:w-8
+            ${
+              inHero
+                ? "bg-white"
+                : `${goldBg} [text-shadow:0_0_6px_rgba(212,175,55,0.8),0_0_18px_rgba(212,175,55,0.6),0_0_30px_rgba(212,175,55,0.4)]`
+            } w-${w}`}
                   />
                 ))}
               </div>
@@ -176,10 +181,10 @@ export default function Navbar() {
             animate="visible"
             exit="exit"
             className="fixed inset-0 z-40 bg-[#0a0a0a] text-white overflow-y-auto"
-            style={{ paddingTop: 110 }} // Increased slightly to give breathing room from the header
+            style={{ paddingTop: 110 }}
           >
             <div className="max-w-[1600px] mx-auto px-8 md:px-12 pb-16">
-              {/* MOBILE ACCORDION */}
+              {/* MOBILE */}
               <div className="md:hidden py-4">
                 {NAV_COLUMNS.map((col, i) => {
                   const isOpen = activeIndex === i;
@@ -190,16 +195,21 @@ export default function Navbar() {
                         className="w-full flex items-center justify-between py-5 text-left"
                       >
                         <span
-                          className={`text-[0.85rem] tracking-[0.25em] uppercase ${isOpen ? gold : "text-white/70"}`}
+                          className={`text-[0.85rem] tracking-[0.25em] uppercase ${
+                            isOpen ? gold : "text-white/70"
+                          }`}
                         >
                           {col.title}
                         </span>
                         <span
-                          className={`${gold} text-xl transition-transform duration-300 ${isOpen ? "rotate-45" : ""}`}
+                          className={`${gold} text-xl transition-transform duration-300 ${
+                            isOpen ? "rotate-45" : ""
+                          }`}
                         >
                           +
                         </span>
                       </button>
+
                       <AnimatePresence>
                         {isOpen && (
                           <motion.ul
@@ -211,7 +221,7 @@ export default function Navbar() {
                             {col.links.map((link) => (
                               <li
                                 key={link}
-                                className="text-[0.9rem] text-white/50 hover:text-[#D4AF37] transition"
+                                className="text-[0.9rem] text-white/50 hover:text-[#D4AF37]"
                               >
                                 {link}
                               </li>
@@ -224,9 +234,8 @@ export default function Navbar() {
                 })}
               </div>
 
-              {/* DESKTOP GRID */}
-              {/* Changed to include gap-8 and removed all borders */}
-              <div className="hidden md:grid md:grid-cols-4 gap-6 lg:gap-10 h-full pt-4">
+              {/* DESKTOP */}
+              <div className="hidden md:grid md:grid-cols-4 gap-6 lg:gap-10 pt-4">
                 {NAV_COLUMNS.map((col, i) => (
                   <motion.div
                     key={col.title}
@@ -236,37 +245,31 @@ export default function Navbar() {
                     animate="visible"
                     className="flex flex-col"
                   >
-                    {/* IMAGE CONTAINER */}
                     <div className="relative h-[220px] lg:h-[260px] overflow-hidden group mb-6">
                       <img
                         src={col.image}
                         alt={col.title}
                         className="w-full h-full object-cover grayscale-[0.3] group-hover:grayscale-0 transition-all duration-700 group-hover:scale-105"
                       />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a]/90 via-[#0a0a0a]/40 to-transparent" />
 
-                      {/* Dark Gradient Overlay for text readability */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a]/90 via-[#0a0a0a]/40 to-transparent pointer-events-none" />
-
-                      {/* CONTENT ABSOLUTE POSITIONED INSIDE IMAGE */}
                       <div className="absolute bottom-6 left-6 right-6 z-10">
-                        <h3 className="font-serif text-[1.3rem] lg:text-[1.5rem] text-white mb-2 tracking-wide leading-tight drop-shadow-md">
+                        <h3 className="text-[1.5rem] text-white mb-2">
                           {col.title}
                         </h3>
                         <span
-                          className={`text-[0.6rem] tracking-[0.3em] uppercase ${gold} border-b ${goldBorder} pb-1 drop-shadow-md`}
+                          className={`text-[0.6rem] tracking-[0.3em] uppercase ${gold} border-b ${goldBorder} pb-1`}
                         >
                           {col.cta}
                         </span>
                       </div>
                     </div>
 
-                    {/* LINKS LIST */}
-                    {/* Aligned left, spacing matches the screenshot */}
                     <ul className="flex flex-col space-y-4">
                       {col.links.map((link) => (
                         <li
                           key={link}
-                          className="text-[0.85rem] lg:text-[0.9rem] text-white/60 cursor-pointer hover:text-[#D4AF37] transition-all duration-300"
+                          className="text-[0.9rem] text-white/60 hover:text-[#D4AF37]"
                         >
                           {link}
                         </li>
@@ -279,6 +282,6 @@ export default function Navbar() {
           </motion.div>
         )}
       </AnimatePresence>
-    </>
+    </div>
   );
 }
