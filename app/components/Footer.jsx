@@ -32,41 +32,44 @@ export default function Footer() {
             />
           </motion.div>
 
-          {/* LINKS */}
-          <div className="space-y-3 text-sm text-white/60">
-            {[
-              "Events South Africa",
-              "Events Cape Town",
-              "Events Johannesburg",
-              "Careers",
-              "Get in Touch",
-              "Sustainability",
-              "Our Collection",
-            ].map((item) => (
-              <p
-                key={item}
-                className="cursor-pointer transition-all duration-300 hover:text-[#D4AF37] hover:translate-x-1"
-              >
-                {item}
-              </p>
-            ))}
-          </div>
+          {/* LINKS + LEGAL WRAPPER */}
+          <div className="grid grid-cols-2 gap-8 md:contents">
+            {/* LINKS */}
+            <div className="space-y-3 text-sm text-white/60">
+              {[
+                "Events South Africa",
+                "Events Cape Town",
+                "Events Johannesburg",
+                "Careers",
+                "Get in Touch",
+                "Sustainability",
+                "Our Collection",
+              ].map((item) => (
+                <p
+                  key={item}
+                  className="cursor-pointer transition-all duration-300 hover:text-[#D4AF37] hover:translate-x-1"
+                >
+                  {item}
+                </p>
+              ))}
+            </div>
 
-          {/* LEGAL */}
-          <div className="space-y-3 text-sm text-white/60">
-            {[
-              "Privacy Policy",
-              "Terms & Conditions",
-              "POPIA Compliance",
-              "PAIA Manual",
-            ].map((item) => (
-              <p
-                key={item}
-                className="cursor-pointer transition-all duration-300 hover:text-[#D4AF37] hover:translate-x-1"
-              >
-                {item}
-              </p>
-            ))}
+            {/* LEGAL */}
+            <div className="space-y-3 text-sm text-white/60">
+              {[
+                "Privacy Policy",
+                "Terms & Conditions",
+                "POPIA Compliance",
+                "PAIA Manual",
+              ].map((item) => (
+                <p
+                  key={item}
+                  className="cursor-pointer transition-all duration-300 hover:text-[#D4AF37] hover:translate-x-1"
+                >
+                  {item}
+                </p>
+              ))}
+            </div>
           </div>
 
           {/* NEWSLETTER */}

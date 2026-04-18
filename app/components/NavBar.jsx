@@ -135,28 +135,34 @@ export default function Navbar() {
             Get in Touch
           </button>
 
+          {/* HAMBURGER / X */}
           <button
             onClick={() => setOpen((v) => !v)}
-            className="flex flex-col justify-center items-center w-8 h-8 group cursor-pointer"
+            className="flex flex-col justify-center items-center w-8 h-8 group"
             aria-label="Toggle menu"
           >
             {open ? (
-              <span className={`text-[1.8rem] leading-none ${gold} font-light`}>
+              <span
+                className={`text-[1.8rem] leading-none font-light transition-all duration-300
+      ${
+        inHero
+          ? "text-[#D4AF37]"
+          : `${gold} [text-shadow:0_0_6px_rgba(212,175,55,0.8),0_0_18px_rgba(212,175,55,0.6),0_0_30px_rgba(212,175,55,0.4)]`
+      }`}
+              >
                 ✕
               </span>
             ) : (
               <div className="space-y-1.5">
-                {[6, 8, 5].map((width, index) => (
+                {[6, 8, 5].map((w, i) => (
                   <span
-                    key={index}
-                    className={`block h-[1px] transition-all duration-300
-                    ${
-                      inHero
-                        ? "bg-white"
-                        : `${goldBg} [text-shadow:0_0_6px_rgba(212,175,55,0.8)]`
-                    }
-                    ${index === 1 ? "w-8" : `w-${width} group-hover:w-8`}
-                  `}
+                    key={i}
+                    className={`block h-[1px] transition-all duration-300 group-hover:w-8
+            ${
+              inHero
+                ? "bg-white"
+                : `${goldBg} [text-shadow:0_0_6px_rgba(212,175,55,0.8),0_0_18px_rgba(212,175,55,0.6),0_0_30px_rgba(212,175,55,0.4)]`
+            } w-${w}`}
                   />
                 ))}
               </div>
