@@ -54,6 +54,48 @@ export default function Hero() {
     }
   }, [active]);
 
+  const [isMobile, setIsMobile] = useState(false);
+  const heroRef = useRef(null);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 768px)");
+
+    const update = () => setIsMobile(mq.matches);
+    update();
+
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
+  useEffect(() => {
+    if (!heroRef.current) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting && isMobile) {
+          setActive(null);
+
+          // force stop + reset videos
+          const left = leftVideoRef.current;
+          const right = rightVideoRef.current;
+
+          if (left) {
+            left.pause();
+            left.currentTime = 0;
+          }
+          if (right) {
+            right.pause();
+            right.currentTime = 0;
+          }
+        }
+      },
+      { threshold: 0.2 },
+    );
+
+    observer.observe(heroRef.current);
+    return () => observer.disconnect();
+  }, [isMobile]);
+
   return (
     <section
       id="hero"
@@ -71,7 +113,11 @@ export default function Hero() {
             setActive(null);
           }
         }}
-        onClick={() => setActive("left")} // optional: you can remove this entirely
+        onClick={() =>
+          setActive((prev) =>
+            isMobile ? (prev === "left" ? null : "left") : "left",
+          )
+        }
         className={`relative overflow-hidden min-h-0 cursor-pointer ${baseTransition} 
         ${active === "left" ? "md:flex-[1.35] flex-[2.6]" : active === "right" ? "md:flex-[0.65] flex-[0.8]" : "md:flex-1 flex-1"}
         ${active === "right" ? "brightness-90 md:blur-[1px]" : ""}`}
@@ -154,7 +200,11 @@ export default function Hero() {
             setActive(null);
           }
         }}
-        onClick={() => setActive("right")}
+        onClick={() =>
+          setActive((prev) =>
+            isMobile ? (prev === "right" ? null : "right") : "right",
+          )
+        }
         className={`relative overflow-hidden min-h-0 cursor-pointer ${baseTransition}
         ${active === "right" ? "md:flex-[1.35] flex-[1.6]" : active === "left" ? "md:flex-[0.65] flex-[0.9]" : "md:flex-1 flex-1"}
         ${active === "left" ? "brightness-60 md:blur-[1px]" : ""}`}
