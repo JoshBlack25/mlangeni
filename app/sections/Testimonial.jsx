@@ -8,24 +8,27 @@ const testimonials = [
     rating: 4.9,
     date: "29 Aug, 2017",
     quote:
-      "Been working with appscrip for a number of years now with a variety of different apps. They have my recommendation. They are a great team.",
-    avatar: "https://i.pravatar.cc/150?img=47",
+      "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam.",
+    avatar:
+      "https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png",
   },
   {
     name: "Lauren Contreras",
     rating: 4.9,
     date: "29 Aug, 2017",
     quote:
-      "Absolutely fantastic service. The team is professional, responsive, and delivered exactly what we needed on time.",
-    avatar: "https://i.pravatar.cc/150?img=5",
+      "Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse quam nihil molestiae consequatur, vel illum qui dolorem eum fugiat quo voluptas nulla.",
+    avatar:
+      "https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png",
   },
   {
     name: "Edward Alexander",
     rating: 4.9,
     date: "29 Aug, 2017",
     quote:
-      "Top-notch quality and incredible attention to detail. Working with them has been a pleasure from start to finish — every milestone was met with precision.",
-    avatar: "https://i.pravatar.cc/150?img=12",
+      "Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis suscipit laboriosam, nisi ut aliquid ex ea commodi consequatur? Quis autem vel eum.",
+    avatar:
+      "https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png",
   },
 ];
 
@@ -135,16 +138,7 @@ export default function Testimonial() {
   }, []);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] relative overflow-hidden px-4 py-12 font-[Playfair_Display]">
-      {/* Faint background watermark */}
-      <div className="w-full md:w-[60vw] h-[50vh] md:h-[70vh] rounded-4xl overflow-hidden absolute top-0 md:top-1/2 md:-translate-y-1/2 left-0 pointer-events-none">
-        <img
-          src="/logos/logoPNG.png"
-          alt=""
-          className="w-full h-full object-contain grayscale opacity-40"
-        />
-      </div>
-
+    <div className="min-h-[80vh] flex items-center justify-center bg-[#0a0a0a] relative overflow-hidden px-4 py-5 font-[Playfair_Display]">
       {/* ══════════ DESKTOP CARD ══════════ */}
       <div
         className="hidden md:flex relative z-10 w-full max-w-[1200px] bg-[#0f0f0f]/80 backdrop-blur-sm border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
@@ -153,7 +147,11 @@ export default function Testimonial() {
       >
         {/* Logo — top-right of card */}
         <div className="absolute top-6 right-8 z-30">
-          <LogoMark size="md" />
+          <img
+            src="/logos/logoPNG.png"
+            alt="Logo"
+            className="w-24 h-auto object-contain opacity-70"
+          />
         </div>
 
         {/* LEFT: Avatars */}
@@ -161,7 +159,7 @@ export default function Testimonial() {
           <div className="pl-[88px] mb-10">
             <div className="w-9 h-[1px] bg-[#D4AF37] mb-4" />
             <h2 className="font-light text-3xl text-white tracking-widest uppercase">
-              Unlocked Reviews
+              Testimonials
             </h2>
           </div>
 
@@ -249,24 +247,25 @@ export default function Testimonial() {
         </div>
       </div>
 
-      {/* ══════════ MOBILE CARD (fixed height, tweet style) ══════════ */}
+      {/* ══════════ MOBILE CARD  ══════════ */}
       <div
-        className="md:hidden relative z-10 w-full max-w-[420px] bg-[#0f0f0f] border border-white/10 rounded-2xl overflow-hidden shadow-[0_24px_80px_rgba(0,0,0,0.7)] font-['DM_Sans']"
+        className="md:hidden relative z-10 w-full max-w-[420px]  bg-[#0f0f0f] border border-white/10 rounded-2xl overflow-hidden shadow-[0_24px_80px_rgba(0,0,0,0.7)] font-['DM_Sans']"
         onMouseEnter={() => (isAutoPlaying.current = false)}
         onMouseLeave={() => (isAutoPlaying.current = true)}
       >
         {/* Logo bar */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
-          <LogoMark size="sm" />
-          <span className="text-[11px] text-white/25 tracking-wide">
-            {activeItem.date}
-          </span>
+        <div className="flex items-center justify-end px-5 py-0 border-b border-white/[0.06]">
+          <img
+            src="/logos/logoPNG.png"
+            alt="Logo"
+            className="w-auto h-8 object-contain  opacity-110"
+          />
         </div>
 
         {/* Fixed-height content area */}
         <div className="px-5 pt-5 pb-0">
           {/* User row */}
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-3 ">
             <AnimatePresence mode="wait">
               <motion.img
                 key={currentIndex + "-avatar"}
@@ -411,14 +410,6 @@ export default function Testimonial() {
               →
             </button>
           </div>
-        </div>
-
-        {/* Source footer */}
-        <div className="flex items-center gap-2 px-5 py-3 border-t border-white/[0.04]">
-          <div className="w-1.5 h-1.5 rounded-full bg-[#D4AF37] opacity-50" />
-          <span className="text-[11px] text-white/20 tracking-wide">
-            Verified review · LUXE Platform
-          </span>
         </div>
       </div>
     </div>
