@@ -99,7 +99,7 @@ export default function Navbar() {
   }, []);
 
   return (
-    <div className="font-[Playfair_Display]">
+    <nav className="font-[Playfair_Display]">
       {/* NAVBAR */}
       <header
         className={`fixed top-0 left-0 right-0 z-50 h-18 md:h-20 flex items-center justify-between px-8 md:px-12 transition-all duration-500 
@@ -282,6 +282,6 @@ export default function Navbar() {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </nav>
   );
 }
