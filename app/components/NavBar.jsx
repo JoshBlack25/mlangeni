@@ -110,7 +110,7 @@ export default function Navbar() {
         }`}
       >
         <motion.img
-          src="/logo.png"
+          src="/logos/logoPNG.png"
           alt="Logo"
           initial={false}
           animate={{

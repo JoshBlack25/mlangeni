@@ -275,7 +275,7 @@ export default function Hero() {
       {/* CENTER LOGO */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center z-20">
         <motion.img
-          src="/logo2.png"
+          src="/logos/logo2.png"
           alt="Center Logo"
           className={`w-24 md:w-40 opacity-90 ${baseTransition} ${logoTransform}`}
           initial={{ opacity: 1, scale: 2, y: 20 }}
