@@ -120,8 +120,18 @@ export default function Navbar() {
       >
         <a
           href="#hero"
-          onClick={() => {
-            setOpen(false); // close menu if open
+          onClick={(e) => {
+            e.preventDefault(); // stop instant jump
+
+            const el = document.getElementById("hero");
+            if (el) {
+              el.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              });
+            }
+
+            setOpen(false);
             setActiveIndex(null);
           }}
         >
@@ -160,8 +170,8 @@ export default function Navbar() {
                 className={`text-[1.8rem] leading-none font-light transition-colors duration-300
         ${
           inHero
-            ? "text-white group-hover:text-[#D4AF37]"
-            : `${gold} group-hover:text-white`
+            ? "text-[#D4AF37] group-hover:text-[#D4AF37]"
+            : `${gold} group-hover:text-[#D4AF37]`
         }`}
               >
                 ✕
