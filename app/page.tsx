@@ -1,7 +1,7 @@
 import Hero from "./sections/Hero";
 import Calendar from "./sections/Calendar";
 import Gallery from "./sections/Gallery";
-import Ratings from "./sections/Ratings";
+import Testimonial from "./sections/Testimonial";
 import About from "./sections/About";
 import Contact from "./sections/Contact";
 import NavBar from "./components/NavBar";
@@ -14,9 +14,9 @@ export default function Home() {
       <Hero />
       <Calendar />
       <Gallery />
-      <Ratings />
       <About />
       <Contact />
+      <Testimonial />
       <Footer />
     </>
   );

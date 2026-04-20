@@ -24,7 +24,7 @@ export default function Footer() {
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           >
             <motion.img
-              src="/logo.png"
+              src="/logos/logoPNG.png"
               alt="Logo"
               className="h-35 md:h-40 object-contain brightness-110 mx-auto md:mx-0"
               whileHover={{ scale: 1.05 }}
