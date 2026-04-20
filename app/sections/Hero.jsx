@@ -175,7 +175,7 @@ export default function Hero() {
               >
                 <span className="relative z-10">Start Planning</span>
                 <motion.span
-                  className="absolute left-0 bottom-1 h-[1px] bg-amber-200 drop-shadow-[0_0_10px_rgba(251,191,36,0.9)]"
+                  className="absolute left-0 bottom-1 h-px bg-amber-200 drop-shadow-[0_0_10px_rgba(251,191,36,0.9)]"
                   variants={{
                     rest: { width: "0%" },
                     hover: { width: "75%" },
@@ -262,7 +262,7 @@ export default function Hero() {
               >
                 <span className="relative z-10">View Menus</span>
                 <motion.span
-                  className="absolute left-0 bottom-1 h-[1px] bg-amber-200"
+                  className="absolute left-0 bottom-1 h-px bg-amber-200"
                   variants={{ rest: { width: "0%" }, hover: { width: "75%" } }}
                   transition={{ duration: 0.6, ease: [0.77, 0, 0.175, 1] }}
                 />

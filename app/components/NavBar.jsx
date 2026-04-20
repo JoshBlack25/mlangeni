@@ -142,29 +142,20 @@ export default function Navbar() {
             aria-label="Toggle menu"
           >
             {open ? (
-              <span
-                className={`text-[1.8rem] leading-none font-light transition-all duration-300
-      ${
-        inHero
-          ? "text-[#D4AF37]"
-          : `${gold} [text-shadow:0_0_6px_rgba(212,175,55,0.8),0_0_18px_rgba(212,175,55,0.6),0_0_30px_rgba(212,175,55,0.4)]`
-      }`}
-              >
+              <span className={`text-[1.8rem] leading-none ${gold} font-light`}>
                 ✕
               </span>
             ) : (
               <div className="space-y-1.5">
-                {[6, 8, 5].map((w, i) => (
-                  <span
-                    key={i}
-                    className={`block h-[1px] transition-all duration-300 group-hover:w-8
-            ${
-              inHero
-                ? "bg-white"
-                : `${goldBg} [text-shadow:0_0_6px_rgba(212,175,55,0.8),0_0_18px_rgba(212,175,55,0.6),0_0_30px_rgba(212,175,55,0.4)]`
-            } w-${w}`}
-                  />
-                ))}
+                <span
+                  className={`block w-6 h-[1px] ${goldBg} transition-all group-hover:w-8`}
+                />
+                <span
+                  className={`block w-8 h-[1px] ${goldBg} transition-all`}
+                />
+                <span
+                  className={`block w-5 h-[1px] ${goldBg} transition-all group-hover:w-8`}
+                />
               </div>
             )}
           </button>
@@ -183,7 +174,7 @@ export default function Navbar() {
             className="fixed inset-0 z-40 bg-[#0a0a0a] text-white overflow-y-auto"
             style={{ paddingTop: 110 }}
           >
-            <div className="max-w-[1600px] mx-auto px-8 md:px-12 pb-16">
+            <div className="max-w-400 mx-auto px-8 md:px-12 pb-16">
               {/* MOBILE */}
               <div className="md:hidden py-4">
                 {NAV_COLUMNS.map((col, i) => {
@@ -245,13 +236,13 @@ export default function Navbar() {
                     animate="visible"
                     className="flex flex-col"
                   >
-                    <div className="relative h-[220px] lg:h-[260px] overflow-hidden group mb-6">
+                    <div className="relative h-55 lg:h-65 overflow-hidden group mb-6">
                       <img
                         src={col.image}
                         alt={col.title}
                         className="w-full h-full object-cover grayscale-[0.3] group-hover:grayscale-0 transition-all duration-700 group-hover:scale-105"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a]/90 via-[#0a0a0a]/40 to-transparent" />
+                      <div className="absolute inset-0 bg-linear-to-t from-[#0a0a0a]/90 via-[#0a0a0a]/40 to-transparent" />
 
                       <div className="absolute bottom-6 left-6 right-6 z-10">
                         <h3 className="text-[1.5rem] text-white mb-2">
