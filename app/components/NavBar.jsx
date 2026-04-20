@@ -123,14 +123,11 @@ export default function Navbar() {
         />
 
         <div className="flex items-center gap-8">
+          {/* GET IN TOUCH */}
           <button
             className={`text-[0.7rem] tracking-[0.3em] uppercase font-medium pb-1 transition-all duration-300 cursor-pointer border-b
-            ${
-              inHero && !open
-                ? "text-white border-white"
-                : `${gold} ${goldBorder} [text-shadow:0_0_6px_rgba(212,175,55,0.8),0_0_18px_rgba(212,175,55,0.6)]`
-            }
-            hover:text-white hover:border-white`}
+    ${inHero && !open ? "text-white border-white" : `${gold} ${goldBorder}`}
+    hover:text-[#D4AF37] hover:border-[#D4AF37]`}
           >
             Get in Touch
           </button>
@@ -138,23 +135,36 @@ export default function Navbar() {
           {/* HAMBURGER / X */}
           <button
             onClick={() => setOpen((v) => !v)}
-            className="flex flex-col justify-center items-center w-8 h-8 group"
+            className="flex flex-col justify-center items-center w-8 h-8 group transition-all duration-300"
             aria-label="Toggle menu"
           >
             {open ? (
-              <span className={`text-[1.8rem] leading-none ${gold} font-light`}>
+              <span
+                className={`text-[1.8rem] leading-none font-light transition-colors duration-300
+        ${
+          inHero
+            ? "text-white group-hover:text-[#D4AF37]"
+            : `${gold} group-hover:text-white`
+        }`}
+              >
                 ✕
               </span>
             ) : (
               <div className="space-y-1.5">
                 <span
-                  className={`block w-6 h-[1px] ${goldBg} transition-all group-hover:w-8`}
+                  className={`block w-6 h-[1px] transition-all duration-300
+          ${inHero && !open ? "bg-white" : goldBg}
+          group-hover:bg-[#D4AF37] group-hover:w-8`}
                 />
                 <span
-                  className={`block w-8 h-[1px] ${goldBg} transition-all`}
+                  className={`block w-8 h-[1px] transition-all duration-300
+          ${inHero && !open ? "bg-white" : goldBg}
+          group-hover:bg-[#D4AF37]`}
                 />
                 <span
-                  className={`block w-5 h-[1px] ${goldBg} transition-all group-hover:w-8`}
+                  className={`block w-5 h-[1px] transition-all duration-300
+          ${inHero && !open ? "bg-white" : goldBg}
+          group-hover:bg-[#D4AF37] group-hover:w-8`}
                 />
               </div>
             )}
