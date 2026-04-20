@@ -115,7 +115,7 @@ export default function Navbar() {
         ${
           inHero && !open
             ? "bg-transparent border-transparent"
-            : "bg-[#0a0a0a] border-white/10 shadow-2xl"
+            : "bg-[#0a0a0a] border-white/10 "
         }`}
       >
         <a
