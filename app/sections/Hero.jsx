@@ -277,7 +277,7 @@ export default function Hero() {
         <motion.img
           src="/logos/logo2.png"
           alt="Center Logo"
-          className={`w-24 md:w-40 opacity-90 ${baseTransition} ${logoTransform}`}
+          className={`w-24 md:w-40 opacity-90 brightness-150 ${baseTransition} ${logoTransform}`}
           initial={{ opacity: 1, scale: 2, y: 20 }}
           animate={{ opacity: 1, scale: 2.2, y: 0 }}
           transition={{ duration: 0.5, ease: [0.77, 0, 0.175, 1] }}
