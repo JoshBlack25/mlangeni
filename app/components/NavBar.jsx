@@ -10,16 +10,16 @@ const NAV_COLUMNS = [
     image:
       "https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=700&q=80",
     links: [
-      "Wedding",
-      "Corporate",
-      "Private Party",
-      "Office Catering",
-      "Charity",
-      "Christmas",
-      "Venues",
-      "Catering",
-      "Menus",
-      "Real Events",
+      { label: "Wedding", href: "#wedding" },
+      { label: "Corporate", href: "#corporate" },
+      { label: "Private Party", href: "#private-party" },
+      { label: "Office Catering", href: "#office-catering" },
+      { label: "Charity", href: "#charity" },
+      { label: "Testimonials", href: "#testimonials" },
+      { label: "Venues", href: "#venues" },
+      { label: "Catering", href: "#catering" },
+      { label: "Menus", href: "#menus" },
+      { label: "Real Events", href: "#real-events" },
     ],
   },
   {
@@ -28,11 +28,11 @@ const NAV_COLUMNS = [
     image:
       "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=700&q=80",
     links: [
-      "Restaurants, Bars & Cafés",
-      "Managed Locations",
-      "Workplaces",
-      "Exclusive Event Venues",
-      "Partnerships",
+      { label: "Restaurants, Bars & Cafés", href: "#restaurants" },
+      { label: "Managed Locations", href: "#managed-locations" },
+      { label: "Workplaces", href: "#workplaces" },
+      { label: "Exclusive Event Venues", href: "#exclusive-venues" },
+      { label: "Partnerships", href: "#partnerships" },
     ],
   },
   {
@@ -40,14 +40,23 @@ const NAV_COLUMNS = [
     cta: "About Us",
     image:
       "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=700&q=80",
-    links: ["People", "Sustainability", "Creative Studio", "Latest News"],
+    links: [
+      { label: "People", href: "#people" },
+      { label: "Sustainability", href: "#sustainability" },
+      { label: "Creative Studio", href: "#creative-studio" },
+      { label: "Latest News", href: "#latest-news" },
+    ],
   },
   {
     title: "Get in Touch",
     cta: "Contact",
     image:
       "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=700&q=80",
-    links: ["Plan an Event", "Business Enquiries", "Careers"],
+    links: [
+      { label: "Plan an Event", href: "#plan-event" },
+      { label: "Business Enquiries", href: "#business-enquiries" },
+      { label: "Careers", href: "#careers" },
+    ],
   },
 ];
 
@@ -109,18 +118,26 @@ export default function Navbar() {
             : "bg-[#0a0a0a] border-white/10 shadow-2xl"
         }`}
       >
-        <motion.img
-          src="/logos/logoPNG.png"
-          alt="Logo"
-          initial={false}
-          animate={{
-            opacity: inHero && !open ? 0 : 1,
-            y: inHero && !open ? -20 : 0,
-            pointerEvents: inHero && !open ? "none" : "auto",
+        <a
+          href="#hero"
+          onClick={() => {
+            setOpen(false); // close menu if open
+            setActiveIndex(null);
           }}
-          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="h-24 md:h-32 object-contain brightness-110 pt-2"
-        />
+        >
+          <motion.img
+            src="/logos/logoPNG.png"
+            alt="Logo"
+            initial={false}
+            animate={{
+              opacity: inHero && !open ? 0 : 1,
+              y: inHero && !open ? -20 : 0,
+              pointerEvents: inHero && !open ? "none" : "auto",
+            }}
+            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            className="h-24 md:h-32 object-contain brightness-110 pt-2 cursor-pointer"
+          />
+        </a>
 
         <div className="flex items-center gap-8">
           {/* GET IN TOUCH */}
@@ -220,11 +237,17 @@ export default function Navbar() {
                             className="overflow-hidden pb-6 space-y-3"
                           >
                             {col.links.map((link) => (
-                              <li
-                                key={link}
-                                className="text-[0.9rem] text-white/50 hover:text-[#D4AF37]"
-                              >
-                                {link}
+                              <li key={link.label}>
+                                <a
+                                  href={link.href}
+                                  onClick={() => {
+                                    setOpen(false);
+                                    setActiveIndex(null);
+                                  }}
+                                  className="text-[0.9rem] text-white/60 hover:text-[#D4AF37]"
+                                >
+                                  {link.label}
+                                </a>
                               </li>
                             ))}
                           </motion.ul>
@@ -268,11 +291,17 @@ export default function Navbar() {
 
                     <ul className="flex flex-col space-y-4">
                       {col.links.map((link) => (
-                        <li
-                          key={link}
-                          className="text-[0.9rem] text-white/60 hover:text-[#D4AF37]"
-                        >
-                          {link}
+                        <li key={link.label}>
+                          <a
+                            href={link.href}
+                            onClick={() => {
+                              setOpen(false);
+                              setActiveIndex(null);
+                            }}
+                            className="text-[0.9rem] text-white/60 hover:text-[#D4AF37]"
+                          >
+                            {link.label}
+                          </a>
                         </li>
                       ))}
                     </ul>

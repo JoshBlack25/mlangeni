@@ -173,7 +173,10 @@ export default function Testimonial() {
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center bg-[#0a0a0a] relative overflow-hidden px-4 py-10 font-[Playfair_Display]">
+    <section
+      id="testimonials"
+      className="min-h-[80vh] flex items-center justify-center bg-[#0a0a0a] relative overflow-hidden px-4 py-10 font-[Playfair_Display] scroll-mt-20 md:scroll-mt-12.5"
+    >
       {/* ══════════ DESKTOP BACKGROUND DECORATIONS ══════════ */}
       <div className="hidden md:block absolute inset-0 pointer-events-none overflow-hidden">
         {/* Ambient Top Left Glow */}
@@ -495,7 +498,7 @@ export default function Testimonial() {
           </p>
         </div>
       </div>
-    </div>
+    </section>
   );
 }
 
