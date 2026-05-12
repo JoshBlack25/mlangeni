@@ -6,6 +6,8 @@ import About from "./sections/About";
 import Contact from "./sections/Contact";
 import NavBar from "./components/NavBar";
 import Footer from "./components/Footer";
+import EnquiryForm from "./sections/EnquiryForm";
+
 
 export default function Home() {
   return (
@@ -15,7 +17,8 @@ export default function Home() {
       <Calendar />
       <Gallery />
       <About />
-      <Contact />
+      {/* <Contact /> */}
+      <EnquiryForm />
       <Testimonial />
       <Footer />
     </>
