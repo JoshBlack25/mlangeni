@@ -4,12 +4,12 @@ import IMAGES from "../constants/image.js";
 
 function Carousel() {
     const CAROUSEL_SLIDES = [
-        { src: IMAGES.gildedCourse, caption: "The Gilded Course", label: "Curation 01" },
-        { src: IMAGES.winePouring, caption: "Precision in Motion", label: "Curation 02" },
-        { src: IMAGES.ingredients, caption: "Raw Perfection", label: "Curation 03" },
-        { src: IMAGES.gardenParty, caption: "Under the Stars", label: "Curation 04" },
-        { src: IMAGES.artisticFood, caption: "Colour & Chaos", label: "Curation 05" },
-        { src: IMAGES.handPlating, caption: "The Finishing Touch", label: "Curation 06" },
+        { src: IMAGES.diningTable, caption: "Your Perfect Night", label: "Curation 01" },
+        { src: IMAGES.food_2, caption: "Raw Perfection", label: "Curation 02" },
+        { src: IMAGES.food_3, caption: "Raw Perfection", label: "Curation 03" },
+        { src: IMAGES.food_8, caption: "Raw Perfection", label: "Curation 04" },
+        { src: IMAGES.food_5, caption: "Raw Perfection", label: "Curation 05" },
+        { src: IMAGES.food_7, caption: "The Finishing Touch", label: "Curation 06" },
     ];
 
     const [active, setActive] = React.useState(0);

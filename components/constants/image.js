@@ -1,21 +1,21 @@
 const IMAGES = {
-  hero:"/images/gallery-image1.png",
+  hero:"/images/gallery_images/gallery-hero.png",
 
-  gildedCourse:
-    "/images/gallery-image2.png",
-  winePouring:
-    "/images/gallery-image3.png",
-  ingredients:
-    "/images/gallery-image4.png",
-  gardenParty:
-    "/images/gallery-image5.png",
+  diningTable:
+    "/images/gallery_images/dining_table.jpeg",
+  food_2:
+    "/images/gallery_images/food_2.jpg",
+  food_3:
+    "/images/gallery_images/food_3.jpg",
+  food_8:
+    "/images/gallery_images/food_8.png",
 
-  artisticFood:
-    "/images/gallery-image6.png",
-  handPlating:
-    "/images/gallery-image7.png",
+  food_5:
+    "/images/gallery_images/food_5.png",
+  food_7:
+    "/images/gallery_images/food_7.jpg",
   showreel:
-    "/images/gallery-image8.png",
+    "/images/gallery_images/showreel_thumbnail.png",
 
 };
 

@@ -7,7 +7,7 @@ function Grid() {
             <div className="max-w-[1440px] mx-auto">
                 <div className="grid grid-cols-12 gap-8">
                     <div className="col-span-12 md:col-span-8 group relative overflow-hidden aspect-[16/10]">
-                        <img src={IMAGES.gildedCourse}
+                        <img src={IMAGES.diningTable}
                             className="w-full h-full object-cover grayscale hover:grayscale-0
                        transition-all duration-1000 group-hover:scale-105"/>
                     </div>
@@ -24,11 +24,11 @@ function Grid() {
 
                     {/*photo 3*/}
                     <div className="col-span-12 md:col-span-4 aspect-square">
-                        <img src={IMAGES.ingredients} className="w-full h-full object-cover" />
+                        <img src={IMAGES.food_3} className="w-full h-full object-cover" />
                     </div>
 
                     <div className="col-span-12 md:col-span-8 relative">
-                        <img src={IMAGES.gardenParty} className="w-full h-[500px] object-cover" />
+                        <img src={IMAGES.food_8} className="w-full h-[500px] object-cover" />
                     </div>
                 </div>
             </div>

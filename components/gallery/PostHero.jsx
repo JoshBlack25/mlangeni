@@ -1,6 +1,6 @@
 import IMAGES from "../constants/image.js";
 
-function PostGrid() {
+function PostHero() {
     return (
         <section className="bg-surface-container-lowest py-48">
             <div className="max-w-[1440px] mx-auto px-12 grid grid-cols-12 items-center gap-24">
@@ -16,12 +16,12 @@ function PostGrid() {
                 {/*first image*/}
                 <div className="col-span-12 md:col-span-7 grid grid-cols-2 gap-4">
                     <div className="mt-24">
-                        <img src={IMAGES.artisticFood} className="w-full h-[600px] object cover" />
+                        <img src={IMAGES.food_8} className="w-full h-[600px] object cover" />
                     </div>
 
                     {/*second image*/}
                     <div>
-                        <img src={IMAGES.handPlating} className="w-full h-[600px] object-cover" />
+                        <img src={IMAGES.food_7} className="w-full h-[600px] object-cover" />
                     </div>
                 </div>
             </div>
@@ -29,4 +29,4 @@ function PostGrid() {
     )
 }
 
-export default PostGrid;
+export default PostHero;
