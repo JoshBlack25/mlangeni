@@ -9,6 +9,7 @@ import DatePicker from "@/app/components/contact/DatePicker";
 import PhoneInputField from "@/app/components/contact/PhoneInputField";
 import SessionDropDown from "@/app/components/contact/SessionDropDown";
 import SuccessModal from "@/app/components/contact/SuccessModal";
+import Link from "next/link";
 
 const initialFormData = {
   name: "",
@@ -25,17 +26,29 @@ const ALL_SESSIONS = ["Morning", "Afternoon", "Evening/Night"];
 // Animation variants
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.1 } },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.1 },
+  },
 };
 
 const slideInLeft = {
   hidden: { opacity: 0, x: -60 },
-  visible: { opacity: 1, x: 0, transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.3 } },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.3 },
+  },
 };
 
 const slideInRight = {
   hidden: { opacity: 0, x: 60 },
-  visible: { opacity: 1, x: 0, transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.5 } },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.5 },
+  },
 };
 
 const staggerContainer = {
@@ -50,7 +63,11 @@ const staggerContainer = {
 
 const fieldFadeUp = {
   hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] },
+  },
 };
 
 export default function EnquiryForm() {
@@ -148,7 +165,8 @@ export default function EnquiryForm() {
     setErrors({});
   };
 
-  const labelClass = "text-[10px] tracking-[0.2em] uppercase text-[#D4AF37] font-bold";
+  const labelClass =
+    "text-[10px] tracking-[0.2em] uppercase text-[#D4AF37] font-bold";
 
   const inputClass = (hasError) =>
     `w-full bg-transparent border-b py-2 text-sm text-white placeholder-[#444] outline-none transition-all
@@ -204,7 +222,6 @@ export default function EnquiryForm() {
 
       <section className="bg-[#0a0a0a] text-white px-6 md:px-12 py-20 font-[Playfair_Display]">
         <div className="max-w-7xl mx-auto">
-
           {/* Heading — fades up first */}
           <motion.div
             className="mb-12"
@@ -224,7 +241,6 @@ export default function EnquiryForm() {
 
           {/* Two column layout */}
           <div className="flex flex-col lg:flex-row gap-12">
-
             {/* ── LEFT: Form slides in from left ── */}
             <motion.div
               className="flex-1"
@@ -242,7 +258,6 @@ export default function EnquiryForm() {
                 whileInView="visible"
                 viewport={{ once: true, amount: 0.1 }}
               >
-
                 {/* Name + Email */}
                 <motion.div
                   className="grid grid-cols-1 md:grid-cols-2 gap-8"
@@ -268,7 +283,9 @@ export default function EnquiryForm() {
                       placeholder="ALEXANDER@EXAMPLE.COM"
                       className={inputClass(errors.email)}
                     />
-                    {errors.email && <p className={errorClass}>{errors.email}</p>}
+                    {errors.email && (
+                      <p className={errorClass}>{errors.email}</p>
+                    )}
                   </div>
                 </motion.div>
 
@@ -292,7 +309,9 @@ export default function EnquiryForm() {
                         error={undefined}
                       />
                     </div>
-                    {errors.phone && <p className={errorClass}>{errors.phone}</p>}
+                    {errors.phone && (
+                      <p className={errorClass}>{errors.phone}</p>
+                    )}
                   </div>
                   <div className="flex flex-col gap-1">
                     <label className={labelClass}>Event Date</label>
@@ -311,7 +330,9 @@ export default function EnquiryForm() {
                         />
                       </div>
                     </div>
-                    {errors.eventDate && <p className={errorClass}>{errors.eventDate}</p>}
+                    {errors.eventDate && (
+                      <p className={errorClass}>{errors.eventDate}</p>
+                    )}
                   </div>
                 </motion.div>
 
@@ -338,7 +359,9 @@ export default function EnquiryForm() {
                         showBadges={false}
                       />
                     </div>
-                    {errors.session && <p className={errorClass}>{errors.session}</p>}
+                    {errors.session && (
+                      <p className={errorClass}>{errors.session}</p>
+                    )}
                   </div>
                   <div className="flex flex-col gap-1">
                     <label className={labelClass}>Number of Guests</label>
@@ -350,12 +373,17 @@ export default function EnquiryForm() {
                       min={1}
                       className={inputClass(errors.guests)}
                     />
-                    {errors.guests && <p className={errorClass}>{errors.guests}</p>}
+                    {errors.guests && (
+                      <p className={errorClass}>{errors.guests}</p>
+                    )}
                   </div>
                 </motion.div>
 
                 {/* Message */}
-                <motion.div className="flex flex-col gap-1" variants={fieldFadeUp}>
+                <motion.div
+                  className="flex flex-col gap-1"
+                  variants={fieldFadeUp}
+                >
                   <label className={labelClass}>Your Message</label>
                   <textarea
                     value={formData.message}
@@ -379,7 +407,6 @@ export default function EnquiryForm() {
                     {isSubmitting ? "Submitting..." : "Send Enquiry"}
                   </button>
                 </motion.div>
-
               </motion.form>
             </motion.div>
 
@@ -419,12 +446,16 @@ export default function EnquiryForm() {
                             <div className="flex items-center gap-2">
                               <span
                                 className={`w-1.5 h-1.5 rounded-full ${
-                                  isUnavailable ? "bg-red-500" : "bg-emerald-400"
+                                  isUnavailable
+                                    ? "bg-red-500"
+                                    : "bg-emerald-400"
                                 }`}
                               />
                               <span
                                 className={`text-[10px] tracking-[0.15em] uppercase font-bold ${
-                                  isUnavailable ? "text-red-400" : "text-emerald-400"
+                                  isUnavailable
+                                    ? "text-red-400"
+                                    : "text-emerald-400"
                                 }`}
                               >
                                 {isUnavailable ? "Unavailable" : "Available"}
@@ -458,12 +489,13 @@ export default function EnquiryForm() {
                     View our portfolio of extraordinary events and bespoke
                     catering experiences.
                   </p>
-                  <span className="text-[10px] tracking-[0.25em] uppercase text-[#D4AF37] border-b border-[#D4AF37] pb-0.5 hover:text-white hover:border-white transition-colors">
-                    View Gallery
-                  </span>
+                  <Link href="#gallery" scroll={true}>
+                    <span className="text-[10px] tracking-[0.25em] uppercase text-[#D4AF37] border-b border-[#D4AF37] pb-0.5 hover:text-white hover:border-white transition-colors cursor-pointer">
+                      View Gallery
+                    </span>
+                  </Link>
                 </div>
               </div>
-
             </motion.div>
           </div>
         </div>

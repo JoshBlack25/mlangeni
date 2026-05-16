@@ -8,19 +8,40 @@ import NavBar from "./components/NavBar";
 import Footer from "./components/Footer";
 import EnquiryForm from "./sections/EnquiryForm";
 
-
 export default function Home() {
   return (
     <>
-      <NavBar />
-      <Hero />
-      <Calendar />
-      <Gallery />
-      <About />
-      {/* <Contact /> */}
-      <EnquiryForm />
-      <Testimonial />
-      <Footer />
+      <section id="nav">
+        <NavBar />
+      </section>
+
+      <section id="hero">
+        <Hero />
+      </section>
+
+      <section id="calendar">
+        <Calendar />
+      </section>
+
+      <section id="gallery">
+        <Gallery />
+      </section>
+
+      <section id="about">
+        <About />
+      </section>
+
+      <section id="contact">
+        <EnquiryForm />
+      </section>
+
+      <section id="testimonial">
+        <Testimonial />
+      </section>
+
+      <section id="footer">
+        <Footer />
+      </section>
     </>
   );
 }
