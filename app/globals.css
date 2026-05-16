@@ -24,3 +24,672 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* LOGIN PAGE */
+
+.login-page {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 55% 45%;
+  background-image:
+    linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.78),
+      rgba(0, 0, 0, 0.58),
+      rgba(0, 0, 0, 0.92),
+      rgba(0, 0, 0, 1)
+    ),
+    url("/images/auth-bg.png");
+  background-size: cover;
+  background-position: center;
+  color: white;
+  font-family: Georgia, "Times New Roman", serif;
+  overflow: hidden;
+}
+
+.login-left {
+  padding: 34px 48px 34px 54px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.login-logo {
+  width: 235px;
+  height: auto;
+  display: block;
+}
+
+.login-left-content {
+  max-width: 600px;
+  margin-top: 10px;
+}
+
+.login-gold-text {
+  color: #c8a120;
+  font-size: 24px;
+  margin: 0 0 20px;
+}
+
+.login-left-content h1 {
+  font-size: 46px;
+  line-height: 1.03;
+  font-weight: 400;
+  margin: 0;
+}
+
+.login-line {
+  width: 150px;
+  height: 2px;
+  background: #c8a120;
+  margin: 14px 0 12px;
+}
+
+.login-description {
+  font-size: 22px;
+  line-height: 1.15;
+  margin: 0;
+  max-width: 610px;
+}
+
+.login-features {
+  display: grid;
+  grid-template-columns: 1fr 1.25fr 1.15fr;
+  max-width: 780px;
+  margin-top: 24px;
+}
+
+.login-feature {
+  padding-right: 20px;
+}
+
+.login-feature.border-left {
+  border-left: 1px solid #b99722;
+  padding-left: 18px;
+}
+
+.login-feature-icon {
+  color: #d4aa23;
+  font-size: 50px;
+  line-height: 1;
+  margin-bottom: 12px;
+}
+
+.login-feature h3 {
+  font-size: 22px;
+  font-weight: 400;
+  margin: 0 0 20px;
+  white-space: nowrap;
+}
+
+.login-feature p {
+  font-size: 17px;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.login-right {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 45px 78px 45px 40px;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.08),
+    rgba(0, 0, 0, 0.76),
+    rgba(0, 0, 0, 0.98)
+  );
+}
+
+.login-box {
+  width: 100%;
+  max-width: 590px;
+}
+
+.login-welcome {
+  color: #c8a120;
+  text-align: center;
+  font-size: 23px;
+  margin: 0 0 24px;
+}
+
+.login-box h2 {
+  text-align: center;
+  font-size: 45px;
+  line-height: 1.05;
+  font-weight: 400;
+  margin: 0 0 42px;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.login-input-group {
+  height: 62px;
+  border: 1.4px solid rgba(255, 255, 255, 0.9);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  padding: 0 22px;
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.login-input-icon {
+  font-size: 32px;
+  width: 48px;
+  color: white;
+}
+
+.login-input-group input {
+  flex: 1;
+  height: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: white;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 23px;
+}
+
+.login-input-group input::placeholder {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.login-eye {
+  color: white;
+  font-size: 28px;
+}
+
+.login-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 23px;
+  margin: 12px 0 22px;
+}
+
+.login-options label {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.login-options input {
+  width: 30px;
+  height: 30px;
+}
+
+.login-options a,
+.login-register-text a {
+  color: #c8a120;
+  text-decoration: none;
+}
+
+.login-button {
+  height: 62px;
+  border: none;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #b58d22, #dfbd37, #b58d22);
+  color: black;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 23px;
+  cursor: pointer;
+}
+
+.login-divider {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 50px;
+  margin: 30px 0 32px;
+}
+
+.login-divider span {
+  height: 1px;
+  background: white;
+}
+
+.login-divider p {
+  font-size: 23px;
+  margin: 0;
+}
+
+.login-google {
+  height: 62px;
+  width: 100%;
+  border: 1.4px solid rgba(255, 255, 255, 0.9);
+  border-radius: 6px;
+  background: transparent;
+  color: white;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 23px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  cursor: pointer;
+}
+
+.login-google strong {
+  font-family: Arial, sans-serif;
+  font-size: 34px;
+}
+
+.login-register-text {
+  text-align: center;
+  font-size: 22px;
+  margin: 48px 0 0;
+}
+
+@media (max-width: 1100px) {
+  .login-page {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+
+  .login-left {
+    display: none;
+  }
+
+  .login-right {
+    min-height: 100vh;
+    padding: 36px 24px;
+  }
+
+  .login-box h2 {
+    font-size: 38px;
+  }
+}
+/* =========================
+   MGH AUTH PAGES
+========================= */
+
+.mgh-auth-page {
+  min-height: 100vh;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 55% 45%;
+  background-image:
+    linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.78) 0%,
+      rgba(0, 0, 0, 0.58) 36%,
+      rgba(0, 0, 0, 0.88) 62%,
+      rgba(0, 0, 0, 1) 100%
+    ),
+    url("/images/auth-bg.png");
+  background-size: cover;
+  background-position: center;
+  color: #ffffff;
+  font-family: Georgia, "Times New Roman", serif;
+  overflow: hidden;
+}
+
+.mgh-auth-left {
+  min-height: 100vh;
+  padding: 30px 42px 32px 48px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.mgh-auth-logo {
+  width: 210px;
+  height: auto;
+  display: block;
+}
+
+.mgh-auth-copy {
+  max-width: 560px;
+  margin-top: 6px;
+}
+
+.mgh-gold {
+  color: #c8a022;
+  font-size: 21px;
+  margin: 0 0 17px;
+  line-height: 1;
+}
+
+.mgh-auth-copy h1 {
+  margin: 0;
+  color: #ffffff;
+  font-size: 39px;
+  line-height: 1.03;
+  font-weight: 400;
+}
+
+.mgh-line {
+  width: 125px;
+  height: 2px;
+  background: #c8a022;
+  margin: 12px 0 10px;
+}
+
+.mgh-auth-copy p:last-child {
+  margin: 0;
+  color: #ffffff;
+  font-size: 18.5px;
+  line-height: 1.18;
+  max-width: 560px;
+}
+
+.mgh-auth-features {
+  display: grid;
+  grid-template-columns: 1fr 1.25fr 1.1fr;
+  max-width: 710px;
+  margin-top: 22px;
+}
+
+.mgh-feature {
+  padding-right: 18px;
+}
+
+.mgh-feature.has-border {
+  border-left: 1px solid rgba(200, 160, 34, 0.85);
+  padding-left: 18px;
+}
+
+.mgh-feature-icon {
+  width: 46px;
+  height: 46px;
+  color: #d4aa24;
+  margin-bottom: 10px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.mgh-feature h3 {
+  margin: 0 0 16px;
+  color: #ffffff;
+  font-size: 18.5px;
+  line-height: 1.05;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.mgh-feature p {
+  margin: 0;
+  color: #ffffff;
+  font-size: 15.5px;
+  line-height: 1.12;
+}
+
+.mgh-auth-right {
+  min-height: 100vh;
+  padding: 38px 72px 38px 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.08),
+    rgba(0, 0, 0, 0.74) 34%,
+    rgba(0, 0, 0, 0.98) 100%
+  );
+}
+
+.mgh-auth-box {
+  width: 100%;
+  max-width: 530px;
+}
+
+.mgh-auth-small-title {
+  margin: 0 0 18px;
+  color: #c8a022;
+  text-align: center;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.mgh-auth-box h2 {
+  margin: 0 0 36px;
+  color: #ffffff;
+  text-align: center;
+  font-size: 39px;
+  line-height: 1.06;
+  font-weight: 400;
+}
+
+.mgh-auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 19px;
+}
+
+.mgh-input-box {
+  width: 100%;
+  height: 54px;
+  border: 1.2px solid rgba(255, 255, 255, 0.88);
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.16);
+  display: flex;
+  align-items: center;
+  padding: 0 18px;
+}
+
+.mgh-input-box.no-icon {
+  padding-left: 22px;
+}
+
+.mgh-field-icon {
+  width: 28px;
+  height: 28px;
+  margin-right: 26px;
+  color: rgba(255, 255, 255, 0.9);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+
+.mgh-input-box input {
+  flex: 1;
+  height: 100%;
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.92);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 19.5px;
+  font-weight: 400;
+}
+
+.mgh-input-box input::placeholder {
+  color: rgba(255, 255, 255, 0.56);
+  opacity: 1;
+  font-weight: 400;
+}
+
+.mgh-eye-btn {
+  width: 31px;
+  height: 31px;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.88);
+  padding: 0;
+  margin-left: 14px;
+  cursor: pointer;
+}
+
+.mgh-eye-btn svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.mgh-auth-options {
+  margin: 10px 0 19px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #ffffff;
+  font-size: 19px;
+  line-height: 1;
+}
+
+.mgh-auth-options label {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+}
+
+.mgh-auth-options input[type="checkbox"] {
+  appearance: none;
+  width: 25px;
+  height: 25px;
+  border: 1.7px solid rgba(255, 255, 255, 0.9);
+  background: transparent;
+  margin: 0;
+}
+
+.mgh-auth-options input[type="checkbox"]:checked {
+  background: #c8a022;
+  box-shadow: inset 0 0 0 5px #000000;
+}
+
+.mgh-auth-options a,
+.mgh-auth-bottom a {
+  color: #c8a022;
+  text-decoration: none;
+}
+
+.register-check {
+  justify-content: flex-start;
+  font-size: 17px;
+  margin-bottom: 12px;
+}
+
+.mgh-auth-main-btn {
+  width: 100%;
+  height: 54px;
+  border: none;
+  border-radius: 5px;
+  background:
+    linear-gradient(
+      120deg,
+      rgba(255, 255, 255, 0.09),
+      rgba(255, 255, 255, 0) 28%,
+      rgba(0, 0, 0, 0.08) 58%,
+      rgba(255, 255, 255, 0.08)
+    ),
+    linear-gradient(90deg, #b69025, #dfbd36, #b68d21);
+  color: #050505;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 19px;
+  cursor: pointer;
+}
+
+.mgh-divider {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 42px;
+  margin: 27px 0 28px;
+}
+
+.mgh-divider span {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.mgh-divider p {
+  margin: 0;
+  color: #ffffff;
+  font-size: 20px;
+}
+
+.mgh-google-btn {
+  width: 100%;
+  height: 54px;
+  border: 1.2px solid rgba(255, 255, 255, 0.88);
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.1);
+  color: #ffffff;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 19.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 26px;
+  cursor: pointer;
+}
+
+.mgh-google-icon {
+  font-family: Arial, sans-serif;
+  font-size: 29px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.mgh-auth-bottom {
+  margin: 42px 0 0;
+  color: #ffffff;
+  text-align: center;
+  font-size: 19px;
+  line-height: 1;
+}
+
+@media (max-width: 1100px) {
+  .mgh-auth-page {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+
+  .mgh-auth-left {
+    display: none;
+  }
+
+  .mgh-auth-right {
+    min-height: 100vh;
+    padding: 34px 22px;
+  }
+
+  .mgh-auth-box {
+    max-width: 500px;
+  }
+
+  .mgh-auth-box h2 {
+    font-size: 34px;
+  }
+}
+/* REGISTER PAGE FIX */
+
+.mgh-register-box {
+  max-width: 530px;
+}
+
+.mgh-register-title {
+  margin: 0 0 30px;
+  color: #ffffff;
+  text-align: center;
+  font-size: 39px;
+  line-height: 1.05;
+  font-weight: 400;
+}
+
+.mgh-register-box .mgh-auth-form {
+  gap: 19px;
+}
+
+.mgh-register-box .register-check {
+  margin: 8px 0 16px;
+}
+
+.mgh-register-box .mgh-auth-bottom {
+  margin-top: 26px;
+}
