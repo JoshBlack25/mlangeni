@@ -2,7 +2,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Playfair_Display } from "next/font/google";
 
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  display: "swap",
+});
+
+// Mock event database keyed by YYYY-MM-DD for demo/sample events
 const EVENT_DB = {
   "2026-03-13": [
     { id: 1, title: "Dara Wedding", time: "9:00–13:00", color: "#9e8329" },
@@ -17,6 +26,7 @@ const EVENT_DB = {
   ],
 };
 
+// Names for months used in headers and sidebar
 const MONTH_NAMES = [
   "January",
   "February",
@@ -32,17 +42,21 @@ const MONTH_NAMES = [
   "December",
 ];
 
+// Day-of-week labels and display limits
 const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const PILL_MAX = 2;
+const PILL_MAX = 2; // max event pills shown per cell before "+n more"
 
 const NOW = new Date();
 const TODAY_KEY = dateKey(NOW.getFullYear(), NOW.getMonth(), NOW.getDate());
 
+// Helper: produce a stable key string for a date in YYYY-MM-DD form
 function dateKey(year, month, day) {
   return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
 function buildCells(year, month) {
+  // Build an array of calendar cell objects for the given month/year.
+  // Includes preceding and trailing days to fill the week grid.
   const firstDow = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const daysInPrev = new Date(year, month, 0).getDate();
@@ -70,14 +84,18 @@ function buildCells(year, month) {
   return cells;
 }
 
-function CalendarCell({ cell }) {
+// CalendarCell: renders one day square, its events, and "today" marker
+function CalendarCell({ cell, index }) {
   const events = EVENT_DB[cell.key] || [];
   const isToday = cell.key === TODAY_KEY;
   const visible = events.slice(0, PILL_MAX);
   const extra = events.length - PILL_MAX;
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay: (index % 7) * 0.03 }}
       className={`flex min-h-[90px] flex-col overflow-hidden border border-white/5 p-2 ${
         cell.active ? "bg-[#111111] text-white" : "bg-[#0e0e0e] text-white/35"
       } ${events.length && cell.active ? "ring-1 ring-[#D4AF37]/20" : ""}`}
@@ -107,10 +125,11 @@ function CalendarCell({ cell }) {
           </span>
         ) : null}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
+// CalendarWidget: main calendar UI with header, navigation and the grid
 function CalendarWidget({ year, month, onPrev, onNext }) {
   const cells = useMemo(() => buildCells(year, month), [year, month]);
 
@@ -153,16 +172,26 @@ function CalendarWidget({ year, month, onPrev, onNext }) {
           ))}
         </div>
 
-        <div className="grid grid-cols-7 gap-px bg-white/10">
-          {cells.map((cell) => (
-            <CalendarCell key={cell.key} cell={cell} />
-          ))}
-        </div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={`${year}-${month}`}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+            className="grid grid-cols-7 gap-px bg-white/10"
+          >
+            {cells.map((cell, index) => (
+              <CalendarCell key={cell.key} cell={cell} index={index} />
+            ))}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );
 }
 
+// EventsSidebar: lists all events for the given month in a sidebar
 function EventsSidebar({ year, month }) {
   const monthEvents = useMemo(() => {
     const prefix = `${year}-${String(month + 1).padStart(2, "0")}-`;
@@ -185,9 +214,17 @@ function EventsSidebar({ year, month }) {
       {monthEvents.length === 0 ? (
         <p className="m-0 text-sm italic text-white/45">No events this month.</p>
       ) : (
-        <ul className="m-0 flex list-none flex-col gap-7 p-0">
-          {monthEvents.map((event) => (
-            <li key={event.id} className="flex items-start gap-3">
+        <motion.ul className="m-0 flex list-none flex-col gap-7 p-0" layout>
+          <AnimatePresence>
+            {monthEvents.map((event, index) => (
+              <motion.li
+                key={event.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3, delay: index * 0.05 }}
+                className="flex items-start gap-3"
+              >
               <span
                 className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full"
                 style={{ backgroundColor: event.color }}
@@ -200,14 +237,16 @@ function EventsSidebar({ year, month }) {
                   {event.time}
                 </p>
               </div>
-            </li>
-          ))}
-        </ul>
+            </motion.li>
+            ))}
+          </AnimatePresence>
+        </motion.ul>
       )}
     </aside>
   );
 }
 
+// Calendar: top-level container managing visible month and layout
 export default function Calendar() {
   const [cursor, setCursor] = useState({
     year: NOW.getFullYear(),
@@ -227,13 +266,13 @@ export default function Calendar() {
   };
 
   return (
-    <section className="w-full bg-[#0A0A0A] px-5 py-20 text-white md:px-8 md:py-28">
+    <section className={`w-full bg-[#0A0A0A] px-5 py-20 text-white md:px-8 md:py-28 ${playfair.className}`}>
       <div className="mx-auto w-full max-w-[1536px]">
         <div className="mb-10 max-w-3xl">
           <p className="mb-3 text-xs uppercase tracking-[0.3em] text-[#D4AF37]/80">
             Plan Ahead
           </p>
-          <h2 className="text-3xl font-bold md:text-5xl">
+          <h2 className="text-l font-regular md:text-xl">
             View upcoming dates and event details in one place.
           </h2>
         </div>
