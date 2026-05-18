@@ -11,7 +11,7 @@ function Hero() {
             <div className="absolute inset-0 bg-black/40" />
             <h1
                 className="absolute inset-0 flex items-center justify-center
-                 font-headline text-5xl md:text-7xl tracking-widest
+                 font-[Playfair_Display] text-5xl md:text-7xl tracking-widest
                  text-primary uppercase"
             >
             <p className="text-center">Our<br />Gallery</p>

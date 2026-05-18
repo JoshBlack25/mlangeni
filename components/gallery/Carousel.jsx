@@ -40,10 +40,10 @@ function Carousel() {
 
         <section className="bg-surface-container-lowest py-32 overflow-hidden">
             <div className="text-center mb-20 px-12">
-                <span className="font-label text-primary tracking-[0.4em] uppercase text-xs mb-4 block">
+                <span className="font-[Playfair_Display] text-primary tracking-[0.4em] uppercase text-xs mb-4 block">
                     OUR COLLECTION
                 </span>
-                <h2 className="font-headline text-5xl text-on-surface">
+                <h2 className="font-[Playfair_Display] text-5xl text-on-surface">
                     A Taste of Our Work
                 </h2>
             </div>
@@ -78,10 +78,10 @@ function Carousel() {
                             />
                             {isCenter && (
                                 <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-surface/90 to-transparent">
-                                    <span className="font-label text-primary text-xs tracking-widest uppercase block mb-1">
+                                    <span className="font-[Playfair_Display] text-primary text-xs tracking-widest uppercase block mb-1">
                                         {slide.label}
                                     </span>
-                                    <h3 className="font-headline text-2xl text-on-surface">
+                                    <h3 className="font-[Playfair_Display] text-2xl text-on-surface">
                                         {slide.caption}
                                     </h3>
                                 </div>

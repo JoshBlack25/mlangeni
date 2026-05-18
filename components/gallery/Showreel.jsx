@@ -7,7 +7,6 @@ function Showreel() {
     return (
         <section className="relative h-[716px] w-full overflow-hidden bg-surface">
 
-            {/* ── THUMBNAIL STATE ── */}
             {!playing && (
                 <>
                     <img
@@ -15,11 +14,11 @@ function Showreel() {
                         alt="Luxury event space with dramatic shadows and golden lighting"
                         className="w-full h-full object-cover"
                     />
-                    {/* Gradient */}
+    
                     <div className="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-transparent" />
-                    {/* Centred play button */}
+                    {/*play button */}
                     <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                        <h2 className="font-headline text-6xl text-white mb-8">
+                        <h2 className="font-[Playfair_Display] text-6xl text-white mb-8">
                             A Night in Motion
                         </h2>
                         <div className="flex items-center gap-6">
@@ -42,7 +41,7 @@ function Showreel() {
                                         <path d="M8 5v14l11-7z" />
                                     </svg>
                                 </span>
-                                <span className="font-label uppercase tracking-widest text-white text-sm">
+                                <span className="font-[Playfair_Display] uppercase tracking-widest text-white text-sm">
                                     Watch the Reel
                                 </span>
                             </button>
@@ -52,7 +51,7 @@ function Showreel() {
                 </>
             )}
 
-            {/* ── VIDEO STATE ── */}
+            
             {playing && (
                 <>
                     <video
@@ -65,7 +64,7 @@ function Showreel() {
                     <button
                         onClick={() => setPlaying(false)}
                         className="absolute top-6 right-6 flex items-center gap-2
-                       text-white font-label text-xs uppercase tracking-widest
+                       text-white font-[Playfair_Display] text-xs uppercase tracking-widest
                        border border-white/40 px-4 py-2
                        hover:border-primary hover:text-primary transition-colors cursor-pointer"
                     >
