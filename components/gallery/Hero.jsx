@@ -14,7 +14,7 @@ function Hero() {
                  font-headline text-5xl md:text-7xl tracking-widest
                  text-primary uppercase"
             >
-                Our Gallery
+            <p className="text-center">Our<br />Gallery</p>
             </h1>
         </section>
     )
