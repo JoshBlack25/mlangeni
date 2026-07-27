@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { CalendarDays, MapPin, ArrowUpRight } from "lucide-react";
-import { supabase1 } from "@/services/supabaseClient";
+import {supabase} from "@/services/supabaseClient";
 
 // Static placeholder — orders don't have a per-event photo in the schema yet
 const PLACEHOLDER_IMAGE = "/images/gallery_images/food_1.jpg";
@@ -49,7 +49,7 @@ export default function UpcomingEvents() {
     async function fetchEvents() {
       const today = new Date().toISOString().slice(0, 10);
 
-      const { data, error } = await supabase1
+      const { data, error } = await supabase
         .from("orders")
         .select(
           "order_id, status, event_date, event_location, event_type(event_name)",

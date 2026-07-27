@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ClipboardList, ArrowUpRight, ChevronRight } from "lucide-react";
-import { supabase1 } from "@/services/supabaseClient";
+import {supabase} from "@/services/supabaseClient";
 
 const currency = new Intl.NumberFormat("en-ZA", {
   style: "currency",
@@ -38,7 +38,7 @@ export default function RecentOrders() {
     async function fetchOrders() {
       setLoading(true);
 
-      const { data, error } = await supabase1
+      const { data, error } = await supabase
         .from("orders")
         .select(
           "order_id, status, total_price, event_date, event_type(event_name)",

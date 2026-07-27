@@ -161,3 +161,32 @@
     padding: 32px 22px;
   }
 }
+
+.mgh-spinner-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  gap: 18px;
+}
+
+.mgh-spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid rgba(255, 255, 255, 0.15);
+  border-top-color: #c8a022;
+  border-radius: 50%;
+  animation: mgh-spin 0.8s linear infinite;
+}
+
+.mgh-spinner-wrap p {
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 16px;
+}
+
+@keyframes mgh-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

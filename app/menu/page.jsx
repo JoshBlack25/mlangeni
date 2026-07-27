@@ -145,9 +145,12 @@ export default function MenuPage() {
 
   if (checkingAuth || loadingData) {
     return (
-      <div className="mgh-menu-page">
-        <p>Loading...</p>
+    <div className="mgh-menu-page">
+      <div className="mgh-spinner-wrap">
+        <div className="mgh-spinner"></div>
+        <p>Loading menu...</p>
       </div>
+    </div>
     );
   }
 
