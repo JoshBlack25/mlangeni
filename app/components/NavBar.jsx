@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 const NAV_COLUMNS = [
   {
@@ -88,7 +89,6 @@ const colVariants = {
 };
 
 const gold = "text-[#D4AF37]";
-const goldBorder = "border-[#D4AF37]";
 const goldBg = "bg-[#D4AF37]";
 
 export default function Navbar() {
@@ -106,6 +106,10 @@ export default function Navbar() {
     observer.observe(hero);
     return () => observer.disconnect();
   }, []);
+
+  // Same visibility rule the logo already uses — hidden and non-interactive
+  // while the hero is in view, revealed once you scroll past it.
+  const revealed = !inHero || open;
 
   return (
     <nav className="font-[Playfair_Display]">
@@ -149,15 +153,40 @@ export default function Navbar() {
           />
         </a>
 
-        <div className="flex items-center gap-8">
-          {/* GET IN TOUCH */}
-          <button
-            className={`text-[0.7rem] tracking-[0.3em] uppercase font-medium pb-1 transition-all duration-300 cursor-pointer border-b
-    ${inHero && !open ? "text-white border-white" : `${gold} ${goldBorder}`}
-    hover:text-[#D4AF37] hover:border-[#D4AF37]`}
+        <motion.div
+          initial={false}
+          animate={{
+            opacity: revealed ? 1 : 0,
+            y: revealed ? 0 : -20,
+            pointerEvents: revealed ? "auto" : "none",
+          }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          className="flex items-center gap-8"
+        >
+          {/* LOGIN */}
+          <Link
+            href="/login"
+            className="group relative pb-1 text-[0.7rem] tracking-[0.3em] uppercase font-medium cursor-pointer"
           >
-            Get in Touch
-          </button>
+            <span
+              className={`transition-colors duration-300 ${gold} group-hover:text-white`}
+            >
+              Login
+            </span>
+
+            {/* Underline draws in as the navbar reveals, then wipes on hover */}
+            <motion.span
+              aria-hidden
+              initial={false}
+              animate={{ scaleX: revealed ? 1 : 0 }}
+              transition={{
+                duration: 0.45,
+                ease: [0.22, 1, 0.36, 1],
+                delay: revealed ? 0.15 : 0,
+              }}
+              className={`absolute left-0 -bottom-0 h-px w-full origin-left ${goldBg} transition-colors duration-300 group-hover:bg-white`}
+            />
+          </Link>
 
           {/* HAMBURGER / X */}
           <button
@@ -167,36 +196,25 @@ export default function Navbar() {
           >
             {open ? (
               <span
-                className={`text-[1.8rem] leading-none font-light transition-colors duration-300
-        ${
-          inHero
-            ? "text-[#D4AF37] group-hover:text-[#D4AF37]"
-            : `${gold} group-hover:text-[#D4AF37]`
-        }`}
+                className={`text-[1.8rem] leading-none font-light transition-colors duration-300 ${gold} group-hover:text-white`}
               >
                 ✕
               </span>
             ) : (
               <div className="space-y-1.5">
                 <span
-                  className={`block w-6 h-[1px] transition-all duration-300
-          ${inHero && !open ? "bg-white" : goldBg}
-          group-hover:bg-[#D4AF37] group-hover:w-8`}
+                  className={`block w-6 h-[1px] transition-all duration-300 ${goldBg} group-hover:bg-white group-hover:w-8`}
                 />
                 <span
-                  className={`block w-8 h-[1px] transition-all duration-300
-          ${inHero && !open ? "bg-white" : goldBg}
-          group-hover:bg-[#D4AF37]`}
+                  className={`block w-8 h-[1px] transition-all duration-300 ${goldBg} group-hover:bg-white`}
                 />
                 <span
-                  className={`block w-5 h-[1px] transition-all duration-300
-          ${inHero && !open ? "bg-white" : goldBg}
-          group-hover:bg-[#D4AF37] group-hover:w-8`}
+                  className={`block w-5 h-[1px] transition-all duration-300 ${goldBg} group-hover:bg-white group-hover:w-8`}
                 />
               </div>
             )}
           </button>
-        </div>
+        </motion.div>
       </header>
 
       {/* OVERLAY */}
@@ -292,7 +310,7 @@ export default function Navbar() {
                           {col.title}
                         </h3>
                         <span
-                          className={`text-[0.6rem] tracking-[0.3em] uppercase ${gold} border-b ${goldBorder} pb-1`}
+                          className={`text-[0.6rem] tracking-[0.3em] uppercase ${gold} border-b border-[#D4AF37] pb-1`}
                         >
                           {col.cta}
                         </span>
