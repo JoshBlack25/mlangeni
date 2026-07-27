@@ -1,6 +1,70 @@
+"use client"
+
 import Link from "next/link";
+import {useState} from "react";
+import {useRouter} from "next/navigation"
+import {supabase} from "@/services/supabaseClient.ts"; //cant reach supabaseClient without @ for whatever reason, kill me
+
 
 export default function RegisterPage() {
+  const router = useRouter();
+
+  //declaring state variables for forms
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [address, setAddress] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [agreed, setAgreed] = useState(false);
+
+  //variable to account for erros during sign up process
+  const [error, setError] = useState(null);
+  const [message, setMessage] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  async function handleRegister(e){
+    e.preventDefault();
+    setError(null);
+    setMessage(null);
+
+    if(!agreed){
+      setError("cannot continue if terms and conditions are not agreed to");
+      return;
+    }
+
+    setLoading(true);
+
+    const {data, error: signUpError} = await supabase.auth.signUp({
+      email,
+      password,
+      
+      options: {
+        emailRedirectTo: `${window.location.origin}/login`,
+        data: {
+          first_name: firstName || null,
+          last_name: lastName || null,
+          phone_number: phoneNumber || null,
+          address: address || null,
+        },
+      },
+    });
+
+    setLoading(false);
+
+    if(signUpError){
+      setError(signUpError.message);
+      return;
+    }
+
+    if(data.session){
+      router.push("/login");
+    }else{
+      setMessage("Account Created! Check Your Email To Confirm and Log In.");
+    }
+  }
+
   return (
     <main className="mgh-auth-page">
       <section className="mgh-auth-left">
@@ -52,36 +116,83 @@ export default function RegisterPage() {
         <div className="mgh-auth-box mgh-register-box">
           <h2 className="mgh-register-title">Create Account</h2>
 
-          <form className="mgh-auth-form">
+          <form className="mgh-auth-form" onSubmit={handleRegister}>
             <div className="mgh-input-box no-icon">
-              <input type="text" placeholder="Full Name" />
+              <input type="text" 
+              placeholder="First Name"
+              value={firstName} 
+              onChange={(e) => setFirstName(e.target.value)}
+              />
             </div>
 
             <div className="mgh-input-box no-icon">
-              <input type="email" placeholder="Email address" />
+              <input type="text"
+               placeholder="Last Name"
+               value = {lastName}
+               onChange={(e) => setLastName(e.target.value)}
+                />
             </div>
 
             <div className="mgh-input-box no-icon">
-              <input type="tel" placeholder="Phone Number" />
+              <input type="tel"
+               placeholder="Phone Number"
+               value={phoneNumber}
+               onChange={(e) => setPhoneNumber(e.target.value)}
+               />
             </div>
 
             <div className="mgh-input-box no-icon">
-              <input type="password" placeholder="Password" />
+              <input type="text"
+               placeholder="Address"
+               value = {address}
+               onChange={(e) => setAddress(e.target.value)}
+               />
+            </div>
+            
 
-              <button type="button" className="mgh-eye-btn">
+            <div className="mgh-input-box no-icon">
+              <input type="email" placeholder="Email address"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+
+            <div className="mgh-input-box no-icon">
+              <input type={showPassword ? "text" : "password"}
+               placeholder="Password"
+               required
+               minLength={6}
+               value={password}
+               onChange={(e) => setPassword(e.target.value)}
+                />
+
+              <button 
+              type="button"
+               className="mgh-eye-btn"
+               onClick={() => setShowPassword((prev) => !prev)}
+               >
                 <EyeIcon />
               </button>
             </div>
 
             <div className="mgh-auth-options register-check">
               <label>
-                <input type="checkbox" />
+                <input 
+                type="checkbox" 
+                checked={agreed}
+                onChange={(e) => setAgreed(e.target.checked)}
+                />
                 <span>I agree to the Terms &amp; Conditions</span>
               </label>
             </div>
 
-            <button type="submit" className="mgh-auth-main-btn">
-              REGISTER
+            {error && <p className="mgh-auth-error">{error}</p>}
+            {message && <p className="mgh-auth-success">{message}</p>}
+
+
+            <button type="submit" className="mgh-auth-main-btn" disabled={loading}>
+              {loading ? "REGISTERING..." : "REGISTER"}
             </button>
           </form>
 

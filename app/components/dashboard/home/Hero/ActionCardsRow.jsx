@@ -28,7 +28,8 @@ const actions = [
   },
   {
     id: "packages",
-    href: "/dashboard/customer/packages",
+    // href: "/dashboard/customer/packages",
+    href: "/menu",
     title: "Browse Packages",
     subtitle: "Discover menus and hospitality packages.",
     icon: <UtensilsCrossed size={22} />,

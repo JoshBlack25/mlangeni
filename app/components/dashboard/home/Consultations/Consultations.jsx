@@ -9,7 +9,7 @@ import {
   CalendarCheck,
   CheckCircle2,
 } from "lucide-react";
-import { supabase1 } from "@/services/supabaseClient";
+import {supabase} from "@/services/supabaseClient";
 
 function getRelativeTime(dateStr) {
   const diffMs = Date.now() - new Date(dateStr).getTime();
@@ -56,7 +56,7 @@ export default function Consultations() {
   useEffect(() => {
     async function fetchConsultations() {
       const [recent, pending] = await Promise.all([
-        supabase1
+        supabase
           .from("consultations")
           .select(
             `
@@ -70,7 +70,7 @@ export default function Consultations() {
           )
           .order("updated_at", { ascending: false })
           .limit(2),
-        supabase1
+        supabase
           .from("consultations")
           .select("*", { count: "exact", head: true })
           .eq("status", "requested"),
