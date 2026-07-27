@@ -1,6 +1,36 @@
+"use client";
 import Link from "next/link";
+import {useRouter} from "next/navigation";
+import {useState} from "react";
+import {supabase} from "@/services/supabaseClient";
 
 export default function LoginPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const[error, setError] = useState(null);
+  const[loading, setLoading] = useState(false);
+
+  async function handleLogin(e){
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    const {error: signInError} = await supabase.auth.signInWithPassword({
+      email, 
+      password,
+    });
+
+    setLoading(false);
+
+    if(signInError){
+      setError(signInError.message);
+      return;
+    }
+
+    router.push("/menu")
+  }
+
   return (
     <main className="mgh-auth-page">
       <section className="mgh-auth-left">
@@ -53,15 +83,24 @@ export default function LoginPage() {
           <p className="mgh-auth-small-title">Welcome back</p>
           <h2>Sign in to your account</h2>
 
-          <form className="mgh-auth-form">
+          <form className="mgh-auth-form" onSubmit={handleLogin}>
             <div className="mgh-input-box">
               <UserIcon />
-              <input type="email" placeholder="Email address" />
+              <input type="email"
+               placeholder="Email address" 
+               required
+               value={email} onChange={(e)=>setEmail(e.target.value)}
+              />
             </div>
 
             <div className="mgh-input-box">
               <LockIcon />
-              <input type="password" placeholder="Password" />
+              <input type="password"
+               placeholder="Password"
+               required
+               value={password}
+               onChange={(e) => setPassword(e.target.value)} 
+               />
               <button type="button" className="mgh-eye-btn">
                 <EyeIcon />
               </button>
@@ -76,11 +115,11 @@ export default function LoginPage() {
               <Link href="#">Forgot password?</Link>
             </div>
 
-            <button type="submit" className="mgh-auth-main-btn">
-              SIGN IN
+            <button type="submit" className="mgh-auth-main-btn" disabled={loading}>
+              {loading ? "Signing In...": "SIGN IN"}
             </button>
           </form>
-
+          {error && <p className="error">{error}</p>}
           <div className="mgh-divider">
             <span></span>
             <p>OR</p>
