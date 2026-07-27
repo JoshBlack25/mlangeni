@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Receipt, ArrowUpRight, CheckCircle2 } from "lucide-react";
-import { supabase1 } from "@/services/supabaseClient";
+import {supabase} from "@/services/supabaseClient";
 
 const currency = new Intl.NumberFormat("en-ZA", {
   style: "currency",
@@ -39,7 +39,7 @@ export default function Invoices() {
 
   useEffect(() => {
     async function fetchInvoices() {
-      const { data, error } = await supabase1
+      const { data, error } = await supabase
         .from("invoices")
         .select(
           `

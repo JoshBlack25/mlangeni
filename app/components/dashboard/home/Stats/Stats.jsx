@@ -8,7 +8,7 @@ import {
   CalendarCheck,
 } from "lucide-react";
 import { useInView } from "framer-motion";
-import { supabase1 } from "@/services/supabaseClient";
+import {supabase} from "@/services/supabaseClient";
 import AnimatedNumber from "@/app/components/dashboard/shared/AnimatedNumber";
 
 const statConfig = [
@@ -33,20 +33,20 @@ export default function Stats() {
       const today = new Date().toISOString().slice(0, 10);
 
       const [pending, active, upcoming, total] = await Promise.all([
-        supabase1
+        supabase
           .from("consultations")
           .select("*", { count: "exact", head: true })
           .eq("status", "requested"),
-        supabase1
+        supabase
           .from("orders")
           .select("*", { count: "exact", head: true })
           .in("status", ["confirmed", "in_progress"]),
-        supabase1
+        supabase
           .from("orders")
           .select("*", { count: "exact", head: true })
           .gte("event_date", today)
           .neq("status", "cancelled"),
-        supabase1.from("orders").select("*", { count: "exact", head: true }),
+        supabase.from("orders").select("*", { count: "exact", head: true }),
       ]);
 
       const firstError =
