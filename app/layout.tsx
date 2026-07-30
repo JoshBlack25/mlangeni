@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
-import { Playfair_Display } from "next/font/google";
+import { Playfair_Display, Geist } from "next/font/google";
 import "./globals.css";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -22,7 +25,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${playfair.className} h-full antialiased`}
+      className={cn("h-full", "antialiased", playfair.className, "font-sans", geist.variable)}
     >
       <body className="min-h-full flex flex-col bg-[#0a0a0a] text-white">
         {children}

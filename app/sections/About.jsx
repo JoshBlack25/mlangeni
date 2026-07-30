@@ -65,7 +65,7 @@ export default function About() {
                   We’ve had the privilege of being part of many memorable
                   celebrations — take a look at{" "}
                   <Link
-                    href="/gallery"
+                    href="#gallery"
                     className="text-[#D4AF37] border-b border-[#D4AF37] hover:text-white hover:border-white transition-all duration-300"
                   >
                     some of the events we’ve brought to life
@@ -77,7 +77,7 @@ export default function About() {
                   Our approach is simple: understand your vision and deliver it
                   with care. When you’re ready, you can{" "}
                   <Link
-                    href="/contact"
+                    href="#contact"
                     className="text-[#D4AF37] border-b border-[#D4AF37] hover:text-white hover:border-white transition-all duration-300"
                   >
                     reach out to us and begin your journey
