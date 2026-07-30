@@ -1,13 +1,28 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { UserCircle, User, Settings, CircleHelp, LogOut } from "lucide-react";
 import Link from "next/link";
+import { supabase } from "@/services/supabaseClient";
 
 export default function ProfileMenu() {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const router = useRouter();
+
+  async function handleLogout() {
+    setOpen(false);
+
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error("Logout failed:", error);
+    } finally {
+      router.push("/");
+    }
+  }
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -75,8 +90,13 @@ export default function ProfileMenu() {
             />
 
             <div className="border-t border-[#1F1F1F]">
-              {/* TODO: wire supabase.auth.signOut() + redirect to /login */}
-              <MenuItem icon={<LogOut size={18} />} text="Logout" danger />
+              <button
+                onClick={handleLogout}
+                className="flex w-full items-center gap-3 px-5 py-4 text-left text-red-400 transition hover:bg-red-500/10"
+              >
+                <LogOut size={18} />
+                <span>Logout</span>
+              </button>
             </div>
           </motion.div>
         )}

@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
+import { supabase } from "@/services/supabaseClient";
 
 import {
   LayoutDashboard,
@@ -55,6 +56,19 @@ const links = [
 
 export default function Navbar({ isOpen, onClose }) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  async function handleLogout() {
+    onClose();
+
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error("Logout failed:", error);
+    } finally {
+      router.push("/");
+    }
+  }
 
   return (
     <AnimatePresence>
@@ -108,15 +122,7 @@ export default function Navbar({ isOpen, onClose }) {
               {/* RIGHT: LOGOUT */}
 
               <button
-                onClick={() => {
-                  onClose();
-
-                  // TODO:
-                  // Hook up real sign-out here.
-                  // Example:
-                  // await supabase.auth.signOut();
-                  // router.push("/login");
-                }}
+                onClick={handleLogout}
                 className="flex items-center gap-2 border-b-2 border-transparent pb-2 text-sm font-semibold tracking-wide text-red-400 transition-all duration-300 hover:border-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A09]"
               >
                 <LogOut size={18} />
