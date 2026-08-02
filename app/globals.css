@@ -18,6 +18,238 @@
     --foreground: #ededed;
   }
 }
+<<<<<<< Updated upstream
+=======
+
+.toggle-minimalist {
+  width: 56px;
+  height: 32px;
+  padding: 3px;
+  border-radius: 9999px;
+  border: 1px solid rgba(200, 160, 34, 0.25);
+  background: linear-gradient(180deg, rgba(248, 244, 230, 0.98), rgba(233, 228, 212, 0.95));
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    background 180ms ease,
+    border-color 180ms ease;
+}
+
+.toggle-minimalist:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+}
+
+.toggle-minimalist:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 3px rgba(200, 160, 34, 0.22),
+    0 10px 24px rgba(0, 0, 0, 0.08);
+}
+
+.toggle-minimalist.on {
+  border-color: rgba(200, 160, 34, 0.75);
+  background: linear-gradient(180deg, #e3c24f 0%, #c89d1b 100%);
+  box-shadow: 0 10px 24px rgba(200, 160, 34, 0.24);
+}
+
+.toggle-minimalist.off {
+  background: linear-gradient(180deg, rgba(248, 244, 230, 0.98), rgba(233, 228, 212, 0.95));
+}
+
+.toggle-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 9999px;
+  background: linear-gradient(180deg, #ffffff 0%, #f4f4f4 100%);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
+  transform: translateX(0);
+  transition:
+    transform 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.toggle-minimalist.on .toggle-thumb {
+  transform: translateX(24px);
+  background: linear-gradient(180deg, #fff7da 0%, #f5e08c 100%);
+  box-shadow: 0 3px 12px rgba(116, 88, 0, 0.22);
+}
+
+.profile-shell {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(200, 160, 34, 0.06), transparent 26%),
+    radial-gradient(circle at top right, rgba(200, 160, 34, 0.04), transparent 22%),
+    #0f0f0f;
+}
+
+.profile-heading {
+  color: #f3efe4;
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.profile-subheading {
+  color: rgba(201, 193, 170, 0.92);
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.profile-card {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(18, 18, 18, 0.985);
+  box-shadow: none;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease,
+    background 180ms ease;
+}
+
+.profile-card:hover {
+  border-color: rgba(200, 160, 34, 0.9);
+  box-shadow: 0 0 0 1px rgba(200, 160, 34, 0.3), 0 16px 40px rgba(0, 0, 0, 0.28);
+  transform: translateY(-2px);
+}
+
+.profile-card-title {
+  color: #f2c94c;
+  letter-spacing: 0.02em;
+}
+
+.profile-input {
+  border: 1px solid rgba(200, 160, 34, 0.16);
+  background: rgba(12, 12, 12, 0.96);
+  color: #f0eadc;
+}
+
+.profile-input:hover,
+.profile-input:focus {
+  border-color: rgba(200, 160, 34, 0.75);
+  box-shadow: 0 0 0 1px rgba(200, 160, 34, 0.16);
+}
+
+.profile-label {
+  color: rgba(201, 193, 170, 0.9);
+  letter-spacing: 0.04em;
+}
+
+.profile-text-action {
+  color: rgba(201, 193, 170, 0.9);
+  transition:
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.profile-text-action:hover,
+.profile-text-action:active {
+  color: #f6cf4f;
+  transform: translateY(-1px);
+}
+
+.profile-delete-action {
+  color: #ffffff;
+  transition:
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.profile-delete-action:hover,
+.profile-delete-action:active {
+  color: #ff4d4d;
+  transform: translateY(-1px);
+}
+
+.profile-address-card {
+  transition:
+    border-color 160ms ease,
+    transform 160ms ease,
+    background 160ms ease;
+}
+
+.profile-address-card:hover {
+  border-color: #d4aa24;
+}
+
+.profile-icon-action {
+  color: #ffffff;
+  transition:
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.profile-icon-action:hover,
+.profile-icon-action:active {
+  color: #f6cf4f;
+  transform: translateY(-1px);
+}
+
+.profile-address-delete-action:hover,
+.profile-address-delete-action:active {
+  color: #ff4d4d;
+}
+
+.profile-add-button {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(200, 160, 34, 0.72);
+  border-radius: 9999px;
+  color: #f2c94c;
+  background: rgba(15, 15, 15, 0.92);
+  transition:
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    background 160ms ease;
+}
+
+.profile-add-button:hover,
+.profile-add-button:active {
+  color: #f6cf4f;
+  border-color: #f6cf4f;
+  background: rgba(28, 22, 8, 0.96);
+  box-shadow: 0 0 0 1px rgba(200, 160, 34, 0.2), 0 10px 18px rgba(0, 0, 0, 0.22);
+  transform: translateY(-1px) scale(1.02);
+}
+
+.profile-add-button .material-symbols-outlined {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.profile-badge {
+  border-color: rgba(200, 160, 34, 0.42);
+  background: rgba(15, 15, 15, 0.96);
+  color: #f2c94c;
+}
+
+.profile-security-button {
+  border-color: rgba(200, 160, 34, 0.16);
+  background: rgba(12, 12, 12, 0.88);
+  color: #e8e1cf;
+}
+
+.profile-security-button:hover {
+  border-color: rgba(200, 160, 34, 0.84);
+}
+
+.profile-security-chevron {
+  color: rgba(201, 193, 170, 0.82);
+}
+
+.profile-security-button:hover .profile-security-chevron {
+  color: #f6cf4f;
+}
+/* =========================
+   MGH AUTH PAGES
+========================= */
+>>>>>>> Stashed changes
 
 body {
   background: var(--background);
