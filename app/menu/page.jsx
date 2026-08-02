@@ -167,7 +167,7 @@ export default function MenuPage() {
   return (
     <div className="mgh-menu">
       <div className="mgh-menu-page">
-        <h1>Choose a Menu</h1>
+        <h1>Choose a Package</h1>
         <div className="mgh-menu-line"></div>
 
         {premadeMenus.length === 0 && (
