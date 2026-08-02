@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/services/supabaseClient.ts";
+import { supabase } from "@/services/supabaseClient";
 import { PackageCalendar } from "@/app/components/PackageCalendar";
 import {
   Carousel,
