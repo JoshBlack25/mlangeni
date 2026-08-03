@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ClipboardList, ArrowUpRight, ChevronRight } from "lucide-react";
-import {supabase} from "@/services/supabaseClient";
+import { supabase } from "@/services/supabaseClient";
 
 const currency = new Intl.NumberFormat("en-ZA", {
   style: "currency",
