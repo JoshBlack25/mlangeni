@@ -27,11 +27,10 @@ const actions = [
     icon: <MessageCircleMore size={22} />,
   },
   {
-    id: "packages",
-    // href: "/dashboard/customer/packages",
-    href: "/menu",
-    title: "Browse Packages",
-    subtitle: "Discover menus and hospitality packages.",
+    id: "menu",
+    href: "/dashboard/customer/menu",
+    title: "Browse Menus",
+    subtitle: "Explore our selection of catering menus.",
     icon: <UtensilsCrossed size={22} />,
   },
   {
@@ -55,8 +54,12 @@ export default function ActionCardsRow() {
         setLockedId(null);
       }
     }
+
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, []);
 
   // Hover previews only apply when nothing is locked open

@@ -11,7 +11,6 @@ import {
   CreditCard,
   ShoppingCart,
   UtensilsCrossed,
-  MessageSquare,
   User,
   LogOut,
 } from "lucide-react";
@@ -43,14 +42,9 @@ const links = [
     href: "/dashboard/customer/booking",
   },
   {
-    title: "Packages",
+    title: "Menu",
     icon: UtensilsCrossed,
-    href: "/dashboard/customer/packages",
-  },
-  {
-    title: "Consultations",
-    icon: MessageSquare,
-    href: "/dashboard/customer/consultations",
+    href: "/dashboard/customer/menu",
   },
   {
     title: "Profile",
@@ -98,18 +92,11 @@ export default function Navbar({ isOpen, onClose }) {
                       key={item.title}
                       href={item.href}
                       onClick={onClose}
-                      className={`
-                        flex items-center gap-2
-                        border-b-2 pb-2
-                        text-sm font-medium tracking-wide
-                        transition-all duration-300
-                        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A09]
-                        ${
-                          active
-                            ? "border-[#D4AF37] text-[#D4AF37]"
-                            : "border-transparent text-[#A0A0A0] hover:border-[#D4AF37] hover:text-[#D4AF37]"
-                        }
-                      `}
+                      className={
+                        active
+                          ? "flex items-center gap-2 border-b-2 border-[#D4AF37] pb-2 text-sm font-medium tracking-wide text-[#D4AF37] transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A09]"
+                          : "flex items-center gap-2 border-b-2 border-transparent pb-2 text-sm font-medium tracking-wide text-[#A0A0A0] transition-all duration-300 hover:border-[#D4AF37] hover:text-[#D4AF37] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A09]"
+                      }
                     >
                       <Icon size={17} />
                       {item.title}
@@ -123,17 +110,14 @@ export default function Navbar({ isOpen, onClose }) {
               <button
                 onClick={() => {
                   onClose();
-                  // TODO: hook up real sign-out (Supabase auth.signOut(), redirect to /login)
+
+                  // TODO:
+                  // Hook up real sign-out here.
+                  // Example:
+                  // await supabase.auth.signOut();
+                  // router.push("/login");
                 }}
-                className="
-                  flex items-center gap-2
-                  border-b-2 border-transparent pb-2
-                  text-sm font-semibold tracking-wide
-                  text-red-400
-                  transition-all duration-300
-                  hover:border-red-400
-                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A09]
-                "
+                className="flex items-center gap-2 border-b-2 border-transparent pb-2 text-sm font-semibold tracking-wide text-red-400 transition-all duration-300 hover:border-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A09]"
               >
                 <LogOut size={18} />
                 Logout
