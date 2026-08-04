@@ -14,7 +14,7 @@ import {
 const actions = [
   {
     id: "booking",
-    href: "/dashboard/customer/bookings",
+    href: "/dashboard/customer/booking",
     title: "New Booking",
     subtitle: "Start planning your next event.",
     icon: <CalendarPlus size={22} />,
