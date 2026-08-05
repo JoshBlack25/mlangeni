@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { CalendarDays, MapPin, ArrowUpRight } from "lucide-react";
-import {supabase} from "@/services/supabaseClient";
+import { supabase } from "@/services/supabaseClient";
 
 // Static placeholder — orders don't have a per-event photo in the schema yet
 const PLACEHOLDER_IMAGE = "/images/gallery_images/food_1.jpg";
@@ -100,7 +100,7 @@ export default function UpcomingEvents() {
           Once you book your first event with us, it&apos;ll show up right here.
         </p>
         <Link
-          href="/dashboard/customer/bookings"
+          href="/dashboard/customer/booking"
           className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[#D4AF37] px-4 py-2 text-sm font-semibold text-black transition hover:bg-[#e0bd4a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A]"
         >
           Start a new booking
@@ -118,12 +118,12 @@ export default function UpcomingEvents() {
         : `in ${daysUntil} days`;
 
   return (
-    <Link
-      href={`/dashboard/customer/orders/${next.order_id}`}
-      className="group flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md transition-all duration-300 hover:border-[#D4AF37] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A]"
-    >
-      {/* HERO SLOT — next event */}
-      <div className="relative flex min-h-[220px] flex-1 flex-col justify-end overflow-hidden p-6">
+    <div className="group flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md transition-all duration-300 hover:border-[#D4AF37]">
+      {/* HERO SLOT — links to the individual next event */}
+      <Link
+        href={`/dashboard/customer/orders/${next.order_id}`}
+        className="relative flex min-h-[220px] flex-1 flex-col justify-end overflow-hidden p-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37]"
+      >
         <img
           src={PLACEHOLDER_IMAGE}
           alt=""
@@ -165,15 +165,16 @@ export default function UpcomingEvents() {
             </span>
           </div>
         </div>
-      </div>
+      </Link>
 
-      {/* MINI LIST — the events after that */}
+      {/* MINI LIST — the events after that, each links to its own order */}
       {upNext.length > 0 && (
         <div className="border-t border-white/10 bg-[#0A0A0A]/40">
           {upNext.map((event) => (
-            <div
+            <Link
               key={event.order_id}
-              className="flex items-center justify-between gap-3 border-b border-white/5 px-6 py-3 last:border-b-0"
+              href={`/dashboard/customer/orders/${event.order_id}`}
+              className="flex items-center justify-between gap-3 border-b border-white/5 px-6 py-3 last:border-b-0 transition-colors hover:bg-white/5"
             >
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-white">
@@ -191,18 +192,22 @@ export default function UpcomingEvents() {
               >
                 {statusLabel(event.status)}
               </span>
-            </div>
+            </Link>
           ))}
         </div>
       )}
 
-      <div className="flex items-center justify-between border-t border-white/10 px-6 py-3 text-sm font-medium text-[#D4AF37] transition-all duration-300 group-hover:gap-1">
+      {/* FOOTER — separate link, goes to the full orders list */}
+      <Link
+        href="/dashboard/customer/orders"
+        className="flex items-center justify-between border-t border-white/10 px-6 py-3 text-sm font-medium text-[#D4AF37] transition-all duration-300 hover:gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37]"
+      >
         View all events
         <ArrowUpRight
           size={16}
           className="transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
         />
-      </div>
-    </Link>
+      </Link>
+    </div>
   );
 }
