@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Bell,
@@ -15,7 +15,7 @@ import {
   X,
   ExternalLink,
 } from "lucide-react";
-import { supabase } from "@/services/supabaseClient";
+import { useNotifications } from "./hooks/useNotifications";
 
 const filters = ["All", "Unread"];
 
@@ -70,256 +70,24 @@ function formatFullDate(dateString) {
 }
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState([]);
   const [activeFilter, setActiveFilter] = useState("All");
   const [selectedNotification, setSelectedNotification] = useState(null);
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  /*
-   * ============================================================
-   * LOAD NOTIFICATIONS + REALTIME
-   * ============================================================
-   */
-
-  useEffect(() => {
-    let channel = null;
-    let mounted = true;
-
-    async function loadNotifications() {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const {
-          data: { user },
-          error: userError,
-        } = await supabase.auth.getUser();
-
-        if (userError) {
-          throw userError;
-        }
-
-        if (!user) {
-          if (mounted) {
-            setNotifications([]);
-          }
-
-          return;
-        }
-
-        /*
-         * ============================================================
-         * 1. GET EXISTING NOTIFICATIONS
-         * ============================================================
-         */
-
-        const { data, error: notificationError } = await supabase
-          .from("notifications")
-          .select(
-            `
-            notification_id,
-            user_id,
-            title,
-            message,
-            is_read,
-            created_at,
-            updated_at
-          `,
-          )
-          .eq("user_id", user.id)
-          .order("created_at", {
-            ascending: false,
-          });
-
-        if (notificationError) {
-          throw notificationError;
-        }
-
-        if (mounted) {
-          setNotifications(data || []);
-        }
-
-        /*
-         * ============================================================
-         * 2. CREATE REALTIME CHANNEL
-         * ============================================================
-         *
-         * IMPORTANT:
-         *
-         * .on() MUST be called BEFORE .subscribe()
-         */
-
-        const channelName = `customer-notifications-${user.id}-${Date.now()}`;
-
-        channel = supabase
-          .channel(channelName)
-          .on(
-            "postgres_changes",
-            {
-              event: "INSERT",
-              schema: "public",
-              table: "notifications",
-              filter: `user_id=eq.${user.id}`,
-            },
-            (payload) => {
-              console.log("🔔 New notification received:", payload.new);
-
-              if (!mounted) {
-                return;
-              }
-
-              setNotifications((current) => {
-                const alreadyExists = current.some(
-                  (notification) =>
-                    notification.notification_id ===
-                    payload.new.notification_id,
-                );
-
-                if (alreadyExists) {
-                  return current;
-                }
-
-                return [payload.new, ...current];
-              });
-            },
-          )
-          .on(
-            "postgres_changes",
-            {
-              event: "UPDATE",
-              schema: "public",
-              table: "notifications",
-              filter: `user_id=eq.${user.id}`,
-            },
-            (payload) => {
-              console.log("🔔 Notification updated:", payload.new);
-
-              if (!mounted) {
-                return;
-              }
-
-              setNotifications((current) =>
-                current.map((notification) =>
-                  notification.notification_id === payload.new.notification_id
-                    ? payload.new
-                    : notification,
-                ),
-              );
-
-              /*
-               * If the notification is currently open in the modal,
-               * update the modal as well.
-               */
-              setSelectedNotification((current) => {
-                if (current?.notification_id === payload.new.notification_id) {
-                  return payload.new;
-                }
-
-                return current;
-              });
-            },
-          )
-          .on(
-            "postgres_changes",
-            {
-              event: "DELETE",
-              schema: "public",
-              table: "notifications",
-              filter: `user_id=eq.${user.id}`,
-            },
-            (payload) => {
-              console.log("🔔 Notification deleted:", payload.old);
-
-              if (!mounted) {
-                return;
-              }
-
-              setNotifications((current) =>
-                current.filter(
-                  (notification) =>
-                    notification.notification_id !==
-                    payload.old.notification_id,
-                ),
-              );
-
-              setSelectedNotification((current) => {
-                if (current?.notification_id === payload.old.notification_id) {
-                  return null;
-                }
-
-                return current;
-              });
-            },
-          );
-
-        /*
-         * ============================================================
-         * 3. SUBSCRIBE ONLY AFTER ALL CALLBACKS ARE REGISTERED
-         * ============================================================
-         */
-
-        channel.subscribe((status) => {
-          console.log(`📡 Notifications realtime status: ${status}`);
-
-          if (status === "SUBSCRIBED") {
-            console.log("✅ Customer notifications realtime connected");
-          }
-
-          if (status === "CHANNEL_ERROR") {
-            console.error("❌ Customer notifications realtime channel error");
-          }
-
-          if (status === "TIMED_OUT") {
-            console.error(
-              "❌ Customer notifications realtime connection timed out",
-            );
-          }
-        });
-      } catch (err) {
-        console.error("Notifications error:", err);
-
-        if (mounted) {
-          setError("We couldn't load your notifications. Please try again.");
-        }
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    }
-
-    loadNotifications();
-
-    /*
-     * ============================================================
-     * CLEANUP
-     * ============================================================
-     */
-
-    return () => {
-      mounted = false;
-
-      if (channel) {
-        console.log("🧹 Removing customer notifications realtime channel");
-
-        supabase.removeChannel(channel);
-        channel = null;
-      }
-    };
-  }, []);
+  const {
+    notifications,
+    unreadCount,
+    loading,
+    error,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+  } = useNotifications();
 
   /*
    * ============================================================
    * COUNTS / FILTERING
    * ============================================================
    */
-
-  const unreadCount = notifications.filter(
-    (notification) => !notification.is_read,
-  ).length;
-
   const filteredNotifications = useMemo(() => {
     if (activeFilter === "Unread") {
       return notifications.filter((notification) => !notification.is_read);
@@ -330,136 +98,23 @@ export default function NotificationsPage() {
 
   /*
    * ============================================================
-   * MARK AS READ
-   * ============================================================
-   */
-
-  async function markAsRead(notificationId) {
-    const { error } = await supabase
-      .from("notifications")
-      .update({
-        is_read: true,
-      })
-      .eq("notification_id", notificationId);
-
-    if (error) {
-      console.error("Unable to mark notification as read:", error);
-      return;
-    }
-
-    /*
-     * Optimistic/local update.
-     */
-    setNotifications((current) =>
-      current.map((notification) =>
-        notification.notification_id === notificationId
-          ? {
-              ...notification,
-              is_read: true,
-            }
-          : notification,
-      ),
-    );
-
-    setSelectedNotification((current) => {
-      if (current?.notification_id === notificationId) {
-        return {
-          ...current,
-          is_read: true,
-        };
-      }
-
-      return current;
-    });
-  }
-
-  /*
-   * ============================================================
    * OPEN NOTIFICATION
    * ============================================================
    *
    * Opening an unread notification automatically marks it
    * as read.
    */
-
   async function openNotification(notification) {
-    setSelectedNotification(notification);
+    const updatedNotification = {
+      ...notification,
+      is_read: true,
+    };
+
+    setSelectedNotification(updatedNotification);
 
     if (!notification.is_read) {
       await markAsRead(notification.notification_id);
     }
-  }
-
-  /*
-   * ============================================================
-   * MARK ALL AS READ
-   * ============================================================
-   */
-
-  async function markAllAsRead() {
-    const unreadIds = notifications
-      .filter((notification) => !notification.is_read)
-      .map((notification) => notification.notification_id);
-
-    if (unreadIds.length === 0) {
-      return;
-    }
-
-    const { error } = await supabase
-      .from("notifications")
-      .update({
-        is_read: true,
-      })
-      .in("notification_id", unreadIds);
-
-    if (error) {
-      console.error("Unable to mark all notifications as read:", error);
-      return;
-    }
-
-    setNotifications((current) =>
-      current.map((notification) => ({
-        ...notification,
-        is_read: true,
-      })),
-    );
-
-    setSelectedNotification((current) => {
-      if (!current) {
-        return null;
-      }
-
-      return {
-        ...current,
-        is_read: true,
-      };
-    });
-  }
-
-  /*
-   * ============================================================
-   * DELETE
-   * ============================================================
-   */
-
-  async function deleteNotification(notificationId) {
-    const { error } = await supabase
-      .from("notifications")
-      .delete()
-      .eq("notification_id", notificationId);
-
-    if (error) {
-      console.error("Unable to delete notification:", error);
-      return;
-    }
-
-    setNotifications((current) =>
-      current.filter(
-        (notification) => notification.notification_id !== notificationId,
-      ),
-    );
-
-    setSelectedNotification(null);
   }
 
   /*
@@ -811,9 +466,12 @@ export default function NotificationsPage() {
               <div className="flex items-center justify-between border-t border-[#1F1F1F] px-6 py-5 md:px-8">
                 <button
                   type="button"
-                  onClick={() =>
-                    deleteNotification(selectedNotification.notification_id)
-                  }
+                  onClick={async () => {
+                    await deleteNotification(
+                      selectedNotification.notification_id,
+                    );
+                    setSelectedNotification(null);
+                  }}
                   className="flex items-center gap-2 text-sm text-[#666666] transition hover:text-red-400"
                 >
                   <Trash2 size={15} />

@@ -1,4 +1,4 @@
-import Menu from "./menu";
+import MenuPage from "./menu";
 export default function Page() {
-  return <Menu />;
+  return <MenuPage />;
 }
