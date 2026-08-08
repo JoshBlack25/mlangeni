@@ -8,8 +8,8 @@ import {
   CalendarCheck,
 } from "lucide-react";
 import { useInView } from "framer-motion";
-import {supabase} from "@/services/supabaseClient";
-import AnimatedNumber from "@/app/components/dashboard/shared/AnimatedNumber";
+import { supabase } from "@/services/supabaseClient";
+import AnimatedNumber from "../../shared/AnimatedNumber";
 
 const statConfig = [
   {

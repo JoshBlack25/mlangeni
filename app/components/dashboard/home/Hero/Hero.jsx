@@ -1,13 +1,34 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import BlurText from "@/app/components/dashboard/shared/BlurText";
 import ActionCardsRow from "./ActionCardsRow";
+import { supabase } from "@/services/supabaseClient";
 
 export default function Hero() {
-  // Mock user for now
-  const user = {
-    firstName: "Joshua",
-  };
+  const [firstName, setFirstName] = useState(null);
+
+  useEffect(() => {
+    async function loadCustomer() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) return;
+
+      const { data } = await supabase
+        .from("customer")
+        .select("first_name")
+        .eq("user_id", user.id)
+        .single();
+
+      if (data?.first_name) {
+        setFirstName(data.first_name);
+      }
+    }
+
+    loadCustomer();
+  }, []);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -37,7 +58,8 @@ export default function Hero() {
         {/* GREETING */}
         <div>
           <p className="mb-3 text-lg font-medium text-[#D4AF37]">
-            {getGreeting()}, {user.firstName}
+            {getGreeting()}
+            {firstName ? `, ${firstName}` : ""}
           </p>
 
           <p className="text-lg text-[#A0A0A0]">Welcome back to</p>

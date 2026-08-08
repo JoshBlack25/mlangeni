@@ -12,20 +12,23 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 
-export function PackageCalendar() {
-  const [date, setDate] = React.useState();
+export function PackageCalendar({value, onChange}) {
+  const [open, setOpen] = React.useState(false);
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild> 
-        <Button variant="outline" data-empty={!date} className="mgh-date-btn">{date ? format(date, "PPP") : <span>Pick a date</span>}<ChevronDownIcon data-icon="inline-end" /></Button>
+        <Button type="button" variant="outline" data-empty={!value} className="mgh-date-btn">{value ? format(value, "PPP") : <span>Pick a date</span>}<ChevronDownIcon data-icon="inline-end" /></Button>
         </PopoverTrigger>
       <PopoverContent className="mgh-date-popover w-auto p-0" align="start">
         <Calendar
           mode="single"
-          selected={date}
-          onSelect={setDate}
-          defaultMonth={date}
+          selected={value}
+          onSelect={(selectedDate)=>{
+            onChange(selectedDate);
+            setOpen(false);
+          }}
+          defaultMonth={value}
         />
       </PopoverContent>
     </Popover>

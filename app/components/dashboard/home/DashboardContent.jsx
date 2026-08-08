@@ -4,7 +4,7 @@ import Hero from "./Hero/Hero";
 import Stats from "./Stats/Stats";
 import UpcomingEvents from "./UpcomingEvents/UpcomingEvents";
 import Invoices from "./Invoices/Invoices";
-import Consultations from "./Consultations/Consultations";
+import Enquiries from "./Enquiries/Enquiries";
 import Testimonials from "./Testimonials/Testimonials";
 import RecentOrders from "./RecentOrders/RecentOrders";
 import DashboardFooter from "./DashboardFooter";
@@ -28,7 +28,7 @@ export default function DashboardContent() {
             <Invoices />
           </div>
           <div className="flex-1">
-            <Consultations />
+            <Enquiries />
           </div>
         </div>
 
