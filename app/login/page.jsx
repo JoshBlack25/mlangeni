@@ -1,9 +1,8 @@
 "use client";
 import Link from "next/link";
-import {redirect, useRouter} from "next/navigation";
+import {useRouter} from "next/navigation";
 import {useState} from "react";
 import {supabase} from "@/services/supabaseClient";
-import { createClient } from "@supabase/supabase-js";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -30,24 +29,6 @@ export default function LoginPage() {
     }
 
     router.push("/dashboard/customer")
-  }
-
-  async function handleLoginGoogle(e){
-    e.preventDefault();
-    setError(null);
-
-
-    const {error: signInError} = await supabase.auth.signInWithOAuth({
-            provider: 'google',
-            options: {
-              redirectTo: `${window.location.origin}/dashboard/customer`,
-            },
-          });
-
-        if(signInError){
-        setError(signInError.message);
-      }
-    
   }
 
   return (
@@ -145,7 +126,7 @@ export default function LoginPage() {
             <span></span>
           </div>
 
-          <button className="mgh-google-btn" onClick={handleLoginGoogle}>
+          <button className="mgh-google-btn">
             <GoogleIcon />
             <span>Continue with Google</span>
           </button>
