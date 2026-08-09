@@ -97,7 +97,7 @@ export default function Navbar({ isOpen, onClose }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute left-0 right-0 top-20 z-40 border-b border-[#1F1F1F] bg-[#0A0A0A]"
+            className="fixed left-0 right-0 top-20 z-40 border-b border-[#1F1F1F] bg-[#0A0A0A]"
           >
             <div className="mx-auto flex max-w-[1700px] items-center justify-between px-10 py-5">
               {/* LEFT: LINKS */}
