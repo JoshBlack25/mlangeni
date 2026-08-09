@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import BookingSuccessModal from "@/app/components/dashboard/customer/BookingSuccessModal";
 import { supabase } from "@/services/supabaseClient";
 import { useMenu } from "./MenuContext";
 import { rowDisplayName } from "./constants";
@@ -12,6 +13,8 @@ export function QuoteStep() {
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState("");
   const [sendErrors, setSendErrors] = useState({});
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successSummary, setSuccessSummary] = useState("");
 
   const categories = [
     { label: "Starters", items: state.selections.starters },
@@ -117,6 +120,10 @@ export function QuoteStep() {
         if (cmiErr) throw new Error(cmiErr.message);
       }
 
+      setSuccessSummary(
+        `Quote request submitted for ${selectedEventType ? rowDisplayName(selectedEventType, "event_id") : "your event"} with ${guests} guest${guests === 1 ? "" : "s"}.`,
+      );
+      setShowSuccessModal(true);
       dispatch({ type: "SEND_QUOTE" });
     } catch (err) {
       setSendError(err.message || "An unexpected error occurred.");
@@ -125,36 +132,19 @@ export function QuoteStep() {
     }
   };
 
-  if (state.quoteSent) {
-    return (
-      <div className="mx-auto max-w-xl border border-[#D4AF37]/40 bg-[#111111] p-10 text-center">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-[#D4AF37] bg-[#D4AF37]/10 text-[#D4AF37]">
-          <Check size={32} />
-        </div>
-
-        <h2 className="mt-6 font-serif text-3xl font-medium text-white">
-          Quote Request Received
-        </h2>
-
-        <p className="mt-4 text-sm leading-7 text-[#A0A0A0]">
-          Thank you, <strong className="text-white">{state.contactName}</strong>
-          . Your custom menu request has been placed. Our team will prepare a
-          formal estimate and contact you shortly.
-        </p>
-
-        <button
-          type="button"
-          onClick={() => dispatch({ type: "RESET" })}
-          className="mt-8 border border-[#D4AF37] bg-[#D4AF37] px-8 py-3 text-xs font-semibold uppercase tracking-widest text-black transition-all hover:bg-transparent hover:text-[#D4AF37]"
-        >
-          Build Another Menu
-        </button>
-      </div>
-    );
-  }
-
   return (
     <div>
+      <BookingSuccessModal
+        isOpen={showSuccessModal}
+        title="Your menu request is in"
+        message="Your custom booking has been submitted. You can return to the dashboard or jump straight to your orders page to review it again."
+        orderLabel={successSummary || "Your quote request has been sent."}
+        onClose={() => {
+          setShowSuccessModal(false);
+          dispatch({ type: "RESET" });
+        }}
+      />
+
       <div className="mb-8">
         <h2 className="font-serif text-3xl font-medium tracking-tight text-white md:text-4xl">
           Menu & Quote Summary
