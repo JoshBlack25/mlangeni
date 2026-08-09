@@ -76,9 +76,9 @@ export default function CompleteProfilePage(){
     router.push("/dashboard/customer");
     }
 
-    // if(checking){    
-    //     return <p>Loading...</p>; not necessary and im lazy, i dont wanna make css for this
-    // }
+    if(checking){    
+        return <p>Loading...</p>;
+    }
 
     return(
     <main className="mgh-auth-page">
