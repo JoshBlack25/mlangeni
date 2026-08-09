@@ -65,6 +65,22 @@ export default function RegisterPage() {
     }
   }
 
+  async function handleRegisterGoogle(e){
+    e.preventDefault();
+    setError(null);
+
+    const {error: signInError} = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/complete-profile`,
+      },
+    });
+
+    if (signInError){
+      setError(signInError.message);
+    }
+  }
+
   return (
     <main className="mgh-auth-page">
       <section className="mgh-auth-left">
@@ -202,7 +218,7 @@ export default function RegisterPage() {
             <span></span>
           </div>
 
-          <button className="mgh-google-btn">
+          <button className="mgh-google-btn" onClick={handleRegisterGoogle}>
             <GoogleIcon />
             <span>Continue with Google</span>
           </button>
