@@ -1,25 +1,41 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  BadgeCheck,
+  Bell,
+  ChevronRight,
+  CreditCard,
+  Home,
+  LockKeyhole,
+  Mail,
+  MapPin,
+  PencilLine,
+  Phone,
+  ShieldCheck,
+  Trash2,
+  UserCircle2,
+} from "lucide-react";
 import { supabase } from "@/services/supabaseClient";
-import Header from "@/app/components/dashboard/layout/Header";
 import DashboardFooter from "@/app/components/dashboard/customer/home/DashboardFooter";
 
-// TODO: swap this for the authenticated user's row from Supabase
-// (e.g. via a server component fetch or a `useUser()` hook).
 const MOCK_ADDRESSES = [
   { id: "home", label: "Home", line: "12 Kloof St, Cape Town" },
   { id: "work", label: "Work", line: "88 Bree St, Cape Town" },
 ];
 
 const MOCK_PAYMENT_METHOD = {
-  id: "pm_1",
   brand: "Visa",
   last4: "4821",
   isDefault: true,
 };
 
+const inputClassName =
+  "w-full rounded-xl border border-white/10 bg-[#101010] px-4 py-3 text-sm text-white outline-none transition focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20";
+
+const labelClassName =
+  "mb-2 block text-[11px] uppercase tracking-[0.18em] text-[#A0A0A0]";
 function CreditCardIcon(props) {
   return (
     <svg
@@ -97,7 +113,7 @@ function ChevronRightIcon(props) {
   );
 }
 
-export default function profile() {
+export default function ProfilePage() {
   const router = useRouter();
 
   const [customerProfile, setCustomerProfile] = useState({
@@ -105,6 +121,7 @@ export default function profile() {
     lastName: "",
     email: "",
     phone: "",
+    createdAt: null,
   });
 
   const [notificationsOn, setNotificationsOn] = useState(true);
@@ -112,6 +129,33 @@ export default function profile() {
   const [profileError, setProfileError] = useState(null);
   const [profileSuccess, setProfileSuccess] = useState(null);
   const [savingProfile, setSavingProfile] = useState(false);
+
+  const displayName = useMemo(() => {
+    const name =
+      `${customerProfile.firstName} ${customerProfile.lastName}`.trim();
+
+    return name || "Customer profile";
+  }, [customerProfile.firstName, customerProfile.lastName]);
+
+  const memberSince = useMemo(() => {
+    if (!customerProfile.createdAt) {
+      return "Member since recently";
+    }
+
+    return `Member since ${new Date(
+      customerProfile.createdAt,
+    ).toLocaleDateString("en-ZA", {
+      month: "short",
+      year: "numeric",
+    })}`;
+  }, [customerProfile.createdAt]);
+
+  const initials =
+    [customerProfile.firstName, customerProfile.lastName]
+      .filter(Boolean)
+      .map((value) => value.charAt(0).toUpperCase())
+      .join("")
+      .slice(0, 2) || "C";
 
   useEffect(() => {
     let isMounted = true;
@@ -136,7 +180,7 @@ export default function profile() {
       }
 
       if (!user) {
-        router.push("/login");
+        router.replace("/login");
         return;
       }
 
@@ -151,6 +195,7 @@ export default function profile() {
         lastName: metadata.last_name ?? user.user_metadata?.lastName ?? "",
         email: user.email ?? "",
         phone: metadata.phone_number ?? user.user_metadata?.phoneNumber ?? "",
+        createdAt: user.created_at ?? null,
       });
       setLoadingProfile(false);
     }
@@ -163,13 +208,13 @@ export default function profile() {
   }, [router]);
 
   function handleChange(field) {
-    return (e) => {
-      setCustomerProfile((prev) => ({ ...prev, [field]: e.target.value }));
+    return (event) => {
+      setCustomerProfile((prev) => ({ ...prev, [field]: event.target.value }));
     };
   }
 
-  async function handleSubmit(e) {
-    e.preventDefault();
+  async function handleSubmit(event) {
+    event.preventDefault();
 
     setProfileError(null);
     setProfileSuccess(null);
@@ -201,182 +246,279 @@ export default function profile() {
 
   if (loadingProfile) {
     return (
-      <>
-        {/* <Header /> */}
-
-        <main className="mx-auto max-w-[1280px] px-grid-gutter py-12">
-          <p className="font-body-md text-body-md text-on-surface-variant">
-            Loading profile...
-          </p>
-        </main>
+      <main className="min-h-screen bg-[#0A0A0A] px-4 py-8 text-white md:px-8 lg:px-10">
+        <div className="mx-auto flex max-w-7xl items-center justify-center rounded-[28px] border border-white/10 bg-white/5 px-6 py-20 text-center backdrop-blur-md">
+          <div>
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#D4AF37]/30 bg-[#D4AF37]/10 text-[#D4AF37]">
+              <UserCircle2 size={28} />
+            </div>
+            <p className="text-sm uppercase tracking-[0.25em] text-[#D4AF37]">
+              Profile
+            </p>
+            <p className="mt-3 text-sm text-[#A0A0A0]">Loading your profile…</p>
+          </div>
+        </div>
         <DashboardFooter />
-      </>
+      </main>
     );
   }
 
   if (profileError) {
     return (
-      <>
-        {/* <Header /> */}
-        {/* <Hero /> */}
-        <main className="mx-auto max-w-[1280px] px-grid-gutter py-12">
-          <p className="font-body-md text-body-md text-error">{profileError}</p>
-        </main>
+      <main className="min-h-screen bg-[#0A0A0A] px-4 py-8 text-white md:px-8 lg:px-10">
+        <div className="mx-auto flex max-w-7xl items-center justify-center rounded-[28px] border border-red-400/20 bg-red-400/5 px-6 py-20 text-center backdrop-blur-md">
+          <div>
+            <p className="text-sm uppercase tracking-[0.25em] text-red-400">
+              Profile unavailable
+            </p>
+            <p className="mt-3 max-w-md text-sm text-[#A0A0A0]">
+              {profileError}
+            </p>
+          </div>
+        </div>
         <DashboardFooter />
-      </>
+      </main>
     );
   }
 
   return (
-    <>
-      {/* <Header /> */}
-      {/* <Hero /> */}
+    <main className="min-h-screen bg-[#0A0A0A] px-4 py-8 text-white md:px-8 lg:px-10">
+      <div className="mx-auto flex max-w-7xl flex-col gap-6">
+        <section className="rounded-[28px] border border-white/10 bg-white/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.02)] backdrop-blur-md md:p-8">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="space-y-4">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#D4AF37]/30 bg-[#D4AF37]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-[#D4AF37]">
+                <UserCircle2 size={14} />
+                Profile
+              </div>
 
-      <main className="profile-shell mx-auto max-w-[1280px] px-grid-gutter py-16">
-        {/* Profile header */}
-        <header className="mb-16">
-          <h1 className="profile-heading font-headline-md text-[clamp(3rem,5vw,5rem)] leading-none transition-transform duration-300 hover:-translate-y-0.5">
-            {customerProfile.firstName} {customerProfile.lastName}
-          </h1>
-          <p className="profile-subheading mt-2 font-body-md text-body-md">
-            {customerProfile.email} · Member since Jan 2025
-          </p>
-        </header>
-
-        {profileSuccess && (
-          <p className="mb-8 rounded-lg border border-primary/30 bg-primary-container/10 px-4 py-3 font-body-md text-body-md text-primary">
-            {profileSuccess}
-          </p>
-        )}
-
-        {/* Bento grid layout */}
-        <div className="grid grid-cols-1 gap-y-10 md:grid-cols-12 md:gap-x-10 lg:gap-x-14">
-          {/* Column 1: Account details */}
-          <section className="profile-card group md:col-span-5 rounded-xl p-8 lg:p-10">
-            <div className="mb-10 flex items-center justify-between">
-              <h2 className="profile-card-title font-label-caps text-label-caps uppercase">
-                Account details
-              </h2>
+              <div>
+                <h1 className="text-3xl font-semibold text-white sm:text-4xl lg:text-5xl">
+                  {displayName}
+                </h1>
+                <p className="mt-2 max-w-2xl text-sm text-[#A0A0A0] sm:text-base">
+                  Manage your account details, notification preferences, saved
+                  addresses, and payment setup from one place.
+                </p>
+              </div>
             </div>
 
-            <form className="space-y-7" onSubmit={handleSubmit}>
-              <div className="group">
-                <label className="profile-label block font-label-caps text-label-caps mb-2">
-                  First name
-                </label>
-                <input
-                  className="profile-input w-full rounded-lg px-4 py-3 font-body-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  type="text"
-                  value={customerProfile.firstName}
-                  onChange={handleChange("firstName")}
-                />
+            <div className="flex items-center gap-4 rounded-2xl border border-white/10 bg-[#0A0A0A]/70 px-4 py-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#D4AF37]/30 bg-[#D4AF37]/10 text-sm font-semibold text-[#D4AF37]">
+                {initials}
               </div>
 
-              <div className="group">
-                <label className="profile-label block font-label-caps text-label-caps mb-2">
-                  Last name
-                </label>
-                <input
-                  className="profile-input w-full rounded-lg px-4 py-3 font-body-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  type="text"
-                  value={customerProfile.lastName}
-                  onChange={handleChange("lastName")}
-                />
+              <div>
+                <p className="text-sm font-medium text-white">
+                  {customerProfile.email}
+                </p>
+                <p className="mt-1 text-xs text-[#A0A0A0]">{memberSince}</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {profileSuccess && (
+          <div className="rounded-[24px] border border-[#D4AF37]/30 bg-[#D4AF37]/10 px-4 py-3 text-sm text-[#D4AF37]">
+            {profileSuccess}
+          </div>
+        )}
+
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <StatCard
+            icon={UserCircle2}
+            label="Account"
+            value={displayName}
+            caption="Profile identity"
+          />
+          <StatCard
+            icon={MapPin}
+            label="Addresses"
+            value={MOCK_ADDRESSES.length.toString()}
+            caption="Saved locations"
+          />
+          <StatCard
+            icon={CreditCard}
+            label="Payment"
+            value={`${MOCK_PAYMENT_METHOD.brand} •••• ${MOCK_PAYMENT_METHOD.last4}`}
+            caption="Default card"
+          />
+          <StatCard
+            icon={Bell}
+            label="Alerts"
+            value={notificationsOn ? "Enabled" : "Muted"}
+            caption="Order notifications"
+          />
+        </section>
+
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.25fr_0.95fr]">
+          <section className="rounded-[28px] border border-white/10 bg-white/5 p-6 backdrop-blur-md md:p-8">
+            <div className="mb-6 flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-[#A0A0A0]">
+                  Account details
+                </p>
+                <h2 className="mt-2 text-2xl font-semibold text-white">
+                  Personal information
+                </h2>
+              </div>
+              <div className="rounded-2xl border border-[#D4AF37]/20 bg-[#D4AF37]/10 p-3 text-[#D4AF37]">
+                <ShieldCheck size={20} />
+              </div>
+            </div>
+
+            <form className="space-y-5" onSubmit={handleSubmit}>
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                <div>
+                  <label className={labelClassName} htmlFor="first-name">
+                    First name
+                  </label>
+                  <div className="relative">
+                    <UserCircle2
+                      size={16}
+                      className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#D4AF37]"
+                    />
+                    <input
+                      id="first-name"
+                      className={`${inputClassName} pl-10`}
+                      type="text"
+                      value={customerProfile.firstName}
+                      onChange={handleChange("firstName")}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className={labelClassName} htmlFor="last-name">
+                    Last name
+                  </label>
+                  <div className="relative">
+                    <UserCircle2
+                      size={16}
+                      className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#D4AF37]"
+                    />
+                    <input
+                      id="last-name"
+                      className={`${inputClassName} pl-10`}
+                      type="text"
+                      value={customerProfile.lastName}
+                      onChange={handleChange("lastName")}
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div className="group">
-                <label className="profile-label block font-label-caps text-label-caps mb-2">
-                  Email (username)
+              <div>
+                <label className={labelClassName} htmlFor="email">
+                  Email address
                 </label>
-                <input
-                  className="profile-input w-full rounded-lg px-4 py-3 font-body-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  type="email"
-                  value={customerProfile.email}
-                  onChange={handleChange("email")}
-                />
+                <div className="relative">
+                  <Mail
+                    size={16}
+                    className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#D4AF37]"
+                  />
+                  <input
+                    id="email"
+                    className={`${inputClassName} pl-10`}
+                    type="email"
+                    value={customerProfile.email}
+                    onChange={handleChange("email")}
+                  />
+                </div>
               </div>
 
-              <div className="group">
-                <label className="profile-label block font-label-caps text-label-caps mb-2">
-                  Phone
+              <div>
+                <label className={labelClassName} htmlFor="phone">
+                  Phone number
                 </label>
-                <input
-                  className="profile-input w-full rounded-lg px-4 py-3 font-body-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  type="tel"
-                  value={customerProfile.phone}
-                  onChange={handleChange("phone")}
-                />
+                <div className="relative">
+                  <Phone
+                    size={16}
+                    className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#D4AF37]"
+                  />
+                  <input
+                    id="phone"
+                    className={`${inputClassName} pl-10`}
+                    type="tel"
+                    value={customerProfile.phone}
+                    onChange={handleChange("phone")}
+                  />
+                </div>
               </div>
 
-              <div className="mt-10 flex items-center justify-between border-t border-outline-variant pt-7">
+              <div className="flex flex-col gap-3 border-t border-white/10 pt-5 sm:flex-row sm:items-center sm:justify-between">
                 <button
                   type="button"
                   onClick={handleDeleteAccount}
-                  className="profile-delete-action font-label-caps text-label-caps uppercase tracking-tight"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-[#A0A0A0] transition hover:border-red-400/30 hover:bg-red-400/10 hover:text-red-300"
                 >
+                  <Trash2 size={16} />
                   Delete account
                 </button>
+
                 <button
                   type="submit"
                   disabled={savingProfile}
-                  className="rounded-lg bg-primary px-6 py-3 font-label-caps text-label-caps uppercase tracking-tight text-on-primary transition-all duration-300 hover:-translate-y-0.5 hover:bg-primary-container hover:shadow-lg active:scale-95 disabled:cursor-not-allowed disabled:opacity-70"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#D4AF37]/40 bg-[#D4AF37] px-5 py-3 text-sm font-semibold text-black transition hover:-translate-y-0.5 hover:bg-[#e3bf52] disabled:cursor-not-allowed disabled:opacity-70"
                 >
+                  <PencilLine size={16} />
                   {savingProfile ? "Saving..." : "Update account"}
                 </button>
               </div>
             </form>
           </section>
 
-          {/* Column 2: Addresses & payment */}
-          <div className="md:col-span-4 flex flex-col gap-grid-gutter">
-            <section className="profile-card group flex-1 rounded-xl p-8 lg:p-10">
-              <div className="mb-8 flex items-center justify-between">
-                <h2 className="profile-card-title font-label-caps text-label-caps uppercase">
-                  Addresses
-                </h2>
+          <div className="flex flex-col gap-6">
+            <section className="rounded-[28px] border border-white/10 bg-white/5 p-6 backdrop-blur-md md:p-8">
+              <div className="mb-6 flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-[#A0A0A0]">
+                    Saved places
+                  </p>
+                  <h2 className="mt-2 text-xl font-semibold text-white">
+                    Addresses
+                  </h2>
+                </div>
+
                 <button
                   type="button"
-                  className="profile-add-button"
                   aria-label="Add address"
-                  // TODO: open add-address modal / navigate to add-address flow
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#D4AF37]/30 bg-[#D4AF37]/10 text-[#D4AF37] transition hover:-translate-y-0.5 hover:bg-[#D4AF37]/20"
                 >
-                  <AddAddressIcon className="h-6 w-6" />
+                  <Home size={18} />
                 </button>
               </div>
 
-              <div className="space-y-5">
+              <div className="space-y-3">
                 {MOCK_ADDRESSES.map((address) => (
                   <div
                     key={address.id}
-                    className="profile-address-card rounded-lg border border-outline-variant bg-surface-container-lowest/50 p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-[#d4aa24] hover:bg-surface-container-lowest hover:shadow-lg"
+                    className="rounded-2xl border border-white/10 bg-[#0A0A0A]/70 p-4 transition hover:border-[#D4AF37]/30"
                   >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <p className="font-body-md text-body-md font-bold text-on-surface">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-white">
                           {address.label}
                         </p>
-                        <p className="font-body-md text-body-md text-on-surface-variant mt-1">
+                        <p className="mt-1 text-sm text-[#A0A0A0]">
                           {address.line}
                         </p>
                       </div>
-                      <div className="flex gap-2">
+
+                      <div className="flex shrink-0 items-center gap-2">
                         <button
                           type="button"
-                          className="profile-icon-action profile-address-edit-action"
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-[#A0A0A0] transition hover:border-[#D4AF37]/30 hover:text-[#D4AF37]"
                           aria-label={`Edit ${address.label} address`}
                         >
-                          <span className="material-symbols-outlined text-sm">
-                            edit
-                          </span>
+                          <PencilLine size={15} />
                         </button>
                         <button
                           type="button"
-                          className="profile-icon-action profile-address-delete-action"
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-[#A0A0A0] transition hover:border-red-400/30 hover:text-red-300"
                           aria-label={`Delete ${address.label} address`}
                         >
-                          <span className="material-symbols-outlined text-sm">
-                            delete
-                          </span>
+                          <Trash2 size={15} />
                         </button>
                       </div>
                     </div>
@@ -385,109 +527,157 @@ export default function profile() {
               </div>
             </section>
 
-            <section className="profile-card group rounded-xl p-8 lg:p-10">
-              <div className="mb-8 flex items-center justify-between">
+            <section className="rounded-[28px] border border-white/10 bg-white/5 p-6 backdrop-blur-md md:p-8">
+              <div className="mb-6 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <CreditCardIcon className="h-6 w-6 text-[#d4aa24] transition-transform duration-200 group-hover:-rotate-6 group-hover:scale-110" />
+                  <div className="rounded-2xl border border-[#D4AF37]/30 bg-[#D4AF37]/10 p-3 text-[#D4AF37]">
+                    <CreditCard size={18} />
+                  </div>
                   <div>
-                    <p className="font-body-md text-body-md text-on-surface">
-                      {MOCK_PAYMENT_METHOD.brand} ••••{" "}
-                      {MOCK_PAYMENT_METHOD.last4}
+                    <p className="text-xs uppercase tracking-[0.2em] text-[#A0A0A0]">
+                      Payments
                     </p>
-                    <div className="flex gap-3 mt-1">
-                      <button
-                        type="button"
-                        className="profile-text-action text-[10px] font-label-caps uppercase"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        className="profile-text-action text-[10px] font-label-caps uppercase"
-                      >
-                        Remove
-                      </button>
-                    </div>
+                    <h2 className="mt-2 text-xl font-semibold text-white">
+                      Card on file
+                    </h2>
                   </div>
                 </div>
+
                 {MOCK_PAYMENT_METHOD.isDefault && (
-                  <span className="profile-badge rounded-full px-3 py-1 font-label-caps text-[10px] uppercase transition-transform duration-200 group-hover:-translate-y-0.5">
+                  <span className="rounded-full border border-[#D4AF37]/30 bg-[#D4AF37]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#D4AF37]">
                     Default
                   </span>
                 )}
               </div>
-            </section>
-          </div>
 
-          {/* Column 3: Preferences & security */}
-          <div className="md:col-span-3 flex flex-col gap-grid-gutter">
-            <section className="profile-card group flex-1 rounded-xl p-8 lg:p-10">
-              <div className="mb-8 flex items-center justify-between">
-                <h2 className="profile-card-title font-label-caps text-label-caps uppercase">
-                  Preferences
-                </h2>
-                <button
-                  type="button"
-                  className="profile-text-action font-label-caps text-[10px] uppercase"
-                >
-                  Update
-                </button>
+              <div className="rounded-2xl border border-[#D4AF37]/20 bg-[#D4AF37]/10 p-4">
+                <p className="text-sm font-semibold text-white">
+                  {MOCK_PAYMENT_METHOD.brand} ending in{" "}
+                  {MOCK_PAYMENT_METHOD.last4}
+                </p>
+                <p className="mt-1 text-sm text-[#A0A0A0]">
+                  Used for invoice and booking payments.
+                </p>
               </div>
 
-              <div className="space-y-7">
-                <div className="flex justify-between items-center">
-                  <span className="font-body-md text-body-md text-on-surface">
-                    Dietary needs
-                  </span>
-                  <span className="font-label-caps text-label-caps text-on-surface-variant">
-                    Halal
-                  </span>
+              <div className="mt-4 flex items-center justify-between rounded-2xl border border-white/10 bg-[#0A0A0A]/70 px-4 py-3">
+                <div>
+                  <p className="text-sm font-medium text-white">
+                    Manage payment methods
+                  </p>
+                  <p className="mt-1 text-sm text-[#A0A0A0]">
+                    Add or replace the card used for future payments.
+                  </p>
                 </div>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1 text-sm font-medium text-[#D4AF37] transition hover:translate-x-0.5"
+                >
+                  Edit
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </section>
 
-                <div className="flex justify-between items-center">
-                  <span className="font-body-md text-body-md text-on-surface">
+            <section className="rounded-[28px] border border-white/10 bg-white/5 p-6 backdrop-blur-md md:p-8">
+              <div className="mb-6 flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-[#A0A0A0]">
+                    Preferences
+                  </p>
+                  <h2 className="mt-2 text-xl font-semibold text-white">
                     Notifications
-                  </span>
+                  </h2>
+                </div>
+                <Bell size={18} className="text-[#D4AF37]" />
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-[#0A0A0A]/70 px-4 py-4">
+                  <div>
+                    <p className="text-sm font-medium text-white">
+                      Order notifications
+                    </p>
+                    <p className="mt-1 text-sm text-[#A0A0A0]">
+                      Receive booking and order updates by email.
+                    </p>
+                  </div>
                   <button
                     type="button"
                     role="switch"
                     aria-checked={notificationsOn}
                     aria-label="Toggle order notifications"
                     onClick={() => setNotificationsOn((prev) => !prev)}
-                    className={`toggle-minimalist ${notificationsOn ? "on" : "off"}`}
+                    className={`relative inline-flex h-7 w-12 items-center rounded-full border transition ${
+                      notificationsOn
+                        ? "border-[#D4AF37]/40 bg-[#D4AF37]/20"
+                        : "border-white/10 bg-white/10"
+                    }`}
                   >
-                    <div className="toggle-thumb" />
+                    <span
+                      className={`absolute left-1 h-5 w-5 rounded-full bg-white transition ${
+                        notificationsOn ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    />
                   </button>
                 </div>
-              </div>
-            </section>
 
-            <section className="profile-card group rounded-xl p-8 lg:p-10">
-              <h2 className="profile-card-title mb-8 font-label-caps text-label-caps uppercase">
-                Security
-              </h2>
-              <div className="flex flex-col gap-3">
                 <button
                   type="button"
-                  className="profile-security-button group flex w-full items-center justify-between rounded-lg border px-4 py-3 text-left font-body-md text-body-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                  className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-[#0A0A0A]/70 px-4 py-4 text-left transition hover:border-[#D4AF37]/30"
                 >
-                  <span>Change password</span>
-                  <ChevronRightIcon className="profile-security-chevron h-4 w-4 transition-all duration-200 group-hover:translate-x-0.5" />
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-xl border border-white/10 bg-white/5 p-2 text-[#D4AF37]">
+                      <LockKeyhole size={16} />
+                    </div>
+                    <span className="text-sm font-medium text-white">
+                      Change password
+                    </span>
+                  </div>
+                  <ChevronRight size={16} className="text-[#A0A0A0]" />
                 </button>
+
                 <button
                   type="button"
-                  className="profile-security-button group flex w-full items-center justify-between rounded-lg border px-4 py-3 text-left font-body-md text-body-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                  className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-[#0A0A0A]/70 px-4 py-4 text-left transition hover:border-[#D4AF37]/30"
                 >
-                  <span>Two-factor auth</span>
-                  <ChevronRightIcon className="profile-security-chevron h-4 w-4 transition-all duration-200 group-hover:translate-x-0.5" />
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-xl border border-white/10 bg-white/5 p-2 text-[#D4AF37]">
+                      <BadgeCheck size={16} />
+                    </div>
+                    <span className="text-sm font-medium text-white">
+                      Two-factor authentication
+                    </span>
+                  </div>
+                  <ChevronRight size={16} className="text-[#A0A0A0]" />
                 </button>
               </div>
             </section>
           </div>
         </div>
-      </main>
+      </div>
 
       <DashboardFooter />
-    </>
+    </main>
+  );
+}
+
+function StatCard({ icon: Icon, label, value, caption }) {
+  return (
+    <div className="rounded-[24px] border border-white/10 bg-white/5 p-4 backdrop-blur-md">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-[#A0A0A0]">
+            {label}
+          </p>
+          <p className="mt-2 text-sm font-semibold text-white">{value}</p>
+          <p className="mt-1 text-sm text-[#A0A0A0]">{caption}</p>
+        </div>
+
+        <div className="rounded-2xl border border-[#D4AF37]/20 bg-[#D4AF37]/10 p-3 text-[#D4AF37]">
+          <Icon size={18} />
+        </div>
+      </div>
+    </div>
   );
 }

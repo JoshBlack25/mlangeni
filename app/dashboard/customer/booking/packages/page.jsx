@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/services/supabaseClient";
+import BookingSuccessModal from "@/app/components/dashboard/customer/BookingSuccessModal";
 import { PackageCalendar } from "@/app/components/PackageCalendar";
 import {
   Carousel,
@@ -32,6 +33,7 @@ export default function Packages() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -99,6 +101,7 @@ export default function Packages() {
     }
 
     setSubmitting(true);
+    setShowSuccessModal(false);
 
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) {
@@ -145,6 +148,7 @@ export default function Packages() {
     }
 
     setSuccess(`Order created using "${selectedMenu.name}"! Total: R${total.toFixed(2)}`);
+    setShowSuccessModal(true);
     setSelectedMenuId(null);
     setEventTypeId("");
     setEventDate("");
@@ -278,6 +282,14 @@ export default function Packages() {
         {error && <p className="mgh-menu-error">{error}</p>}
         {success && <p className="mgh-menu-success">{success}</p>}
       </div>
+
+      <BookingSuccessModal
+        isOpen={showSuccessModal}
+        title="Your package order is confirmed"
+        message="You can head back to your dashboard or open your orders page to review the booking you just submitted."
+        orderLabel={success || "Your booking has been submitted."}
+        onClose={() => setShowSuccessModal(false)}
+      />
     </div>
   );
 }
