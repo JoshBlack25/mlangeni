@@ -4,11 +4,13 @@ import { useState } from "react";
 import Image from "next/image";
 import { Menu, X } from "lucide-react";
 
-import Navbar from "./Navbar";
 import NotificationBell from "../header/NotificationBell";
 import ProfileMenu from "../header/ProfileMenu";
 
-export default function Header() {
+export default function Header({
+  title = "Customer Dashboard",
+  navbar: NavComponent,
+}) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -31,9 +33,7 @@ export default function Header() {
                 Mlangeni Grand Hospitality
               </p>
 
-              <h1 className="text-lg font-semibold text-white">
-                Customer Dashboard
-              </h1>
+              <h1 className="text-lg font-semibold text-white">{title}</h1>
             </div>
           </div>
 
@@ -61,7 +61,9 @@ export default function Header() {
         </div>
       </header>
 
-      <Navbar isOpen={open} onClose={() => setOpen(false)} />
+      {NavComponent && (
+        <NavComponent isOpen={open} onClose={() => setOpen(false)} />
+      )}
     </>
   );
 }
