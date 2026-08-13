@@ -4,13 +4,13 @@ import * as React from "react"
 import { format } from "date-fns"
 import { ChevronDownIcon } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
+import { Button } from "@/app/components/package/button"
+import { Calendar } from "@/app/components/package/calendar"
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover"
+} from "@/app/components/package/popover"
 
 export function PackageCalendar({value, onChange}) {
   const [open, setOpen] = React.useState(false);

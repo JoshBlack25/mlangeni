@@ -11,7 +11,7 @@ import {
   CarouselItem,
   CarouselPrevious,
   CarouselNext,
-} from "@/components/ui/carousel";
+} from "@/app/components/package/carousel";
 import "@/app/globals.css";
 
 export default function Packages() {

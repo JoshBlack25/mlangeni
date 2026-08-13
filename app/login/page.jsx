@@ -1,8 +1,9 @@
 "use client";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { supabase } from "@/services/supabaseClient";
+import {redirect, useRouter} from "next/navigation";
+import {useState} from "react";
+import {supabase} from "@/services/supabaseClient";
+import { createClient } from "@supabase/supabase-js";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -27,17 +28,26 @@ export default function LoginPage() {
       return;
     }
 
-    const { data: isAdmin, error: rpcError } = await supabase.rpc("is_admin");
+    router.push("/dashboard/customer")
+  }
 
-    setLoading(false);
+  async function handleLoginGoogle(e){
+    e.preventDefault();
+    setError(null);
 
-    if (rpcError) {
-      console.error("Role check failed:", rpcError);
-      setError("Something went wrong signing you in. Please try again.");
-      return;
-    }
 
-    router.push(isAdmin ? "/dashboard/admin" : "/dashboard/customer");
+    const {error: signInError} = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+              // redirectTo: `${window.location.origin}/dashboard/customer`,
+              redirectTo: `${window.location.origin}/complete-profile`,
+            },
+          });
+
+        if(signInError){
+        setError(signInError.message);
+      }
+    
   }
 
   return (
@@ -142,7 +152,7 @@ export default function LoginPage() {
             <span></span>
           </div>
 
-          <button className="mgh-google-btn">
+          <button className="mgh-google-btn" onClick={handleLoginGoogle}>
             <GoogleIcon />
             <span>Continue with Google</span>
           </button>
