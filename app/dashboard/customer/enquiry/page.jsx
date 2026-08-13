@@ -1,4 +1,4 @@
-import EnquiryContent from "@/app/components/dashboard/enquiry/EnquiryContent";
+import EnquiryContent from "@/app/components/dashboard/customer/enquiry/EnquiryContent";
 
 export default function EnquiryPage() {
   return (

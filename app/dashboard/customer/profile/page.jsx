@@ -18,7 +18,7 @@ import {
   UserCircle2,
 } from "lucide-react";
 import { supabase } from "@/services/supabaseClient";
-import DashboardFooter from "@/app/components/dashboard/home/DashboardFooter";
+import DashboardFooter from "@/app/components/dashboard/customer/home/DashboardFooter";
 
 const MOCK_ADDRESSES = [
   { id: "home", label: "Home", line: "12 Kloof St, Cape Town" },
@@ -34,7 +34,84 @@ const MOCK_PAYMENT_METHOD = {
 const inputClassName =
   "w-full rounded-xl border border-white/10 bg-[#101010] px-4 py-3 text-sm text-white outline-none transition focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20";
 
-const labelClassName = "mb-2 block text-[11px] uppercase tracking-[0.18em] text-[#A0A0A0]";
+const labelClassName =
+  "mb-2 block text-[11px] uppercase tracking-[0.18em] text-[#A0A0A0]";
+function CreditCardIcon(props) {
+  return (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 32 32"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      aria-hidden="true"
+      {...props}
+    >
+      <g>
+        <path
+          d="M29,7H28V6a3,3,0,0,0-3-3H3A3,3,0,0,0,0,6V22a3,3,0,0,0,3,3H4v1a3,3,0,0,0,3,3H29a3,3,0,0,0,3-3V10A3,3,0,0,0,29,7Zm1,3v1H6V10A1,1,0,0,1,7,9H29A1,1,0,0,1,30,10Zm0,7H6V13H30ZM3,23a1,1,0,0,1-1-1V6A1,1,0,0,1,3,5H25a1,1,0,0,1,1,1V7H7a3,3,0,0,0-3,3V23Zm26,4H7a1,1,0,0,1-1-1V19H30v7A1,1,0,0,1,29,27Z"
+          stroke="currentColor"
+          fill="currentColor"
+        />
+        <path
+          d="M15,23H13a1,1,0,0,0,0,2h2a1,1,0,0,0,0-2Z"
+          fill="currentColor"
+        />
+        <path
+          d="M21,23H19a1,1,0,0,0,0,2h2a1,1,0,0,0,0-2Z"
+          fill="currentColor"
+        />
+        <path
+          d="M27,23H25a1,1,0,0,0,0,2h2a1,1,0,0,0,0-2Z"
+          fill="currentColor"
+        />
+      </g>
+    </svg>
+  );
+}
+
+function AddAddressIcon(props) {
+  return (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      aria-hidden="true"
+      {...props}
+    >
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" />
+      <path
+        d="M15 12L12 12M12 12L9 12M12 12L12 9M12 12L12 15"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function ChevronRightIcon(props) {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      aria-hidden="true"
+      {...props}
+    >
+      <path
+        d="M9.5 7L14.5 12L9.5 17"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -54,7 +131,8 @@ export default function ProfilePage() {
   const [savingProfile, setSavingProfile] = useState(false);
 
   const displayName = useMemo(() => {
-    const name = `${customerProfile.firstName} ${customerProfile.lastName}`.trim();
+    const name =
+      `${customerProfile.firstName} ${customerProfile.lastName}`.trim();
 
     return name || "Customer profile";
   }, [customerProfile.firstName, customerProfile.lastName]);
@@ -64,7 +142,9 @@ export default function ProfilePage() {
       return "Member since recently";
     }
 
-    return `Member since ${new Date(customerProfile.createdAt).toLocaleDateString("en-ZA", {
+    return `Member since ${new Date(
+      customerProfile.createdAt,
+    ).toLocaleDateString("en-ZA", {
       month: "short",
       year: "numeric",
     })}`;
@@ -108,7 +188,10 @@ export default function ProfilePage() {
 
       setCustomerProfile({
         firstName:
-          metadata.first_name ?? user.user_metadata?.firstName ?? user.email?.split("@")[0] ?? "",
+          metadata.first_name ??
+          user.user_metadata?.firstName ??
+          user.email?.split("@")[0] ??
+          "",
         lastName: metadata.last_name ?? user.user_metadata?.lastName ?? "",
         email: user.email ?? "",
         phone: metadata.phone_number ?? user.user_metadata?.phoneNumber ?? "",
@@ -188,7 +271,9 @@ export default function ProfilePage() {
             <p className="text-sm uppercase tracking-[0.25em] text-red-400">
               Profile unavailable
             </p>
-            <p className="mt-3 max-w-md text-sm text-[#A0A0A0]">{profileError}</p>
+            <p className="mt-3 max-w-md text-sm text-[#A0A0A0]">
+              {profileError}
+            </p>
           </div>
         </div>
         <DashboardFooter />
@@ -212,7 +297,8 @@ export default function ProfilePage() {
                   {displayName}
                 </h1>
                 <p className="mt-2 max-w-2xl text-sm text-[#A0A0A0] sm:text-base">
-                  Manage your account details, notification preferences, saved addresses, and payment setup from one place.
+                  Manage your account details, notification preferences, saved
+                  addresses, and payment setup from one place.
                 </p>
               </div>
             </div>
@@ -223,7 +309,9 @@ export default function ProfilePage() {
               </div>
 
               <div>
-                <p className="text-sm font-medium text-white">{customerProfile.email}</p>
+                <p className="text-sm font-medium text-white">
+                  {customerProfile.email}
+                </p>
                 <p className="mt-1 text-xs text-[#A0A0A0]">{memberSince}</p>
               </div>
             </div>
@@ -237,10 +325,30 @@ export default function ProfilePage() {
         )}
 
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard icon={UserCircle2} label="Account" value={displayName} caption="Profile identity" />
-          <StatCard icon={MapPin} label="Addresses" value={MOCK_ADDRESSES.length.toString()} caption="Saved locations" />
-          <StatCard icon={CreditCard} label="Payment" value={`${MOCK_PAYMENT_METHOD.brand} •••• ${MOCK_PAYMENT_METHOD.last4}`} caption="Default card" />
-          <StatCard icon={Bell} label="Alerts" value={notificationsOn ? "Enabled" : "Muted"} caption="Order notifications" />
+          <StatCard
+            icon={UserCircle2}
+            label="Account"
+            value={displayName}
+            caption="Profile identity"
+          />
+          <StatCard
+            icon={MapPin}
+            label="Addresses"
+            value={MOCK_ADDRESSES.length.toString()}
+            caption="Saved locations"
+          />
+          <StatCard
+            icon={CreditCard}
+            label="Payment"
+            value={`${MOCK_PAYMENT_METHOD.brand} •••• ${MOCK_PAYMENT_METHOD.last4}`}
+            caption="Default card"
+          />
+          <StatCard
+            icon={Bell}
+            label="Alerts"
+            value={notificationsOn ? "Enabled" : "Muted"}
+            caption="Order notifications"
+          />
         </section>
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.25fr_0.95fr]">
@@ -444,7 +552,8 @@ export default function ProfilePage() {
 
               <div className="rounded-2xl border border-[#D4AF37]/20 bg-[#D4AF37]/10 p-4">
                 <p className="text-sm font-semibold text-white">
-                  {MOCK_PAYMENT_METHOD.brand} ending in {MOCK_PAYMENT_METHOD.last4}
+                  {MOCK_PAYMENT_METHOD.brand} ending in{" "}
+                  {MOCK_PAYMENT_METHOD.last4}
                 </p>
                 <p className="mt-1 text-sm text-[#A0A0A0]">
                   Used for invoice and booking payments.
@@ -453,7 +562,9 @@ export default function ProfilePage() {
 
               <div className="mt-4 flex items-center justify-between rounded-2xl border border-white/10 bg-[#0A0A0A]/70 px-4 py-3">
                 <div>
-                  <p className="text-sm font-medium text-white">Manage payment methods</p>
+                  <p className="text-sm font-medium text-white">
+                    Manage payment methods
+                  </p>
                   <p className="mt-1 text-sm text-[#A0A0A0]">
                     Add or replace the card used for future payments.
                   </p>

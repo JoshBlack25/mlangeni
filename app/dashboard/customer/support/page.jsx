@@ -1,4 +1,4 @@
-import SupportContent from "@/app/components/dashboard/support/SupportContent";
+import SupportContent from "@/app/components/dashboard/customer/support/SupportContent";
 
 export default function SupportPage() {
   return (

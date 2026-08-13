@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useInView } from "framer-motion";
 import { supabase } from "@/services/supabaseClient";
-import AnimatedNumber from "../../shared/AnimatedNumber";
+import AnimatedNumber from "../../../shared/AnimatedNumber";
 
 const statConfig = [
   {
