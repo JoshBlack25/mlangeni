@@ -9,7 +9,8 @@ import {
 } from "react-day-picker"
 
 import { cn } from "@/lib/utils"
-import { Button, buttonVariants } from "@/components/ui/button"
+// import { Button, buttonVariants } from "app/components/package/button"
+import { Button, buttonVariants } from "@/app/components/package/button"
 import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon } from "lucide-react"
 
 function Calendar({
@@ -219,8 +220,4 @@ function CalendarDayButton({
   )
 }
 
-<<<<<<< HEAD
 export { Calendar, CalendarDayButton }
-=======
-export { Calendar, CalendarDayButton }
->>>>>>> main
