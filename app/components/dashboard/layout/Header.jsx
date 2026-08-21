@@ -10,6 +10,7 @@ import ProfileMenu from "../header/ProfileMenu";
 export default function Header({
   title = "Customer Dashboard",
   navbar: NavComponent,
+  basePath = "/dashboard/customer",
 }) {
   const [open, setOpen] = useState(false);
 
@@ -40,7 +41,7 @@ export default function Header({
           {/* RIGHT */}
 
           <div className="flex items-center gap-6">
-            <NotificationBell />
+            <NotificationBell basePath={basePath} />
 
             <ProfileMenu />
 

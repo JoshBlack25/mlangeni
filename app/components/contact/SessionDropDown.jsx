@@ -2,8 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/services/supabaseClient";
-
-const ALL_SESSIONS = ["Morning", "Afternoon", "Evening/Night"];
+import {
+  SESSION_OPTIONS,
+  normalizeSession,
+  isSessionUnavailable,
+} from "@/app/components/constants/sessions";
 
 export default function SessionDropDown({
   value,
@@ -41,7 +44,9 @@ export default function SessionDropDown({
         console.error("Error fetching sessions:", supabaseError);
         setBookedSessions([]);
       } else {
-        setBookedSessions(data?.map((row) => row.session) || []);
+        setBookedSessions(
+          (data ?? []).map((row) => normalizeSession(row.session)),
+        );
       }
       setLoading(false);
     };
@@ -54,7 +59,9 @@ export default function SessionDropDown({
   }, [selectedDate]);
 
   const availableSessions = selectedDate
-    ? ALL_SESSIONS.filter((s) => !bookedSessions.includes(s))
+    ? SESSION_OPTIONS.filter(
+        (s) => !isSessionUnavailable(s.value, bookedSessions),
+      )
     : [];
 
   const selectClass = dark
@@ -80,40 +87,46 @@ export default function SessionDropDown({
         disabled={!selectedDate || loading}
         className={selectClass}
       >
-        <option value="" className={dark ? "bg-[#0A0A0A] text-white" : "text-black"}>
+        <option
+          value=""
+          className={dark ? "bg-[#0A0A0A] text-white" : "text-black"}
+        >
           {!selectedDate
             ? "Select a date first"
             : loading
-            ? "Checking availability..."
-            : availableSessions.length === 0
-            ? "No sessions available"
-            : "Select a session"}
+              ? "Checking availability..."
+              : availableSessions.length === 0
+                ? "No sessions available"
+                : "Select a session"}
         </option>
         {availableSessions.map((session) => (
           <option
-            key={session}
-            value={session}
+            key={session.value}
+            value={session.value}
             className={dark ? "bg-[#0A0A0A] text-white" : "text-black"}
           >
-            {session}
+            {session.label}
           </option>
         ))}
       </select>
 
       {showBadges && selectedDate && !loading && (
         <div className="flex flex-wrap gap-2 mt-1">
-          {ALL_SESSIONS.map((session) => {
-            const isBooked = bookedSessions.includes(session);
+          {SESSION_OPTIONS.map((session) => {
+            const unavailable = isSessionUnavailable(
+              session.value,
+              bookedSessions,
+            );
             return (
               <span
-                key={session}
+                key={session.value}
                 className={`text-xs px-2 py-1 rounded-full font-medium ${
-                  isBooked
+                  unavailable
                     ? "bg-red-100 text-red-600"
                     : "bg-green-100 text-green-600"
                 }`}
               >
-                {session}: {isBooked ? "Unavailable" : "Available"}
+                {session.label}: {unavailable ? "Unavailable" : "Available"}
               </span>
             );
           })}
