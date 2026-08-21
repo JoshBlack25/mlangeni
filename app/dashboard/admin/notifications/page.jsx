@@ -72,7 +72,7 @@ function formatFullDate(dateString) {
   });
 }
 
-export default function NotificationsPage() {
+export default function AdminNotificationsPage() {
   const [activeFilter, setActiveFilter] = useState("All");
   const [selectedNotification, setSelectedNotification] = useState(null);
   const [showSendModal, setShowSendModal] = useState(false);
@@ -94,11 +94,6 @@ export default function NotificationsPage() {
     });
   }, []);
 
-  /*
-   * ============================================================
-   * COUNTS / FILTERING
-   * ============================================================
-   */
   const filteredNotifications = useMemo(() => {
     if (activeFilter === "Unread") {
       return notifications.filter((notification) => !notification.is_read);
@@ -107,14 +102,6 @@ export default function NotificationsPage() {
     return notifications;
   }, [notifications, activeFilter]);
 
-  /*
-   * ============================================================
-   * OPEN NOTIFICATION
-   * ============================================================
-   *
-   * Opening an unread notification automatically marks it
-   * as read.
-   */
   async function openNotification(notification) {
     const updatedNotification = {
       ...notification,
@@ -127,12 +114,6 @@ export default function NotificationsPage() {
       await markAsRead(notification.notification_id);
     }
   }
-
-  /*
-   * ============================================================
-   * RENDER
-   * ============================================================
-   */
 
   return (
     <main className="min-h-screen bg-[#0A0A0A] px-6 py-10 text-white md:px-10 lg:px-14">
@@ -156,8 +137,8 @@ export default function NotificationsPage() {
             </h1>
 
             <p className="mt-4 max-w-xl text-sm leading-7 text-[#A0A0A0] md:text-base">
-              Stay up to date with your bookings, payments, events and important
-              updates from Mlangeni Grand Hospitality.
+              Stay on top of enquiries, orders, consultations and messages from
+              customers across the business.
             </p>
           </div>
 
@@ -257,9 +238,7 @@ export default function NotificationsPage() {
 
         {loading && (
           <div className="py-20 text-center">
-            <p className="text-sm text-[#777777]">
-              Loading your notifications...
-            </p>
+            <p className="text-sm text-[#777777]">Loading notifications...</p>
           </div>
         )}
 
@@ -289,15 +268,11 @@ export default function NotificationsPage() {
                         : "border-[#D4AF37]/20 bg-[#D4AF37]/[0.035] hover:border-[#D4AF37]/40"
                     }`}
                   >
-                    {/* UNREAD INDICATOR */}
-
                     {!notification.is_read && (
                       <span className="absolute bottom-0 left-0 top-0 w-[2px] bg-[#D4AF37]" />
                     )}
 
                     <div className="flex gap-4 p-5 md:p-6">
-                      {/* ICON */}
-
                       <div
                         className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${
                           notification.is_read
@@ -307,8 +282,6 @@ export default function NotificationsPage() {
                       >
                         <Icon size={19} strokeWidth={1.7} />
                       </div>
-
-                      {/* CONTENT */}
 
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-4">
@@ -380,7 +353,7 @@ export default function NotificationsPage() {
             <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-[#666666]">
               {activeFilter === "Unread"
                 ? "You have no unread notifications at the moment."
-                : "Important updates about your bookings and events will appear here."}
+                : "Updates from customers and the system will appear here."}
             </p>
           </motion.div>
         )}
@@ -400,33 +373,14 @@ export default function NotificationsPage() {
             onClick={() => setSelectedNotification(null)}
           >
             <motion.div
-              initial={{
-                opacity: 0,
-                y: 25,
-                scale: 0.98,
-              }}
-              animate={{
-                opacity: 1,
-                y: 0,
-                scale: 1,
-              }}
-              exit={{
-                opacity: 0,
-                y: 25,
-                scale: 0.98,
-              }}
-              transition={{
-                duration: 0.3,
-                ease: [0.22, 1, 0.36, 1],
-              }}
+              initial={{ opacity: 0, y: 25, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 25, scale: 0.98 }}
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
               onClick={(event) => event.stopPropagation()}
               className="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-[#2A2A2A] bg-[#0B0A09] shadow-2xl"
             >
-              {/* GOLD ACCENT */}
-
               <div className="absolute left-0 right-0 top-0 h-[2px] bg-[#D4AF37]" />
-
-              {/* HEADER */}
 
               <div className="flex items-start justify-between border-b border-[#1F1F1F] px-6 py-6 md:px-8">
                 <div className="flex items-center gap-4">
@@ -455,8 +409,6 @@ export default function NotificationsPage() {
                 </button>
               </div>
 
-              {/* BODY */}
-
               <div className="px-6 py-7 md:px-8 md:py-8">
                 <div className="flex items-center gap-2 text-xs text-[#666666]">
                   <Clock3 size={13} />
@@ -470,8 +422,6 @@ export default function NotificationsPage() {
                   </p>
                 </div>
 
-                {/* READ STATUS */}
-
                 <div className="mt-8 flex items-center gap-2 border-t border-[#1F1F1F] pt-6 text-xs">
                   <Check size={14} className="text-[#D4AF37]" />
 
@@ -480,8 +430,6 @@ export default function NotificationsPage() {
                   </span>
                 </div>
               </div>
-
-              {/* FOOTER */}
 
               <div className="flex items-center justify-between border-t border-[#1F1F1F] px-6 py-5 md:px-8">
                 <button
@@ -517,7 +465,7 @@ export default function NotificationsPage() {
 
       {showSendModal && (
         <SendNotificationModal
-          mode="customer"
+          mode="admin"
           currentUserId={currentUserId}
           onClose={() => setShowSendModal(false)}
         />
