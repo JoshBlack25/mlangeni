@@ -222,7 +222,7 @@ export default function EnquiryForm() {
         .mgh-phone .PhoneInputInput::placeholder { color: #444; }
       `}</style>
 
-      <section className="bg-[#0a0a0a] text-white px-6 md:px-12 py-20 font-[Playfair_Display]">
+      <section className="bg-[#0a0a0a] text-white px-6 md:px-12 py-20 font-[Playfair_Display] overflow-hidden">
         <div className="max-w-7xl mx-auto">
           {/* Heading — fades up first */}
           <motion.div
