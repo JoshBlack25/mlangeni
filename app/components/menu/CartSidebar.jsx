@@ -18,7 +18,7 @@ export function CartSidebar() {
 
   return (
     <aside className="w-full lg:w-[360px] lg:flex-shrink-0">
-      <div className="sticky top-6 border border-[#252525] bg-[#111111] p-6 shadow-2xl">
+      <div className="border border-[#252525] bg-[#111111] p-6 shadow-2xl lg:sticky lg:top-6">
         {/* SIDEBAR TITLE */}
         <div className="flex items-center justify-between border-b border-[#222222] pb-4">
           <div className="flex items-center gap-2">

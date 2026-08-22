@@ -89,7 +89,6 @@ const colVariants = {
 };
 
 const gold = "text-[#D4AF37]";
-const goldBg = "bg-[#D4AF37]";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
@@ -107,9 +106,17 @@ export default function Navbar() {
     return () => observer.disconnect();
   }, []);
 
-  // Same visibility rule the logo already uses — hidden and non-interactive
-  // while the hero is in view, revealed once you scroll past it.
-  const revealed = !inHero || open;
+  // Nav accent flips from white (over the hero) to gold once you scroll past it.
+  const pastHero = !inHero;
+  const navAccentText = pastHero
+    ? "text-[#D4AF37] group-hover:text-white"
+    : "text-white group-hover:text-[#D4AF37]";
+  const navAccentBg = pastHero
+    ? "bg-[#D4AF37] group-hover:bg-white"
+    : "bg-white group-hover:bg-[#D4AF37]";
+  const navGlow = pastHero
+    ? "drop-shadow-[0_0_10px_rgba(212,175,55,0.85)] group-hover:drop-shadow-[0_0_10px_rgba(255,255,255,0.85)]"
+    : "drop-shadow-[0_0_10px_rgba(255,255,255,0.85)] group-hover:drop-shadow-[0_0_10px_rgba(212,175,55,0.85)]";
 
   return (
     <nav className="font-[Playfair_Display]">
@@ -153,38 +160,21 @@ export default function Navbar() {
           />
         </a>
 
-        <motion.div
-          initial={false}
-          animate={{
-            opacity: revealed ? 1 : 0,
-            y: revealed ? 0 : -20,
-            pointerEvents: revealed ? "auto" : "none",
-          }}
-          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="flex items-center gap-8"
-        >
+        <div className="flex items-center gap-8">
           {/* LOGIN */}
           <Link
             href="/login"
             className="group relative pb-1 text-[0.7rem] tracking-[0.3em] uppercase font-medium cursor-pointer"
           >
             <span
-              className={`transition-colors duration-300 ${gold} group-hover:text-white`}
+              className={`transition-all duration-300 ${navAccentText} ${navGlow}`}
             >
               Login
             </span>
 
-            {/* Underline draws in as the navbar reveals, then wipes on hover */}
-            <motion.span
+            <span
               aria-hidden
-              initial={false}
-              animate={{ scaleX: revealed ? 1 : 0 }}
-              transition={{
-                duration: 0.45,
-                ease: [0.22, 1, 0.36, 1],
-                delay: revealed ? 0.15 : 0,
-              }}
-              className={`absolute left-0 -bottom-0 h-px w-full origin-left ${goldBg} transition-colors duration-300 group-hover:bg-white`}
+              className={`absolute left-0 -bottom-0 h-px w-full transition-colors duration-300 ${navAccentBg}`}
             />
           </Link>
 
@@ -196,25 +186,25 @@ export default function Navbar() {
           >
             {open ? (
               <span
-                className={`text-[1.8rem] leading-none font-light transition-colors duration-300 ${gold} group-hover:text-white`}
+                className={`text-[1.8rem] leading-none font-light transition-all duration-300 ${gold} group-hover:text-white drop-shadow-[0_0_10px_rgba(212,175,55,0.85)] group-hover:drop-shadow-[0_0_10px_rgba(255,255,255,0.85)]`}
               >
                 ✕
               </span>
             ) : (
               <div className="space-y-1.5">
                 <span
-                  className={`block w-6 h-[1px] transition-all duration-300 ${goldBg} group-hover:bg-white group-hover:w-8`}
+                  className={`block w-6 h-[1px] transition-all duration-300 group-hover:w-8 ${navAccentBg} ${navGlow}`}
                 />
                 <span
-                  className={`block w-8 h-[1px] transition-all duration-300 ${goldBg} group-hover:bg-white`}
+                  className={`block w-8 h-[1px] transition-all duration-300 ${navAccentBg} ${navGlow}`}
                 />
                 <span
-                  className={`block w-5 h-[1px] transition-all duration-300 ${goldBg} group-hover:bg-white group-hover:w-8`}
+                  className={`block w-5 h-[1px] transition-all duration-300 group-hover:w-8 ${navAccentBg} ${navGlow}`}
                 />
               </div>
             )}
           </button>
-        </motion.div>
+        </div>
       </header>
 
       {/* OVERLAY */}
@@ -297,15 +287,8 @@ export default function Navbar() {
                     animate="visible"
                     className="flex flex-col"
                   >
-                    <div className="relative h-55 lg:h-65 overflow-hidden group mb-6">
-                      <img
-                        src={col.image}
-                        alt={col.title}
-                        className="w-full h-full object-cover grayscale-[0.3] group-hover:grayscale-0 transition-all duration-700 group-hover:scale-105"
-                      />
-                      <div className="absolute inset-0 bg-linear-to-t from-[#0a0a0a]/90 via-[#0a0a0a]/40 to-transparent" />
-
-                      <div className="absolute bottom-6 left-6 right-6 z-10">
+                    <div className="relative h-55 lg:h-65 overflow-hidden mb-6">
+                      <div className="peer absolute bottom-6 left-6 right-6 z-10">
                         <h3 className="text-[1.5rem] text-white mb-2">
                           {col.title}
                         </h3>
@@ -315,6 +298,13 @@ export default function Navbar() {
                           {col.cta}
                         </span>
                       </div>
+
+                      <img
+                        src={col.image}
+                        alt={col.title}
+                        className="w-full h-full object-cover grayscale-[0.3] peer-hover:grayscale-0 transition-all duration-700 peer-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-linear-to-t from-[#0a0a0a]/90 via-[#0a0a0a]/40 to-transparent" />
                     </div>
 
                     <ul className="flex flex-col space-y-4">
