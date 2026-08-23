@@ -2,7 +2,7 @@ function CallToAction() {
     return (
         <section className="bg-surface-container-lowest py-48 text-center">
             <div className="max-w-[1440px] mx-auto px-12">
-                <h2 className="font-headline text-7xl text-on-surface mb-8">
+                <h2 className="font-headline text-4xl sm:text-5xl md:text-7xl text-on-surface mb-8">
                     Host Your Own Masterpiece
                 </h2>
                 <p className="text-secondary max-w-xl mx-auto mb-16 text-lg">

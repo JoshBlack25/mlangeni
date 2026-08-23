@@ -128,23 +128,6 @@ export default function MenuBuilder() {
     <MenuProvider value={{ state, dispatch }}>
       <main className="min-h-screen bg-[#0A0A0A] px-6 py-10 text-white md:px-10 lg:px-14">
         <section className="mx-auto max-w-[1500px]">
-          {/* HEADER BRANDING */}
-          <div className="mb-10 max-w-3xl">
-            <div className="mb-4 flex items-center gap-2 text-sm uppercase tracking-[0.25em] text-[#D4AF37]">
-              <UtensilsCrossed size={17} />
-              <span>Mlangeni Grand Hospitality</span>
-            </div>
-
-            <h1 className="font-serif text-4xl font-medium tracking-tight text-white md:text-5xl lg:text-6xl">
-              Menu Builder
-            </h1>
-
-            <p className="mt-5 max-w-2xl text-base leading-7 text-[#A0A0A0] md:text-lg">
-              Design your custom event menu step-by-step. Select your preferred
-              courses, specify your guest details, and receive a tailored quote.
-            </p>
-          </div>
-
           {/* LOADING STATE */}
           {menuLoading && (
             <div className="flex flex-col items-center justify-center py-20">

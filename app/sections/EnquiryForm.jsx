@@ -10,6 +10,11 @@ import PhoneInputField from "@/app/components/contact/PhoneInputField";
 import SessionDropDown from "@/app/components/contact/SessionDropDown";
 import SuccessModal from "@/app/components/contact/SuccessModal";
 import Link from "next/link";
+import {
+  SESSION_OPTIONS,
+  normalizeSession,
+  isSessionUnavailable,
+} from "@/app/components/constants/sessions";
 
 const initialFormData = {
   name: "",
@@ -20,8 +25,6 @@ const initialFormData = {
   guests: "",
   message: "",
 };
-
-const ALL_SESSIONS = ["Morning", "Afternoon", "Evening/Night"];
 
 // Animation variants
 const fadeUp = {
@@ -92,7 +95,6 @@ export default function EnquiryForm() {
 
   useEffect(() => {
     if (!formData.eventDate) {
-      setBookedSessions([]);
       return;
     }
     const fetchBooked = async () => {
@@ -101,7 +103,7 @@ export default function EnquiryForm() {
         .select("session")
         .eq("event_date", formData.eventDate)
         .eq("status", "confirmed");
-      setBookedSessions(data?.map((r) => r.session) ?? []);
+      setBookedSessions((data ?? []).map((r) => normalizeSession(r.session)));
     };
     fetchBooked();
   }, [formData.eventDate]);
@@ -220,7 +222,7 @@ export default function EnquiryForm() {
         .mgh-phone .PhoneInputInput::placeholder { color: #444; }
       `}</style>
 
-      <section className="bg-[#0a0a0a] text-white px-6 md:px-12 py-20 font-[Playfair_Display]">
+      <section className="bg-[#0a0a0a] text-white px-6 md:px-12 py-20 font-[Playfair_Display] overflow-hidden">
         <div className="max-w-7xl mx-auto">
           {/* Heading — fades up first */}
           <motion.div
@@ -429,19 +431,22 @@ export default function EnquiryForm() {
                       {formattedDate}
                     </p>
                     <div className="flex flex-col">
-                      {ALL_SESSIONS.map((session, i) => {
-                        const isUnavailable = bookedSessions.includes(session);
+                      {SESSION_OPTIONS.map((session, i) => {
+                        const isUnavailable = isSessionUnavailable(
+                          session.value,
+                          bookedSessions,
+                        );
                         return (
                           <div
-                            key={session}
+                            key={session.value}
                             className={`flex items-center justify-between py-3.5 ${
-                              i < ALL_SESSIONS.length - 1
+                              i < SESSION_OPTIONS.length - 1
                                 ? "border-b border-[#1A1A1A]"
                                 : ""
                             }`}
                           >
                             <span className="text-[10px] tracking-[0.2em] uppercase text-white/40">
-                              {session} Session
+                              {session.label} Session
                             </span>
                             <div className="flex items-center gap-2">
                               <span

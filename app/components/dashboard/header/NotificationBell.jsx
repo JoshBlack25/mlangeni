@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Bell, Check, ExternalLink } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
-import { useNotifications } from "@/app/dashboard/customer/notifications/hooks/useNotifications";
+import { useNotifications } from "@/app/components/dashboard/shared/notifications/hooks/useNotifications";
 
 function formatNotificationTime(dateString) {
   const date = new Date(dateString);
@@ -38,7 +38,7 @@ function formatNotificationTime(dateString) {
   });
 }
 
-export default function NotificationBell() {
+export default function NotificationBell({ basePath = "/dashboard/customer" }) {
   const [open, setOpen] = useState(false);
   const { latestNotifications, unreadCount, loading, markAsRead } =
     useNotifications();
@@ -151,7 +151,7 @@ export default function NotificationBell() {
                 </div>
 
                 <p className="mt-4 text-sm text-[#777777]">
-                  You're all caught up.
+                  You&apos;re all caught up.
                 </p>
               </div>
             )}
@@ -234,7 +234,7 @@ export default function NotificationBell() {
             {/* FOOTER */}
 
             <Link
-              href="/dashboard/customer/notifications"
+              href={`${basePath}/notifications`}
               onClick={() => setOpen(false)}
               className="flex w-full items-center justify-center gap-2 py-4 text-sm font-medium text-[#D4AF37] transition hover:bg-[#141414]"
             >

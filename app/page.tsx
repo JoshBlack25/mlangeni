@@ -7,10 +7,13 @@ import Contact from "./sections/Contact";
 import Footer from "./components/Footer";
 import EnquiryForm from "./sections/EnquiryForm";
 import NavBar from "./components/NavBar";
+import ScrollReset from "./components/ScrollReset";
 
 export default function Home() {
   return (
     <>
+      <ScrollReset />
+
       <section id="nav">
         <NavBar />
       </section>
