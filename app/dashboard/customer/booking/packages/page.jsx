@@ -29,6 +29,7 @@ export default function Packages() {
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("17:00");
   const [eventLocation, setEventLocation] = useState("");
+  const [numberOfGuest, setNumberOfGuest] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -133,6 +134,7 @@ export default function Packages() {
       start_time: startTime,
       end_time: endTime,
       event_location: eventLocation,
+      number_of_guest: numberOfGuest,
       total_price: total,
     });
 
@@ -153,6 +155,7 @@ export default function Packages() {
     setEventTypeId("");
     setEventDate("");
     setEventLocation("");
+    setNumberOfGuest("")
   }
 
   if (checkingAuth || loadingData) {
@@ -270,6 +273,18 @@ export default function Packages() {
                 placeholder="Venue or address"
                 value={eventLocation}
                 onChange={(e) => setEventLocation(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div>
+            <div className="mgh-menu-label">Number Of Guest</div>
+            <div className="mgh-menu-input-box">
+              <input 
+              type ="text"
+              placeholder="0"
+              value={numberOfGuest}
+              onChange={(e) => setNumberOfGuest(e.target.value)}
               />
             </div>
           </div>
