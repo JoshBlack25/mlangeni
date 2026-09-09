@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ClipboardList, ArrowUpRight, ChevronRight } from "lucide-react";
 import { supabase } from "@/services/supabaseClient";
+import { getCustomerForUser } from "@/app/utils/customerBookingRules";
 
 const currency = new Intl.NumberFormat("en-ZA", {
   style: "currency",
@@ -38,21 +39,47 @@ export default function RecentOrders() {
     async function fetchOrders() {
       setLoading(true);
 
-      const { data, error } = await supabase
-        .from("orders")
-        .select(
-          "order_id, status, total_price, event_date, event_type(event_name)",
-        )
-        .order("event_date", { ascending: false })
-        .limit(5);
+      try {
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
 
-      if (error) {
-        setError(error.message);
-      } else {
+        if (userError) {
+          throw userError;
+        }
+
+        if (!user) {
+          setOrders([]);
+          return;
+        }
+
+        const customer = await getCustomerForUser(supabase, user.id);
+
+        if (!customer) {
+          setOrders([]);
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from("orders")
+          .select(
+            "order_id, status, total_price, event_date, event_type(event_name)",
+          )
+          .eq("customer_id", customer.customer_id)
+          .order("event_date", { ascending: false })
+          .limit(5);
+
+        if (error) {
+          throw error;
+        }
+
         setOrders(data ?? []);
+      } catch (err) {
+        setError(err.message || "Unable to load your orders.");
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     }
 
     fetchOrders();
@@ -85,7 +112,7 @@ export default function RecentOrders() {
           booking.
         </p>
         <Link
-          href="/dashboard/customer/bookings"
+          href="/dashboard/customer/booking"
           className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[#D4AF37] px-4 py-2 text-sm font-semibold text-black transition hover:bg-[#e0bd4a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A]"
         >
           Start a new booking

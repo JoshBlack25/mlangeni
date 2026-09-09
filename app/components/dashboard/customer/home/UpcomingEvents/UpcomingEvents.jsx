@@ -4,6 +4,15 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { CalendarDays, MapPin, ArrowUpRight } from "lucide-react";
 import { supabase } from "@/services/supabaseClient";
+import {
+  BOOKED_ORDER_STATUSES,
+  getCustomerForUser,
+} from "@/app/utils/customerBookingRules";
+import {
+  getDummyConfirmedOrders,
+  mergeOrdersById,
+  subscribeDummyInvoicePayments,
+} from "@/app/utils/dummyInvoicePayments";
 
 // Static placeholder — orders don't have a per-event photo in the schema yet
 const PLACEHOLDER_IMAGE = "/images/gallery_images/food_1.jpg";
@@ -46,28 +55,77 @@ export default function UpcomingEvents() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    let mounted = true;
+
     async function fetchEvents() {
-      const today = new Date().toISOString().slice(0, 10);
+      try {
+        const today = new Date().toISOString().slice(0, 10);
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
 
-      const { data, error } = await supabase
-        .from("orders")
-        .select(
-          "order_id, status, event_date, event_location, event_type(event_name)",
-        )
-        .gte("event_date", today)
-        .neq("status", "cancelled")
-        .order("event_date", { ascending: true })
-        .order("start_time", { ascending: true })
-        .limit(3);
+        if (userError) {
+          throw userError;
+        }
 
-      if (error) {
-        setError(error.message);
-      } else {
-        setEvents(data ?? []);
+        if (!user) {
+          if (mounted) {
+            setEvents([]);
+          }
+          return;
+        }
+
+        const customer = await getCustomerForUser(supabase, user.id);
+
+        if (!customer) {
+          if (mounted) {
+            setEvents([]);
+          }
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from("orders")
+          .select(
+            "order_id, status, event_date, event_location, event_type(event_name)",
+          )
+          .eq("customer_id", customer.customer_id)
+          .in("status", BOOKED_ORDER_STATUSES)
+          .gte("event_date", today)
+          .order("event_date", { ascending: true })
+          .order("start_time", { ascending: true })
+          .limit(3);
+
+        if (error) {
+          throw error;
+        }
+
+        const dummyEvents = getDummyConfirmedOrders(customer.email).filter(
+          (event) => event.event_date >= today,
+        );
+        const mergedEvents = mergeOrdersById(data ?? [], dummyEvents)
+          .sort((a, b) => a.event_date.localeCompare(b.event_date))
+          .slice(0, 3);
+
+        if (mounted) {
+          setEvents(mergedEvents);
+        }
+      } catch (err) {
+        if (mounted) {
+          setError(err.message || "Unable to load your booked events.");
+          setEvents([]);
+        }
       }
     }
 
     fetchEvents();
+    const unsubscribe = subscribeDummyInvoicePayments(fetchEvents);
+
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
   }, []);
 
   if (error) {
@@ -82,7 +140,7 @@ export default function UpcomingEvents() {
   if (events === null) {
     return (
       <div className="flex h-full items-center justify-center rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-md">
-        <p className="text-sm text-[#797676]">Loading upcoming events…</p>
+        <p className="text-sm text-[#797676]">Loading booked events...</p>
       </div>
     );
   }
@@ -94,10 +152,10 @@ export default function UpcomingEvents() {
       <div className="flex h-full flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/5 p-8 text-center backdrop-blur-md">
         <CalendarDays className="mb-4 text-[#D4AF37]" size={28} />
         <h3 className="text-lg font-semibold text-white">
-          No events booked yet
+          No booked events yet
         </h3>
         <p className="mt-2 max-w-xs text-sm text-[#A0A0A0]">
-          Once you book your first event with us, it&apos;ll show up right here.
+          Once your booking is fully booked, it&apos;ll show up right here.
         </p>
         <Link
           href="/dashboard/customer/booking"
@@ -147,7 +205,7 @@ export default function UpcomingEvents() {
           </div>
 
           <p className="text-xs uppercase tracking-[0.2em] text-[#A0A0A0]">
-            Next event
+            Booked event
           </p>
 
           <h3 className="mt-1 text-xl font-semibold leading-snug text-white">
@@ -202,7 +260,7 @@ export default function UpcomingEvents() {
         href="/dashboard/customer/orders"
         className="flex items-center justify-between border-t border-white/10 px-6 py-3 text-sm font-medium text-[#D4AF37] transition-all duration-300 hover:gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37]"
       >
-        View all events
+        View all booked events
         <ArrowUpRight
           size={16}
           className="transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5"

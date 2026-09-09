@@ -5,7 +5,14 @@ import BookingSuccessModal from "@/app/components/dashboard/customer/BookingSucc
 import { supabase } from "@/services/supabaseClient";
 import { useMenu } from "./MenuContext";
 import { rowDisplayName } from "./constants";
-import { Check, Info } from "lucide-react";
+import { Info } from "lucide-react";
+import {
+  getActiveBookingMessage,
+  getActiveCustomerBooking,
+  getAdvanceBookingMessage,
+  getMinimumEventDate,
+  isBeforeMinimumEventDate,
+} from "@/app/utils/customerBookingRules";
 
 export function QuoteStep() {
   const { state, dispatch } = useMenu();
@@ -50,6 +57,13 @@ export function QuoteStep() {
       return;
     }
 
+    const minimumEventDate = getMinimumEventDate();
+
+    if (isBeforeMinimumEventDate(state.eventDate, minimumEventDate)) {
+      setSendError(getAdvanceBookingMessage(minimumEventDate));
+      return;
+    }
+
     setSending(true);
     setSendError("");
 
@@ -77,6 +91,15 @@ export function QuoteStep() {
         customerId = newCustomer.customer_id;
       }
 
+      const blockingBooking = await getActiveCustomerBooking(
+        supabase,
+        customerId,
+      );
+
+      if (blockingBooking) {
+        throw new Error(getActiveBookingMessage(blockingBooking));
+      }
+
       const total_price = allSelectedItems.reduce(
         (sum, item) => sum + Number(item.price) * guests,
         0,
@@ -93,6 +116,7 @@ export function QuoteStep() {
           event_location: state.eventLocation,
           start_time: state.startTime,
           end_time: state.endTime,
+          number_of_guest: guests,
         })
         .select("order_id")
         .single();
@@ -119,6 +143,22 @@ export function QuoteStep() {
 
         if (cmiErr) throw new Error(cmiErr.message);
       }
+
+      const consultationNote =
+        state.notes?.trim() ||
+        "Customer submitted an order request and is awaiting admin consultation.";
+
+      const { error: consultationErr } = await supabase
+        .from("consultations")
+        .insert({
+          order_id: order.order_id,
+          customer_id: customerId,
+          status: "requested",
+          meeting_date: `${state.eventDate}T${state.startTime || "09:00"}:00`,
+          note: consultationNote,
+        });
+
+      if (consultationErr) throw new Error(consultationErr.message);
 
       setSuccessSummary(
         `Quote request submitted for ${selectedEventType ? rowDisplayName(selectedEventType, "event_id") : "your event"} with ${guests} guest${guests === 1 ? "" : "s"}.`,

@@ -6,6 +6,7 @@ import Link from "next/link";
 import {
   CalendarPlus,
   MessageCircleMore,
+  Receipt,
   UtensilsCrossed,
   CalendarClock,
   ArrowRight,
@@ -20,9 +21,16 @@ const actions = [
     icon: <CalendarPlus size={22} />,
   },
   {
+    id: "payments",
+    href: "/dashboard/customer/payments",
+    title: "Payments",
+    subtitle: "Review invoices and pay securely.",
+    icon: <Receipt size={22} />,
+  },
+  {
     id: "consultation",
     href: "/dashboard/customer/enquiry",
-    title: "Request Consultation",
+    title: "Enquire",
     subtitle: "Speak with our catering specialists.",
     icon: <MessageCircleMore size={22} />,
   },
@@ -36,7 +44,7 @@ const actions = [
   {
     id: "events",
     href: "/dashboard/customer/orders",
-    title: "Upcoming Events",
+    title: "Booked Event",
     subtitle: "See what's on your calendar next.",
     icon: <CalendarClock size={22} />,
   },

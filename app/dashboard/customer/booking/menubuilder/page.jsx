@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useReducer } from "react";
+import Link from "next/link";
 import { supabase } from "@/services/supabaseClient";
 import { matchCategoryKey } from "@/app/components/menu/constants";
 import {
@@ -11,16 +12,22 @@ import {
 import { ProgressBar } from "@/app/components/menu/ProgressBar";
 import { CartSidebar } from "@/app/components/menu/CartSidebar";
 import { StepRouter } from "@/app/components/menu/StepRouter";
-import { UtensilsCrossed, RefreshCw } from "lucide-react";
+import { AlertCircle, UtensilsCrossed, RefreshCw } from "lucide-react";
+import {
+  getActiveBookingMessage,
+  getActiveCustomerBooking,
+} from "@/app/utils/customerBookingRules";
 
 export default function MenuBuilder() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [menuLoading, setMenuLoading] = useState(true);
   const [menuError, setMenuError] = useState("");
+  const [activeBooking, setActiveBooking] = useState(null);
 
   const loadAll = async () => {
     setMenuLoading(true);
     setMenuError("");
+    setActiveBooking(null);
 
     try {
       const {
@@ -62,6 +69,13 @@ export default function MenuBuilder() {
 
       if (customerRes.data) {
         dispatch({ type: "SET_EXISTING_CUSTOMER", payload: customerRes.data });
+
+        const booking = await getActiveCustomerBooking(
+          supabase,
+          customerRes.data.customer_id,
+        );
+
+        setActiveBooking(booking);
       }
 
       dispatch({ type: "SET_EVENT_TYPES", payload: eventTypesRes.data || [] });
@@ -121,7 +135,13 @@ export default function MenuBuilder() {
   };
 
   useEffect(() => {
-    loadAll();
+    const loadTimer = window.setTimeout(() => {
+      loadAll();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(loadTimer);
+    };
   }, []);
 
   return (
@@ -169,8 +189,26 @@ export default function MenuBuilder() {
             </div>
           )}
 
+          {!menuLoading && !menuError && activeBooking && (
+            <div className="my-10 border border-white/10 bg-white/[0.03] p-8 text-center backdrop-blur-md">
+              <AlertCircle className="mx-auto text-[#D4AF37]" size={32} />
+              <h2 className="mt-5 font-serif text-3xl font-medium text-white">
+                Active Booking In Progress
+              </h2>
+              <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-[#A0A0A0] md:text-base">
+                {getActiveBookingMessage(activeBooking)}
+              </p>
+              <Link
+                href="/dashboard/customer/orders"
+                className="mt-7 inline-flex h-11 items-center justify-center rounded-lg border border-[#D4AF37]/40 px-5 text-sm font-semibold text-[#D4AF37] transition hover:border-[#D4AF37] hover:bg-[#D4AF37] hover:text-black"
+              >
+                View My Bookings
+              </Link>
+            </div>
+          )}
+
           {/* ACTIVE BUILDER INTERFACE */}
-          {!menuLoading && !menuError && state.menu && (
+          {!menuLoading && !menuError && !activeBooking && state.menu && (
             <>
               <ProgressBar />
 

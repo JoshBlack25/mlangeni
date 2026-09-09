@@ -6,6 +6,7 @@ import Link from "next/link";
 import {
   Send,
   CalendarClock,
+  CalendarCheck,
   ClipboardList,
   Receipt,
   ArrowRight,
@@ -23,15 +24,15 @@ const actions = [
     id: "consultations",
     href: "/dashboard/admin/consultations",
     title: "Consultations",
-    subtitle: "See what's scheduled and confirm meetings.",
+    subtitle: "Review new customer order requests.",
     icon: <CalendarClock size={22} />,
   },
   {
-    id: "orders",
-    href: "/dashboard/admin/orders",
-    title: "Manage Orders",
-    subtitle: "Track active bookings across all clients.",
-    icon: <ClipboardList size={22} />,
+    id: "active-meetings",
+    href: "/dashboard/admin/active-meetings",
+    title: "Active Meetings",
+    subtitle: "View scheduled meetings and prepare invoices.",
+    icon: <CalendarCheck size={22} />,
   },
   {
     id: "invoices",
@@ -39,6 +40,13 @@ const actions = [
     title: "Invoices",
     subtitle: "Review outstanding and recent payments.",
     icon: <Receipt size={22} />,
+  },
+  {
+    id: "orders",
+    href: "/dashboard/admin/orders",
+    title: "Manage Orders",
+    subtitle: "Track active bookings across all clients.",
+    icon: <ClipboardList size={22} />,
   },
 ];
 

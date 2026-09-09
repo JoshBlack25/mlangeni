@@ -3,19 +3,26 @@
 import { useState } from "react";
 import { useMenu } from "./MenuContext";
 import { rowDisplayName } from "./constants";
+import {
+  getAdvanceBookingMessage,
+  getMinimumEventDate,
+  getMinimumEventDateInputValue,
+  isBeforeMinimumEventDate,
+} from "@/app/utils/customerBookingRules";
 
 export function EventDetailsStep() {
   const { state, dispatch } = useMenu();
   const [errors, setErrors] = useState({});
-  const today = new Date().toISOString().split("T")[0];
+  const minimumEventDate = getMinimumEventDate();
+  const minimumEventDateInput = getMinimumEventDateInputValue();
 
   const validate = () => {
     const e = {};
     if (!state.guests || parseInt(state.guests) < 1)
       e.guests = "Please enter guest count";
     if (!state.eventDate) e.eventDate = "Please select an event date";
-    else if (state.eventDate < today)
-      e.eventDate = "Date must be in the future";
+    else if (isBeforeMinimumEventDate(state.eventDate, minimumEventDate))
+      e.eventDate = getAdvanceBookingMessage(minimumEventDate);
     if (!state.eventTypeId) e.eventTypeId = "Please select event type";
     if (!state.eventLocation.trim())
       e.eventLocation = "Please enter venue location";
@@ -75,7 +82,7 @@ export function EventDetailsStep() {
             </label>
             <input
               type="date"
-              min={today}
+              min={minimumEventDateInput}
               value={state.eventDate}
               onChange={(e) => {
                 dispatch({ type: "SET_DATE", payload: e.target.value });

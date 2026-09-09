@@ -13,6 +13,14 @@ import {
   CarouselNext,
 } from "@/app/components/package/carousel";
 import "@/app/globals.css";
+import {
+  getActiveBookingMessage,
+  getActiveCustomerBooking,
+  getAdvanceBookingMessage,
+  getCustomerForUser,
+  getMinimumEventDate,
+  isBeforeMinimumEventDate,
+} from "@/app/utils/customerBookingRules";
 
 export default function Packages() {
   const router = useRouter();
@@ -22,6 +30,8 @@ export default function Packages() {
 
   const [premadeMenus, setPremadeMenus] = useState([]);
   const [eventTypes, setEventTypes] = useState([]);
+  const [customerId, setCustomerId] = useState(null);
+  const [activeBooking, setActiveBooking] = useState(null);
 
   const [selectedMenuId, setSelectedMenuId] = useState(null);
   const [eventTypeId, setEventTypeId] = useState("");
@@ -34,15 +44,52 @@ export default function Packages() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const minimumEventDate = getMinimumEventDate();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) {
-        router.push("/login");
-      } else {
-        setCheckingAuth(false);
+    let mounted = true;
+
+    async function checkAuthAndBooking() {
+      try {
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
+
+        if (userError) {
+          throw userError;
+        }
+
+        if (!user) {
+          router.push("/login");
+          return;
+        }
+
+        const customer = await getCustomerForUser(supabase, user.id);
+        const booking = customer
+          ? await getActiveCustomerBooking(supabase, customer.customer_id)
+          : null;
+
+        if (mounted) {
+          setCustomerId(customer?.customer_id ?? null);
+          setActiveBooking(booking);
+        }
+      } catch (err) {
+        if (mounted) {
+          setError(err.message || "Unable to check your booking availability.");
+        }
+      } finally {
+        if (mounted) {
+          setCheckingAuth(false);
+        }
       }
-    });
+    }
+
+    checkAuthAndBooking();
+
+    return () => {
+      mounted = false;
+    };
   }, [router]);
 
   useEffect(() => {
@@ -99,6 +146,14 @@ export default function Packages() {
       setError("Event type, date, and location are all required.");
       return;
     }
+    if (isBeforeMinimumEventDate(eventDate, minimumEventDate)) {
+      setError(getAdvanceBookingMessage(minimumEventDate));
+      return;
+    }
+    if (activeBooking) {
+      setError(getActiveBookingMessage(activeBooking));
+      return;
+    }
 
     setSubmitting(true);
     setShowSuccessModal(false);
@@ -110,14 +165,34 @@ export default function Packages() {
       return;
     }
 
-    const { data: customerRow, error: customerError } = await supabase
-      .from("customer")
-      .select("customer_id")
-      .eq("user_id", userData.user.id)
-      .single();
+    let orderCustomerId = customerId;
 
-    if (customerError || !customerRow) {
-      setError(customerError?.message ?? "Could not find your customer profile.");
+    try {
+      if (!orderCustomerId) {
+        const customer = await getCustomerForUser(supabase, userData.user.id);
+        orderCustomerId = customer?.customer_id;
+        setCustomerId(orderCustomerId ?? null);
+      }
+
+      if (!orderCustomerId) {
+        setError("Could not find your customer profile.");
+        setSubmitting(false);
+        return;
+      }
+
+      const blockingBooking = await getActiveCustomerBooking(
+        supabase,
+        orderCustomerId,
+      );
+
+      if (blockingBooking) {
+        setActiveBooking(blockingBooking);
+        setError(getActiveBookingMessage(blockingBooking));
+        setSubmitting(false);
+        return;
+      }
+    } catch (err) {
+      setError(err.message || "Unable to check your booking availability.");
       setSubmitting(false);
       return;
     }
@@ -125,8 +200,8 @@ export default function Packages() {
     const selectedMenu = premadeMenus.find((m) => m.premade_menu_id === selectedMenuId);
     const total = menuTotal(selectedMenu);
 
-    const { error: orderError } = await supabase.from("orders").insert({
-      customer_id: customerRow.customer_id,
+    const { data: order, error: orderError } = await supabase.from("orders").insert({
+      customer_id: orderCustomerId,
       event_type_id: eventTypeId,
       premade_menu_id: selectedMenuId,
       event_date: eventDate,
@@ -134,11 +209,11 @@ export default function Packages() {
       end_time: endTime,
       event_location: eventLocation,
       total_price: total,
-    });
-
-    setSubmitting(false);
+    }).select("order_id").single();
 
     if (orderError) {
+      setSubmitting(false);
+
       if (orderError.code === "23P01") {
         setError("That date and time is already booked. Please pick a different slot.");
       } else {
@@ -147,7 +222,22 @@ export default function Packages() {
       return;
     }
 
-    setSuccess(`Order created using "${selectedMenu.name}"! Total: R${total.toFixed(2)}`);
+    const { error: consultationError } = await supabase.from("consultations").insert({
+      order_id: order.order_id,
+      customer_id: orderCustomerId,
+      status: "requested",
+      meeting_date: `${eventDate}T${startTime || "09:00"}:00`,
+      note: "Customer submitted a package order request and is awaiting admin consultation.",
+    });
+
+    setSubmitting(false);
+
+    if (consultationError) {
+      setError(consultationError.message);
+      return;
+    }
+
+    setSuccess(`Package request submitted using "${selectedMenu.name}". Total: R${total.toFixed(2)}`);
     setShowSuccessModal(true);
     setSelectedMenuId(null);
     setEventTypeId("");
@@ -165,6 +255,27 @@ export default function Packages() {
       </div>
     </div>
   </div>
+    );
+  }
+
+  if (activeBooking) {
+    return (
+      <div className="mgh-menu">
+        <div className="mgh-menu-page">
+          <h1>Active Booking In Progress</h1>
+          <div className="mgh-menu-line"></div>
+          <div className="mgh-menu-card selected">
+            <p>{getActiveBookingMessage(activeBooking)}</p>
+            <button
+              type="button"
+              className="mgh-menu-submit-btn"
+              onClick={() => router.push("/dashboard/customer/orders")}
+            >
+              VIEW MY BOOKINGS
+            </button>
+          </div>
+        </div>
+      </div>
     );
   }
 
@@ -234,6 +345,7 @@ export default function Packages() {
             <div className="mgh-menu-label">Event Date</div>
             <PackageCalendar
               value={eventDate ? new Date(eventDate) : undefined}//setting up eventDate value
+              minDate={minimumEventDate}
               onChange={(selectedDate)=>{
                 if(selectedDate){
                   const yyyy = selectedDate.getFullYear();
@@ -274,8 +386,8 @@ export default function Packages() {
             </div>
           </div>
 
-          <button type="submit" className="mgh-menu-submit-btn" disabled={submitting}>
-            {submitting ? "SUBMITTING..." : "SUBMIT ORDER"}
+          <button type="submit" className="mgh-menu-submit-btn" disabled={submitting || Boolean(activeBooking)}>
+            {submitting ? "SUBMITTING..." : "SUBMIT ORDER REQUEST"}
           </button>
         </form>
 
@@ -285,8 +397,8 @@ export default function Packages() {
 
       <BookingSuccessModal
         isOpen={showSuccessModal}
-        title="Your package order is confirmed"
-        message="You can head back to your dashboard or open your orders page to review the booking you just submitted."
+        title="Your package request is in"
+        message="You can head back to your dashboard or open your orders page to review the booking request you just submitted."
         orderLabel={success || "Your booking has been submitted."}
         onClose={() => setShowSuccessModal(false)}
       />

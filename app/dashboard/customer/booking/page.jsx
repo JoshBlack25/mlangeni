@@ -1,13 +1,22 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
+  AlertCircle,
   UtensilsCrossed,
   Sparkles,
   ArrowRight,
   CalendarDays,
 } from "lucide-react";
+import { supabase } from "@/services/supabaseClient";
+import {
+  getActiveBookingMessage,
+  getActiveCustomerBooking,
+  getCustomerForUser,
+} from "@/app/utils/customerBookingRules";
 
 const bookingOptions = [
   {
@@ -31,6 +40,97 @@ const bookingOptions = [
 ];
 
 export default function BookingPage() {
+  const router = useRouter();
+  const [checkingBooking, setCheckingBooking] = useState(true);
+  const [activeBooking, setActiveBooking] = useState(null);
+  const [availabilityError, setAvailabilityError] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function checkBookingAvailability() {
+      try {
+        setAvailabilityError(null);
+
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
+
+        if (userError) {
+          throw userError;
+        }
+
+        if (!user) {
+          router.replace("/login");
+          return;
+        }
+
+        const customer = await getCustomerForUser(supabase, user.id);
+        const booking = customer
+          ? await getActiveCustomerBooking(supabase, customer.customer_id)
+          : null;
+
+        if (mounted) {
+          setActiveBooking(booking);
+        }
+      } catch (err) {
+        if (mounted) {
+          setAvailabilityError(
+            err.message || "Unable to check your booking availability.",
+          );
+        }
+      } finally {
+        if (mounted) {
+          setCheckingBooking(false);
+        }
+      }
+    }
+
+    checkBookingAvailability();
+
+    return () => {
+      mounted = false;
+    };
+  }, [router]);
+
+  if (checkingBooking) {
+    return (
+      <main className="min-h-screen bg-[#0A0A0A] px-6 py-10 text-white md:px-10 lg:px-14">
+        <div className="mx-auto flex min-h-[calc(100vh-120px)] max-w-[1400px] items-center justify-center">
+          <p className="text-sm uppercase tracking-[0.2em] text-[#797676]">
+            Checking booking availability...
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  if (availabilityError || activeBooking) {
+    return (
+      <main className="min-h-screen bg-[#0A0A0A] px-6 py-10 text-white md:px-10 lg:px-14">
+        <div className="mx-auto flex min-h-[calc(100vh-120px)] max-w-[900px] items-center justify-center">
+          <div className="w-full border border-white/10 bg-white/[0.03] p-8 text-center backdrop-blur-md md:p-10">
+            <AlertCircle className="mx-auto text-[#D4AF37]" size={32} />
+            <h1 className="mt-5 font-serif text-3xl font-medium text-white md:text-4xl">
+              Active Booking In Progress
+            </h1>
+            <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-[#A0A0A0] md:text-base">
+              {availabilityError || getActiveBookingMessage(activeBooking)}
+            </p>
+            <Link
+              href="/dashboard/customer/orders"
+              className="mt-7 inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-[#D4AF37]/40 px-5 text-sm font-semibold text-[#D4AF37] transition hover:border-[#D4AF37] hover:bg-[#D4AF37] hover:text-black"
+            >
+              View My Bookings
+              <ArrowRight size={16} />
+            </Link>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-[#0A0A0A] px-6 py-10 text-white md:px-10 lg:px-14">
       <div className="mx-auto flex min-h-[calc(100vh-120px)] max-w-[1400px] flex-col justify-center">
@@ -58,7 +158,7 @@ export default function BookingPage() {
           {/* DESCRIPTION */}
 
           <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-[#A0A0A0] md:text-lg">
-            Let's create something memorable. Choose how you'd like to begin
+            Let&apos;s create something memorable. Choose how you&apos;d like to begin
             planning your catering experience.
           </p>
         </motion.div>

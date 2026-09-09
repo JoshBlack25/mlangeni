@@ -2,8 +2,11 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Receipt, ArrowUpRight, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/services/supabaseClient";
+import { isDummyInvoicePaid } from "@/app/utils/dummyInvoicePayments";
+import { getRuntimeInvoiceStatus } from "@/app/utils/invoiceDueDates";
 
 const currency = new Intl.NumberFormat("en-ZA", {
   style: "currency",
@@ -12,6 +15,7 @@ const currency = new Intl.NumberFormat("en-ZA", {
 
 function statusLabel(status) {
   if (status === "sent") return "Due";
+  if (status === "overdue") return "Cancelled";
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
@@ -34,37 +38,92 @@ function getInvoiceTitle(inv) {
 }
 
 export default function Invoices() {
+  const router = useRouter();
   const [invoices, setInvoices] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    async function fetchInvoices() {
-      const { data, error } = await supabase
-        .from("invoices")
-        .select(
-          `
-          invoices_id,
-          total_amount,
-          status,
-          due_date,
-          consultation:consultation_id (
-            note,
-            order:order_id ( event_type ( event_name ) )
-          )
-        `,
-        )
-        .neq("status", "draft")
-        .order("due_date", { ascending: true });
+    let mounted = true;
 
-      if (error) {
-        setError(error.message);
-      } else {
-        setInvoices(data ?? []);
+    async function fetchInvoices() {
+      try {
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
+
+        if (userError) {
+          throw userError;
+        }
+
+        if (!user) {
+          router.replace("/login");
+          return;
+        }
+
+        const { data: customerRow, error: customerError } = await supabase
+          .from("customer")
+          .select("customer_id")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (customerError) {
+          throw customerError;
+        }
+
+        if (!customerRow) {
+          if (mounted) {
+            setInvoices([]);
+          }
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from("invoices")
+          .select(
+            `
+            invoices_id,
+            total_amount,
+            status,
+            due_date,
+            consultation:consultation_id!inner (
+              customer_id,
+              note,
+              order:order_id ( event_type ( event_name ) )
+            )
+          `,
+          )
+          .eq("consultation.customer_id", customerRow.customer_id)
+          .neq("status", "draft")
+          .order("due_date", { ascending: true });
+
+        if (error) {
+          throw error;
+        }
+
+        if (mounted) {
+          setInvoices(
+            (data ?? []).map((invoice) =>
+              isDummyInvoicePaid(invoice.invoices_id)
+                ? { ...invoice, status: "paid" }
+                : { ...invoice, status: getRuntimeInvoiceStatus(invoice) },
+            ),
+          );
+        }
+      } catch (err) {
+        if (mounted) {
+          setError(err.message || "Unable to load your invoices.");
+          setInvoices([]);
+        }
       }
     }
 
     fetchInvoices();
-  }, []);
+
+    return () => {
+      mounted = false;
+    };
+  }, [router]);
 
   if (error) {
     return (
@@ -78,7 +137,7 @@ export default function Invoices() {
   if (invoices === null) {
     return (
       <div className="flex h-full items-center justify-center rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md">
-        <p className="text-sm text-[#797676]">Loading invoices…</p>
+        <p className="text-sm text-[#797676]">Loading invoices...</p>
       </div>
     );
   }
@@ -95,9 +154,7 @@ export default function Invoices() {
     );
   }
 
-  const unpaid = invoices.filter(
-    (inv) => inv.status === "sent" || inv.status === "overdue",
-  );
+  const unpaid = invoices.filter((inv) => inv.status === "sent");
   const totalDue = unpaid.reduce(
     (sum, inv) => sum + Number(inv.total_amount),
     0,
@@ -135,7 +192,7 @@ export default function Invoices() {
               {currency.format(totalDue)}
             </p>
             <p className="mt-1 text-sm text-[#A0A0A0]">
-              outstanding · {unpaid.length} invoice
+              outstanding - {unpaid.length} invoice
               {unpaid.length === 1 ? "" : "s"}
             </p>
           </>
@@ -179,7 +236,7 @@ export default function Invoices() {
       {/* FOOTER CTA */}
       {allSettled ? (
         <Link
-          href="/dashboard/customer/invoices"
+          href="/dashboard/customer/payments"
           className="mt-auto flex items-center justify-between border-t border-white/10 px-6 py-3 text-sm font-medium text-[#D4AF37] transition-all duration-300 hover:gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-inset"
         >
           View all invoices
@@ -187,7 +244,7 @@ export default function Invoices() {
         </Link>
       ) : (
         <Link
-          href="/dashboard/customer/invoices"
+          href="/dashboard/customer/payments"
           className="mt-auto flex items-center justify-center gap-2 rounded-b-2xl bg-[#D4AF37] px-6 py-3 text-sm font-semibold text-black transition hover:bg-[#e0bd4a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A]"
         >
           Pay Now

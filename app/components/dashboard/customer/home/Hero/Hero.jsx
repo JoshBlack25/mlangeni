@@ -74,7 +74,7 @@ export default function Hero() {
 
           <p className="mt-6 max-w-2xl text-lg leading-8 text-[#A0A0A0]">
             Everything you need to manage your catering experience is right
-            here. Track bookings, monitor upcoming events, review invoices and
+            here. Track bookings, monitor booked events, review invoices and
             stay connected with our hospitality team.
           </p>
         </div>
