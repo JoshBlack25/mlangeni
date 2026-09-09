@@ -1,4 +1,4 @@
-import { NotificationProvider } from "./customer/notifications/context/NotificationContext";
+import { NotificationProvider } from "@/app/components/dashboard/shared/notifications/context/NotificationContext";
 
 export default function Layout({ children }) {
   return <NotificationProvider>{children}</NotificationProvider>;

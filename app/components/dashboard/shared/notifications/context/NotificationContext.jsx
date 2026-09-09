@@ -34,11 +34,10 @@ export function NotificationProvider({ children }) {
           error: userError,
         } = await supabase.auth.getUser();
 
-        if (userError) {
-          throw userError;
-        }
-
-        if (!user) {
+        if (userError || !user) {
+          if (userError && userError.name !== "AuthSessionMissingError") {
+            console.error("Unexpected auth error:", userError);
+          }
           if (mountedRef.current) {
             setNotifications([]);
           }
@@ -52,9 +51,12 @@ export function NotificationProvider({ children }) {
             `
             notification_id,
             user_id,
+            sender_id,
             title,
             message,
+            category,
             is_read,
+            link_url,
             created_at,
             updated_at
           `,
@@ -257,6 +259,79 @@ export function NotificationProvider({ children }) {
     );
   }
 
+  // Add near the other action functions (markAsRead, deleteNotification, etc.)
+
+  async function sendNotification({
+    recipientId,
+    category = "general",
+    title,
+    message,
+    linkUrl = null,
+  }) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { error: "Not authenticated" };
+    }
+
+    const { error } = await supabase.from("notifications").insert({
+      user_id: recipientId,
+      sender_id: user.id,
+      category,
+      title,
+      message,
+      link_url: linkUrl,
+    });
+
+    return { error };
+  }
+
+  async function notifyAllAdmins({
+    category = "general",
+    title,
+    message,
+    linkUrl = null,
+  }) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { error: "Not authenticated" };
+    }
+
+    const { data: admins, error: adminError } =
+      await supabase.rpc("get_admin_user_ids");
+
+    if (adminError) {
+      console.error("get_admin_user_ids failed:", adminError);
+      return { error: adminError.message };
+    }
+
+    if (!admins || admins.length === 0) {
+      return { error: "No admins found" };
+    }
+
+    const rows = admins.map((a) => ({
+      user_id: a.user_id,
+      sender_id: user.id,
+      category,
+      title,
+      message,
+      link_url: linkUrl,
+    }));
+
+    const { error } = await supabase.from("notifications").insert(rows);
+
+    if (error) {
+      console.error("Insert into notifications failed:", error);
+    }
+
+    return { error };
+  }
+
   const unreadCount = useMemo(() => {
     return notifications.filter((notification) => !notification.is_read).length;
   }, [notifications]);
@@ -274,6 +349,8 @@ export function NotificationProvider({ children }) {
     markAsRead,
     markAllAsRead,
     deleteNotification,
+    sendNotification, // NEW
+    notifyAllAdmins, // NEW
   };
 
   return (

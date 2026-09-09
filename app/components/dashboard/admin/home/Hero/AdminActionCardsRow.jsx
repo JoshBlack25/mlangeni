@@ -10,6 +10,7 @@ import {
   ClipboardList,
   Receipt,
   ArrowRight,
+  UtensilsCrossed,
 } from "lucide-react";
 
 const actions = [
@@ -47,6 +48,13 @@ const actions = [
     title: "Manage Orders",
     subtitle: "Track active bookings across all clients.",
     icon: <ClipboardList size={22} />,
+  },
+  {
+    id: "menu-editor",
+    href: "/dashboard/admin/tools/menu-editor",
+    title: "Edit Menu",
+    subtitle: "Add or remove dishes and drinks from the live menu.",
+    icon: <UtensilsCrossed size={22} />,
   },
 ];
 

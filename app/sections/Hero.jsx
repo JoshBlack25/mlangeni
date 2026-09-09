@@ -1,18 +1,25 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
+
+const HOVER_ACTIVATION_DELAY = 2000;
 
 export default function Hero() {
+  const router = useRouter();
   const [active, setActive] = useState(null);
   const [loaded, setLoaded] = useState(false);
-
-  const leftVideoRef = useRef(null);
-  const rightVideoRef = useRef(null);
+  const [canInteract, setCanInteract] = useState(false);
 
   const handleToggle = (side) => {
     setActive((prev) => (prev === side ? null : side));
   };
+
+  useEffect(() => {
+    const timer = setTimeout(() => setCanInteract(true), HOVER_ACTIVATION_DELAY);
+    return () => clearTimeout(timer);
+  }, []);
 
   const baseTransition = "transition-all duration-750 ease-in";
 
@@ -24,28 +31,6 @@ export default function Hero() {
     logoTransform =
       "-translate-y-[17.5vh] md:translate-y-0 md:-translate-x-[17.5vw]";
   }
-
-  useEffect(() => {
-    const left = leftVideoRef.current;
-    const right = rightVideoRef.current;
-
-    if (active === "left") {
-      right?.pause();
-      right.currentTime = 0;
-      left?.play().catch(() => {});
-    } else if (active === "right") {
-      left.playbackRate = 0.75;
-      left?.pause();
-      left.currentTime = 0;
-      right?.play().catch(() => {});
-    } else {
-      right.playbackRate = 0.75;
-      left?.pause();
-      right?.pause();
-      if (left) left.currentTime = 0;
-      if (right) right.currentTime = 0;
-    }
-  }, [active]);
 
   const [isMobile, setIsMobile] = useState(false);
   const [isLandscapeTablet, setIsLandscapeTablet] = useState(false);
@@ -80,18 +65,6 @@ export default function Hero() {
       ([entry]) => {
         if (!entry.isIntersecting && (isMobile || isLandscapeTablet)) {
           setActive(null);
-
-          const left = leftVideoRef.current;
-          const right = rightVideoRef.current;
-
-          if (left) {
-            left.pause();
-            left.currentTime = 0;
-          }
-          if (right) {
-            right.pause();
-            right.currentTime = 0;
-          }
         }
       },
       { threshold: 0.2 },
@@ -113,20 +86,21 @@ export default function Hero() {
       {/* LEFT SECTION */}
       <div
         onPointerEnter={(e) => {
-          if (e.pointerType === "mouse" && !isLandscapeTablet) {
+          if (canInteract && e.pointerType === "mouse" && !isLandscapeTablet) {
             setActive("left");
           }
         }}
         onPointerLeave={(e) => {
-          if (e.pointerType === "mouse" && !isLandscapeTablet) {
+          if (canInteract && e.pointerType === "mouse" && !isLandscapeTablet) {
             setActive(null);
           }
         }}
-        onClick={() =>
+        onClick={() => {
+          if (!canInteract) return;
           setActive((prev) =>
             isTapDevice ? (prev === "left" ? null : "left") : "left",
-          )
-        }
+          );
+        }}
         className={`relative overflow-hidden min-h-0 cursor-pointer ${baseTransition}
         ${
           active === "left"
@@ -138,33 +112,10 @@ export default function Hero() {
         ${active === "right" ? "brightness-90 md:blur-[1px]" : ""}`}
       >
         <div className="relative w-full h-full">
-          {/* POSTER */}
-          <AnimatePresence>
-            {active !== "left" && (
-              <motion.img
-                key="poster-left"
-                src="/images/events-thumbnail.png"
-                className="absolute inset-0 w-full h-full object-cover brightness-60"
-                initial={{ opacity: 1 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.8, ease: "easeInOut" }}
-              />
-            )}
-          </AnimatePresence>
-
-          {/* VIDEO */}
-          <motion.video
-            ref={leftVideoRef}
-            src="/videos/Events-video.mp4"
-            loop
-            muted
-            playsInline
-            preload="metadata"
+          <img
+            src="/images/events-thumbnail.png"
+            alt="Mlangeni Events"
             className="absolute inset-0 w-full h-full object-cover brightness-60"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: active === "left" ? 1 : 0 }}
-            transition={{ duration: 0.8, ease: "easeInOut" }}
           />
         </div>
 
@@ -198,7 +149,10 @@ export default function Hero() {
                 and imagination.
               </p>
               <motion.button
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push("/login");
+                }}
                 className="relative inline-flex items-center justify-center px-0 py-3 text-xs tracking-[0.25em] uppercase text-[#D4AF37] transition-all duration-400 overflow-hidden cursor-pointer"
                 initial="rest"
                 animate="rest"
@@ -222,20 +176,21 @@ export default function Hero() {
       {/* RIGHT SECTION */}
       <div
         onPointerEnter={(e) => {
-          if (e.pointerType === "mouse" && !isLandscapeTablet) {
+          if (canInteract && e.pointerType === "mouse" && !isLandscapeTablet) {
             setActive("right");
           }
         }}
         onPointerLeave={(e) => {
-          if (e.pointerType === "mouse" && !isLandscapeTablet) {
+          if (canInteract && e.pointerType === "mouse" && !isLandscapeTablet) {
             setActive(null);
           }
         }}
-        onClick={() =>
+        onClick={() => {
+          if (!canInteract) return;
           setActive((prev) =>
             isTapDevice ? (prev === "right" ? null : "right") : "right",
-          )
-        }
+          );
+        }}
         className={`relative overflow-hidden min-h-0 cursor-pointer ${baseTransition}
         ${
           active === "right"
@@ -247,33 +202,10 @@ export default function Hero() {
         ${active === "left" ? "brightness-60 md:blur-[1px]" : ""}`}
       >
         <div className="relative w-full h-full">
-          {/* POSTER */}
-          <AnimatePresence>
-            {active !== "right" && (
-              <motion.img
-                key="poster-right"
-                src="/images/hospitality-thumbnail.png"
-                className="absolute inset-0 w-full h-full object-cover brightness-60"
-                initial={{ opacity: 1 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.8, ease: "easeInOut" }}
-              />
-            )}
-          </AnimatePresence>
-
-          {/* VIDEO */}
-          <motion.video
-            ref={rightVideoRef}
-            src="/videos/hospitality-video.mp4"
-            loop
-            muted
-            playsInline
-            preload="metadata"
+          <img
+            src="/images/hospitality-thumbnail.png"
+            alt="Hospitality Collection"
             className="absolute inset-0 w-full h-full object-cover brightness-60"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: active === "right" ? 1 : 0 }}
-            transition={{ duration: 0.8, ease: "easeInOut" }}
           />
         </div>
 
@@ -307,7 +239,10 @@ export default function Hero() {
                 world famous locations.
               </p>
               <motion.button
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push("/blank");
+                }}
                 className="relative inline-flex items-center justify-center px-0 py-3 text-xs tracking-[0.25em] uppercase text-[#D4AF37] transition-all duration-400 overflow-hidden cursor-pointer"
                 initial="rest"
                 animate="rest"

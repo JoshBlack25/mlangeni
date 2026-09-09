@@ -61,6 +61,12 @@ export default function LoginPage() {
     
   }
 
+  const [showPassword, setShowPassword] = useState(false);
+
+   function togglePasswordVisibility(){
+      setShowPassword((prev)=> !prev);
+  }
+
   return (
     <main className="mgh-auth-page">
       <section className="mgh-auth-left">
@@ -128,14 +134,14 @@ export default function LoginPage() {
             <div className="mgh-input-box">
               <LockIcon />
               <input
-                type="password"
+                type={showPassword? "text": "password"}
                 placeholder="Password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
-              <button type="button" className="mgh-eye-btn">
-                <EyeIcon />
+              <button type="button" className="mgh-eye-btn" onClick={togglePasswordVisibility}>
+                <EyeIcon/>
               </button>
             </div>
 
