@@ -4,6 +4,71 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ──────────────────────────────────────────────────────────────
+   MGH design tokens — the dark + gold editorial palette used by
+   the booking flows. Raw values live here; the `--color-mgh-*`
+   aliases in the @theme block below are what generate utilities
+   such as `bg-mgh-surface`, `border-mgh-line`, `text-mgh-gold/30`.
+   ────────────────────────────────────────────────────────────── */
+:root {
+  /* surfaces */
+  --mgh-bg: #0a0a0a;
+  --mgh-surface: #111111;
+  --mgh-surface-2: #161616;
+  --mgh-surface-3: #1c1c1c;
+
+  /* lines */
+  --mgh-line: #252525;
+  --mgh-line-soft: #222222;
+  --mgh-line-strong: #333333;
+
+  /* brand */
+  --mgh-gold: #d4af37;
+  --mgh-gold-hover: #e3bf52;
+  --mgh-gold-ink: #0a0a0a;
+
+  /* text */
+  --mgh-text: #ffffff;
+  --mgh-text-muted: #a0a0a0;
+  --mgh-text-dim: #888888;
+  --mgh-text-faint: #666666;
+  --mgh-text-disabled: #555555;
+
+  /* status */
+  --mgh-danger: #f87171;
+  --mgh-warn: #e8c46a;
+  --mgh-ok: #7fce8c;
+
+  /* motion */
+  --mgh-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --mgh-dur-fast: 180ms;
+  --mgh-dur: 320ms;
+}
+
+@theme inline {
+  --font-serif: var(--font-playfair), ui-serif, Georgia, "Times New Roman",
+    serif;
+
+  --color-mgh-bg: var(--mgh-bg);
+  --color-mgh-surface: var(--mgh-surface);
+  --color-mgh-surface-2: var(--mgh-surface-2);
+  --color-mgh-surface-3: var(--mgh-surface-3);
+  --color-mgh-line: var(--mgh-line);
+  --color-mgh-line-soft: var(--mgh-line-soft);
+  --color-mgh-line-strong: var(--mgh-line-strong);
+  --color-mgh-gold: var(--mgh-gold);
+  --color-mgh-gold-hover: var(--mgh-gold-hover);
+  --color-mgh-gold-ink: var(--mgh-gold-ink);
+  --color-mgh-text: var(--mgh-text);
+  --color-mgh-muted: var(--mgh-text-muted);
+  --color-mgh-dim: var(--mgh-text-dim);
+  --color-mgh-faint: var(--mgh-text-faint);
+  --color-mgh-disabled: var(--mgh-text-disabled);
+  --color-mgh-danger: var(--mgh-danger);
+  --color-mgh-warn: var(--mgh-warn);
+  --color-mgh-ok: var(--mgh-ok);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -1074,3 +1139,65 @@
 input[type="time"]::-webkit-calendar-picker-indicator{
   filter: invert(63%) sepia(17%) saturate(1736%) hue-rotate(8deg) brightness(97%) contrast(90%); /*used to change html svg icon*/
 }                       
+
+/* ──────────────────────────────────────────────────────────────
+   Menu-builder date picker.
+
+   Scoped to `.mgh-menu-calendar` so it cannot bleed into the
+   packages-page picker (`.mgh-date-popover`). The `!important`
+   flags are needed to beat the shadcn Button classes that
+   react-day-picker puts on each DayButton.
+   ────────────────────────────────────────────────────────────── */
+.mgh-menu-calendar {
+  background: var(--mgh-surface);
+  color: var(--mgh-text);
+}
+
+.mgh-menu-calendar button:hover:not(:disabled) {
+  background: rgb(212 175 55 / 0.16) !important;
+  color: var(--mgh-text) !important;
+}
+
+.mgh-menu-calendar [data-today="true"]:not([data-selected-single="true"]) {
+  background: transparent !important;
+  color: var(--mgh-gold) !important;
+  border: 1px solid rgb(212 175 55 / 0.5);
+}
+
+.mgh-menu-calendar [data-selected-single="true"] {
+  background: var(--mgh-gold) !important;
+  color: var(--mgh-gold-ink) !important;
+  font-weight: 600;
+}
+
+/* Days that already have at least one booking: gold dot underneath. */
+.mgh-menu-calendar .mgh-day-busy {
+  position: relative;
+}
+
+.mgh-menu-calendar .mgh-day-busy::after {
+  content: "";
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 9999px;
+  background: var(--mgh-gold);
+}
+
+.mgh-menu-calendar [data-selected-single="true"].mgh-day-busy::after {
+  background: var(--mgh-gold-ink);
+}
+
+/* Days with no room left at all. */
+.mgh-menu-calendar .mgh-day-full {
+  text-decoration: line-through;
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.mgh-menu-calendar .mgh-day-full::after {
+  display: none;
+}
