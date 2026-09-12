@@ -8,6 +8,8 @@ export default function BookingSuccessModal({
   title,
   message,
   orderLabel = "Your order has been placed successfully.",
+  /** Secondary line for caveats — e.g. a confirmation email that didn't send. */
+  note,
   dashboardHref = "/dashboard/customer",
   ordersHref = "/dashboard/customer/orders",
   onClose,
@@ -52,6 +54,12 @@ export default function BookingSuccessModal({
           <div className="mt-6 rounded-2xl border border-[#D4AF37]/20 bg-[#D4AF37]/10 p-4 text-sm text-[#E8D08E]">
             {orderLabel}
           </div>
+
+          {note && (
+            <p className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3 text-xs leading-relaxed text-[#A0A0A0]">
+              {note}
+            </p>
+          )}
 
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
             <Link

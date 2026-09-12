@@ -1,305 +1,158 @@
 import { Resend } from "resend";
 import { NextResponse } from "next/server";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+import { getEmailConfig } from "@/lib/email/config";
+import { deliverEmail } from "@/lib/email/send";
+import { clientIp, isRateLimited } from "@/lib/email/rateLimit";
+import {
+  button,
+  detailTable,
+  emailShell,
+  noticeBox,
+  sectionTitle,
+} from "@/lib/email/layout";
+import { firstName, sanitize } from "@/lib/email/theme";
 
-const CLIENT_EMAIL = "youremail@gmail.com";
+/**
+ * Public enquiry form → admin notification + enquirer confirmation.
+ *
+ * The request contract is unchanged (app/sections/EnquiryForm.jsx and
+ * services/emailService.ts depend on it); what changed is that recipients now
+ * come from env instead of a hardcoded placeholder, the markup is the shared
+ * table-based shell, and one failed send no longer 500s the whole request.
+ */
 
-// ── Sanitizer ──
-const sanitize = (str: string) =>
-  String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#x27;");
-
-// ── Rate Limiter ──
-const rateLimitMap = new Map<string, { count: number; timestamp: number }>();
-const RATE_LIMIT = 3;        // max requests
-const RATE_WINDOW = 60000;   // per 60 seconds
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const entry = rateLimitMap.get(ip);
-
-  if (!entry || now - entry.timestamp > RATE_WINDOW) {
-    rateLimitMap.set(ip, { count: 1, timestamp: now });
-    return false;
-  }
-
-  if (entry.count >= RATE_LIMIT) return true;
-
-  entry.count++;
-  return false;
-}
-
-// ── Email Styles ──
-const base = `
-  background-color: #0a0a0a;
-  font-family: Georgia, 'Times New Roman', serif;
-  margin: 0;
-  padding: 0;
-`;
-
-const goldBar = `
-  height: 2px;
-  background: linear-gradient(to right, transparent, #D4AF37, transparent);
-  border: none;
-  margin: 0;
-`;
-
-const container = `
-  max-width: 580px;
-  margin: 0 auto;
-  background-color: #0f0f0f;
-  border: 1px solid #1e1e1e;
-`;
-
-const header = `
-  padding: 40px 48px 32px;
-  border-bottom: 1px solid #1e1e1e;
-`;
-
-const body = `
-  padding: 36px 48px;
-`;
-
-const footer = `
-  padding: 20px 48px;
-  border-top: 1px solid #1e1e1e;
-  background-color: #0a0a0a;
-`;
-
-const label = `
-  font-size: 9px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: #D4AF37;
-  font-weight: bold;
-  display: block;
-  margin-bottom: 4px;
-`;
-
-const value = `
-  font-size: 13px;
-  color: #cccccc;
-  display: block;
-  padding-bottom: 20px;
-  border-bottom: 1px solid #1e1e1e;
-  margin-bottom: 20px;
-`;
-
-const lastValue = `
-  font-size: 13px;
-  color: #cccccc;
-  display: block;
-`;
+const VALID_SESSIONS = ["Morning", "Afternoon", "Evening/Night"];
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(req: Request) {
   try {
-
-    // ── Rate limiting ──
-    const ip = req.headers.get("x-forwarded-for") ?? "unknown";
-    if (isRateLimited(ip)) {
+    if (isRateLimited("enquiry", clientIp(req), { limit: 3, windowMs: 60_000 })) {
       return NextResponse.json(
         { error: "Too many requests. Please wait before trying again." },
-        { status: 429 }
+        { status: 429 },
+      );
+    }
+
+    const config = getEmailConfig();
+    if (!config.enabled) {
+      console.warn("[send-email] RESEND_API_KEY is not set; skipping send.");
+      return NextResponse.json(
+        { success: false, error: "Email is not configured." },
+        { status: 503 },
       );
     }
 
     const body = await req.json();
     const { name, email, phone, eventDate, session, guests, message } = body;
 
-    // ── Validation ──
     if (!name || !email || !phone || !eventDate || !session || !guests) {
       return NextResponse.json(
         { error: "Missing required fields" },
-        { status: 400 }
+        { status: 400 },
       );
     }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!EMAIL_RE.test(email)) {
       return NextResponse.json(
         { error: "Invalid email address" },
-        { status: 400 }
+        { status: 400 },
       );
     }
-
     if (typeof guests !== "number" || guests < 1) {
       return NextResponse.json(
         { error: "Invalid number of guests" },
-        { status: 400 }
+        { status: 400 },
       );
     }
-
-    const validSessions = ["Morning", "Afternoon", "Evening/Night"];
-    if (!validSessions.includes(session)) {
+    if (!VALID_SESSIONS.includes(session)) {
       return NextResponse.json(
         { error: "Invalid session selected" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // ── Sanitized values ──
-    const sName       = sanitize(name);
-    const sEmail      = sanitize(email);
-    const sPhone      = sanitize(phone);
-    const sEventDate  = sanitize(eventDate);
-    const sSession    = sanitize(session);
-    const sGuests     = sanitize(String(guests));
-    const sMessage    = message ? sanitize(message) : "No message provided";
-    const sFirstName  = sanitize(name.split(" ")[0]);
+    const rows = [
+      { label: "Event Date", value: String(eventDate) },
+      { label: "Session", value: String(session) },
+      { label: "Number of Guests", value: String(guests) },
+      { label: "Message", value: message ? String(message) : "No message provided" },
+    ];
 
-    // ── Email 1: Notify the client ──
-    await resend.emails.send({
-      from: "MGH Enquiries <onboarding@resend.dev>",
-      to: CLIENT_EMAIL,
-      replyTo: email,
-      subject: `New Enquiry — ${sName}`,
-      html: `
-        <!DOCTYPE html>
-        <html>
-          <body style="${base}">
-            <div style="${container}">
-
-              <hr style="${goldBar}" />
-
-              <div style="${header}">
-                <p style="font-size:9px; letter-spacing:0.25em; text-transform:uppercase; color:#D4AF37; margin:0 0 8px;">
-                  New Enquiry Received
-                </p>
-                <h1 style="font-size:22px; color:#ffffff; margin:0; font-weight:normal;">
-                  ${sName}
-                </h1>
-              </div>
-
-              <div style="${body}">
-                <span style="${label}">Full Name</span>
-                <span style="${value}">${sName}</span>
-
-                <span style="${label}">Email Address</span>
-                <span style="${value}">${sEmail}</span>
-
-                <span style="${label}">Phone Number</span>
-                <span style="${value}">${sPhone}</span>
-
-                <span style="${label}">Event Date</span>
-                <span style="${value}">${sEventDate}</span>
-
-                <span style="${label}">Session</span>
-                <span style="${value}">${sSession}</span>
-
-                <span style="${label}">Number of Guests</span>
-                <span style="${value}">${sGuests}</span>
-
-                <span style="${label}">Message</span>
-                <span style="${lastValue}">${sMessage}</span>
-              </div>
-
-              <div style="padding: 0 48px 36px;">
-                <p style="font-size:11px; color:#555; margin:0 0 16px; letter-spacing:0.05em;">
-                  Reply directly to this email to respond to the enquirer.
-                </p>
-                <a href="mailto:${sEmail}"
-                  style="display:inline-block; background:#D4AF37; color:#0a0a0a; font-size:9px;
-                  font-weight:bold; letter-spacing:0.25em; text-transform:uppercase;
-                  text-decoration:none; padding:14px 32px;">
-                  Reply to Enquirer
-                </a>
-              </div>
-
-              <div style="${footer}">
-                <p style="font-size:9px; letter-spacing:0.2em; text-transform:uppercase; color:#333; margin:0;">
-                  Mlangeni Grand Hospitality &nbsp;·&nbsp; Cape Town, South Africa
-                </p>
-              </div>
-
-              <hr style="${goldBar}" />
-
-            </div>
-          </body>
-        </html>
-      `,
+    const adminHtml = emailShell({
+      preheader: `${name} · ${guests} guests · ${eventDate}`,
+      eyebrow: "New Enquiry Received",
+      title: String(name),
+      bodyHtml: [
+        sectionTitle("Enquiry"),
+        detailTable([
+          { label: "Full Name", value: String(name) },
+          { label: "Email Address", value: String(email) },
+          { label: "Phone Number", value: String(phone) },
+          ...rows,
+        ]),
+      ].join(""),
+      ctaHtml: button(`mailto:${email}`, "Reply to enquirer"),
+      footerNote: "Reply directly to this email to respond to the enquirer.",
     });
 
-    // ── Email 2: Confirm to the user ──
-    await resend.emails.send({
-      from: "MGH Enquiries <onboarding@resend.dev>",
-      to: email,
-      subject: `We have received your enquiry, ${sFirstName}`,
-      html: `
-        <!DOCTYPE html>
-        <html>
-          <body style="${base}">
-            <div style="${container}">
-
-              <hr style="${goldBar}" />
-
-              <div style="${header}">
-                <p style="font-size:9px; letter-spacing:0.25em; text-transform:uppercase; color:#D4AF37; margin:0 0 8px;">
-                  Enquiry Confirmed
-                </p>
-                <h1 style="font-size:22px; color:#ffffff; margin:0 0 12px; font-weight:normal;">
-                  Thank you, ${sFirstName}.
-                </h1>
-                <p style="font-size:13px; color:#666; margin:0; line-height:1.7;">
-                  We have received your enquiry and will be in touch within 24 hours.
-                </p>
-              </div>
-
-              <div style="${body}">
-                <p style="font-size:9px; letter-spacing:0.2em; text-transform:uppercase; color:#D4AF37; margin:0 0 24px; font-weight:bold;">
-                  Your Booking Details
-                </p>
-
-                <span style="${label}">Event Date</span>
-                <span style="${value}">${sEventDate}</span>
-
-                <span style="${label}">Session</span>
-                <span style="${value}">${sSession}</span>
-
-                <span style="${label}">Number of Guests</span>
-                <span style="${value}">${sGuests}</span>
-
-                <span style="${label}">Message</span>
-                <span style="${lastValue}">${sMessage}</span>
-              </div>
-
-              <div style="margin: 0 48px 36px; padding: 20px 24px; border: 1px solid #1e1e1e; background-color:#0a0a0a;">
-                <p style="font-size:9px; letter-spacing:0.2em; text-transform:uppercase; color:#555; margin:0 0 6px;">
-                  Priority Response
-                </p>
-                <p style="font-size:13px; color:#aaa; margin:0;">
-                  Your enquiry will be responded to within
-                  <strong style="color:#D4AF37;">24 hours</strong>
-                  by your assigned concierge.
-                </p>
-              </div>
-
-              <div style="${footer}">
-                <p style="font-size:9px; letter-spacing:0.2em; text-transform:uppercase; color:#333; margin:0 0 4px;">
-                  Mlangeni Grand Hospitality &nbsp;·&nbsp; Cape Town, South Africa
-                </p>
-                <p style="font-size:9px; color:#2a2a2a; margin:0;">hello@mlangeni.co.za</p>
-              </div>
-
-              <hr style="${goldBar}" />
-
-            </div>
-          </body>
-        </html>
-      `,
+    const customerHtml = emailShell({
+      preheader: "We'll be in touch within 24 hours.",
+      eyebrow: "Enquiry Confirmed",
+      title: `Thank you, ${firstName(String(name))}.`,
+      intro:
+        "We have received your enquiry and will be in touch within 24 hours.",
+      bodyHtml: [
+        sectionTitle("Your booking details"),
+        detailTable(rows),
+        `<div style="height:24px;line-height:24px;font-size:0;">&nbsp;</div>`,
+        noticeBox(
+          "Priority response",
+          `Your enquiry will be responded to within <strong style="color:#D4AF37;">24 hours</strong> by your assigned concierge.`,
+        ),
+      ].join(""),
     });
 
-    return NextResponse.json({ success: true });
+    const resend = new Resend(process.env.RESEND_API_KEY);
 
+    const [admin, enquirer] = await Promise.all([
+      deliverEmail(
+        resend,
+        {
+          to: config.adminTo,
+          subject: `New Enquiry — ${sanitize(name)}`,
+          html: adminHtml,
+          replyTo: String(email),
+        },
+        config,
+        "enquiry admin",
+      ),
+      deliverEmail(
+        resend,
+        {
+          to: String(email),
+          subject: `We have received your enquiry, ${firstName(String(name))}`,
+          html: customerHtml,
+          redirectInSandbox: true,
+        },
+        config,
+        "enquiry confirmation",
+      ),
+    ]);
+
+    // The admin copy is the one that matters — the enquiry is lost without it.
+    if (admin === "failed") {
+      return NextResponse.json(
+        { success: false, error: "Failed to send email" },
+        { status: 500 },
+      );
+    }
+
+    return NextResponse.json({ success: true, admin, enquirer });
   } catch (error) {
-    console.error("Email error:", error);
+    console.error("[send-email] unexpected failure:", error);
     return NextResponse.json(
       { success: false, error: "Failed to send email" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -32,6 +32,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# ...except the template, which documents the required variables and holds
+# no secrets.
+!.env.example
 
 # vercel
 .vercel
@@ -47,3 +50,31 @@ next-env.d.ts
 # Environment variables
 .env.local
 .env
+
+# ── Claude Code / agent tooling ───────────────────────────────────────────────
+#
+# TRACKED ON PURPOSE — do not add these. They are the shared, reviewable config
+# every teammate should get on clone:
+#   .mcp.json          the Supabase MCP server definition
+#   skills-lock.json   which agent skills this project uses, pinned by hash
+#   CLAUDE.md          re-added by `next dev`; committing it keeps the tree clean
+#   AGENTS.md          ditto
+#   .claude/settings.json   team-wide settings, if one is ever added
+
+# Personal, machine-specific settings. NEVER commit this one: it grants
+# unprompted migration writes against the production Supabase project, and
+# committing it would hand that to everyone who clones the repo.
+.claude/settings.local.json
+
+# Downloaded third-party skill content. Reproducible from the hashes in
+# skills-lock.json, so treat it like node_modules and keep it out of the diff:
+#   npx skills experimental_install     (restores from the lockfile)
+#   npx skills add supabase/agent-skills    (fallback — the command originally used)
+.agents/skills/
+
+# Symlinks pointing into .agents/skills. Machine-local and would dangle for
+# anyone who cloned without running the restore above.
+.claude/skills/
+
+# Git worktrees, if Claude Code creates any here. Never belongs in a commit.
+.claude/worktrees/

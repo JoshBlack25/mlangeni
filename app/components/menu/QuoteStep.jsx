@@ -1,52 +1,66 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import {
+  AlertTriangle,
+  CalendarDays,
+  Clock,
+  Info,
+  MapPin,
+  Pencil,
+  Sparkles,
+  Users,
+} from "lucide-react";
 import BookingSuccessModal from "@/app/components/dashboard/customer/BookingSuccessModal";
-import { supabase } from "@/services/supabaseClient";
+import { sendQuoteEmail } from "@/services/quoteEmailService";
 import { useMenu } from "./MenuContext";
 import { rowDisplayName } from "./constants";
-import { Check, Info } from "lucide-react";
+import { computeTotals, courseGroups, formatZAR, guestCount } from "./pricing";
+import { formatDateLong, formatRangeLabel, toDateKey } from "./availability";
+import { submitMenuOrder } from "./submitQuote";
+import { validateEventDetails } from "./validation";
+
+const EVENT_DETAILS_STEP = 4;
 
 export function QuoteStep() {
   const { state, dispatch } = useMenu();
-  const [showSend, setShowSend] = useState(false);
+
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState("");
-  const [sendErrors, setSendErrors] = useState({});
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successSummary, setSuccessSummary] = useState("");
+  const [emailNote, setEmailNote] = useState("");
 
-  const categories = [
-    { label: "Starters", items: state.selections.starters },
-    { label: "Main Courses", items: state.selections.mains },
-    { label: "Desserts", items: state.selections.desserts },
-    { label: "Beverages", items: state.selections.beverages },
-  ].filter((c) => c.items.length > 0);
-
-  const allSelectedItems = [
-    ...state.selections.starters,
-    ...state.selections.mains,
-    ...state.selections.desserts,
-    ...state.selections.beverages,
-  ];
-
-  const guests = parseInt(state.guests) || 1;
-
-  const validateSend = () => {
-    const e = {};
-    if (!state.contactName.trim()) e.contactName = "Full Name is required";
-    if (!state.authUser?.email) e.contactEmail = "User email missing";
-    return e;
-  };
-
-  const selectedEventType = state.eventTypes.find(
-    (et) => et.event_id === state.eventTypeId,
+  const guests = guestCount(state.guests);
+  const groups = useMemo(
+    () => courseGroups(state.selections, guests),
+    [state.selections, guests],
+  );
+  const totals = useMemo(
+    () => computeTotals(state.selections, guests),
+    [state.selections, guests],
   );
 
-  const handleSend = async () => {
-    const e = validateSend();
-    if (Object.keys(e).length > 0) {
-      setSendErrors(e);
+  const selectedEventType = state.eventTypes.find(
+    (et) => String(et.event_id) === String(state.eventTypeId),
+  );
+  const eventTypeName = selectedEventType
+    ? rowDisplayName(selectedEventType, "event_id")
+    : "Custom Event";
+
+  const goEditDetails = () =>
+    dispatch({ type: "GO_TO_STEP", payload: EVENT_DETAILS_STEP });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    // Re-run the same rules the details step used, in case anything changed.
+    const errors = validateEventDetails(state, { today: new Date() });
+    if (Object.keys(errors).length > 0) {
+      setSendError(
+        "Some event details are missing or invalid. Please review them before submitting.",
+      );
+      goEditDetails();
       return;
     }
 
@@ -54,277 +68,306 @@ export function QuoteStep() {
     setSendError("");
 
     try {
-      let customerId = state.existingCustomer?.customer_id;
+      const { orderId } = await submitMenuOrder(state);
 
-      if (!customerId) {
-        const fullName = state.contactName.trim();
-        const [first_name, ...rest] = fullName.split(/\s+/);
-        const last_name = rest.join(" ");
-
-        const { data: newCustomer, error: custErr } = await supabase
-          .from("customer")
-          .insert({
-            user_id: state.authUser.id,
-            email: state.authUser.email,
-            first_name: first_name || null,
-            last_name: last_name || null,
-            phone_number: state.contactPhone || null,
-          })
-          .select("customer_id")
-          .single();
-
-        if (custErr) throw new Error(custErr.message);
-        customerId = newCustomer.customer_id;
-      }
-
-      const total_price = allSelectedItems.reduce(
-        (sum, item) => sum + Number(item.price) * guests,
-        0,
-      );
-
-      const { data: order, error: orderErr } = await supabase
-        .from("orders")
-        .insert({
-          customer_id: customerId,
-          event_type_id: state.eventTypeId,
-          status: "pending",
-          total_price,
-          event_date: state.eventDate,
-          event_location: state.eventLocation,
-          start_time: state.startTime,
-          end_time: state.endTime,
-        })
-        .select("order_id")
-        .single();
-
-      if (orderErr) {
-        if (orderErr.code === "23P01" || /overlap/i.test(orderErr.message)) {
-          throw new Error(
-            "This venue/time slot conflicts with an existing reservation.",
-          );
-        }
-        throw new Error(orderErr.message);
-      }
-
-      const cmiRows = allSelectedItems.map((it) => ({
-        order_id: order.order_id,
-        item_id: it.item_id,
-        quantity: guests,
-      }));
-
-      if (cmiRows.length > 0) {
-        const { error: cmiErr } = await supabase
-          .from("customer_menu_items")
-          .insert(cmiRows);
-
-        if (cmiErr) throw new Error(cmiErr.message);
-      }
-
+      // The booking is saved. Show success now — the email is a courtesy that
+      // must never gate or fail this.
       setSuccessSummary(
-        `Quote request submitted for ${selectedEventType ? rowDisplayName(selectedEventType, "event_id") : "your event"} with ${guests} guest${guests === 1 ? "" : "s"}.`,
+        `Quote request #${orderId} submitted for ${eventTypeName} with ${guests} guest${guests === 1 ? "" : "s"}.`,
       );
       setShowSuccessModal(true);
       dispatch({ type: "SEND_QUOTE" });
+
+      sendQuoteEmail({
+        orderId,
+        customer: {
+          name: state.contactName.trim(),
+          email: state.contactEmail || state.authUser?.email,
+          phone: state.contactPhone?.trim() || undefined,
+        },
+        event: {
+          date: toDateKey(state.eventDate),
+          startTime: state.startTime,
+          endTime: state.endTime,
+          typeName: eventTypeName,
+          location: state.eventLocation.trim(),
+          guests,
+          notes: state.notes?.trim() || undefined,
+        },
+        items: groups.flatMap((g) =>
+          g.rows.map((r) => ({
+            name: r.name,
+            course: r.course,
+            unitPrice: r.unitPrice,
+            quantity: r.quantity,
+          })),
+        ),
+        totals: {
+          perGuest: totals.perGuest,
+          subtotal: totals.subtotal,
+          total: totals.total,
+        },
+      })
+        .then((result) => {
+          // "redirected" means a sandbox build sent it to the developer
+          // inbox — delivered, but not to this customer.
+          if (!result.ok || result.customer !== "sent") {
+            setEmailNote(
+              "We couldn't email you a copy of this request, but it's safely in our system — you can view it any time under your orders.",
+            );
+          }
+        })
+        .catch((err) => {
+          console.warn("[menu] quote email failed:", err);
+        });
     } catch (err) {
       setSendError(err.message || "An unexpected error occurred.");
+      if (err.code === "23P01") goEditDetails();
     } finally {
       setSending(false);
     }
   };
 
+  const card = "rounded-2xl border border-mgh-line bg-mgh-surface";
+
   return (
-    <div>
+    <form onSubmit={handleSubmit} noValidate>
       <BookingSuccessModal
         isOpen={showSuccessModal}
         title="Your menu request is in"
         message="Your custom booking has been submitted. You can return to the dashboard or jump straight to your orders page to review it again."
         orderLabel={successSummary || "Your quote request has been sent."}
+        note={emailNote || undefined}
         onClose={() => {
           setShowSuccessModal(false);
+          setEmailNote("");
           dispatch({ type: "RESET" });
         }}
       />
 
-      <div className="mb-8">
-        <h2 className="font-serif text-3xl font-medium tracking-tight text-white md:text-4xl">
-          Menu & Quote Summary
-        </h2>
-        <p className="mt-2 text-sm text-[#A0A0A0] md:text-base">
-          Review your selection details prior to dispatching your request to
-          Mlangeni Grand Hospitality.
+      <header className="mb-8">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-mgh-gold">
+          Step 6 of 6
         </p>
+        <h2 className="mt-2 font-serif text-3xl font-medium tracking-tight text-mgh-text md:text-4xl">
+          Menu &amp; Quote Summary
+        </h2>
+        <p className="mt-2 max-w-2xl text-sm text-mgh-muted md:text-base">
+          Review everything before sending your request to Mlangeni Grand
+          Hospitality.
+        </p>
+      </header>
+
+      {/* ── Event at a glance ──────────────────────────────────────── */}
+      <div className={`${card} mb-6 p-6`}>
+        <div className="mb-5 flex items-center justify-between gap-4">
+          <h3 className="text-xs font-semibold uppercase tracking-widest text-mgh-gold">
+            Your Event
+          </h3>
+          <button
+            type="button"
+            onClick={goEditDetails}
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-mgh-dim transition-colors hover:text-mgh-gold focus:outline-none focus:ring-2 focus:ring-mgh-gold/40"
+          >
+            <Pencil size={12} aria-hidden="true" />
+            Edit
+          </button>
+        </div>
+
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-4">
+          <Metric icon={Users} label="Guests" value={`${guests} people`} />
+          <Metric icon={Sparkles} label="Occasion" value={eventTypeName} />
+          <Metric
+            icon={CalendarDays}
+            label="Date"
+            value={formatDateLong(state.eventDate) || "—"}
+          />
+          <Metric
+            icon={Clock}
+            label="Time"
+            value={formatRangeLabel({
+              start: state.startTime,
+              end: state.endTime,
+            })}
+          />
+        </dl>
+
+        <div className="mt-5 flex items-start gap-2.5 border-t border-mgh-line-soft pt-5">
+          <MapPin
+            size={14}
+            className="mt-0.5 shrink-0 text-mgh-gold"
+            aria-hidden="true"
+          />
+          <p className="text-sm text-mgh-muted">
+            {state.eventLocation || "No venue given"}
+          </p>
+        </div>
+
+        {state.notes?.trim() && (
+          <div className="mt-4 rounded-xl border border-mgh-line-soft bg-mgh-surface-2 p-4">
+            <p className="text-[10px] uppercase tracking-widest text-mgh-faint">
+              Notes for the kitchen
+            </p>
+            <p className="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-mgh-muted">
+              {state.notes.trim()}
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* OVERVIEW METRICS */}
-      <div className="mb-8 grid grid-cols-2 gap-4 border border-[#252525] bg-[#111111] p-6 sm:grid-cols-4">
-        <div>
-          <span className="text-[10px] uppercase tracking-widest text-[#666666]">
-            Guests
-          </span>
-          <p className="mt-1 text-base font-medium text-white">
-            {guests} People
-          </p>
-        </div>
-        <div>
-          <span className="text-[10px] uppercase tracking-widest text-[#666666]">
-            Occasion
-          </span>
-          <p className="mt-1 text-base font-medium text-white">
-            {selectedEventType
-              ? rowDisplayName(selectedEventType, "event_id")
-              : "Custom Event"}
-          </p>
-        </div>
-        <div>
-          <span className="text-[10px] uppercase tracking-widest text-[#666666]">
-            Date
-          </span>
-          <p className="mt-1 text-base font-medium text-white">
-            {state.eventDate}
-          </p>
-        </div>
-        <div>
-          <span className="text-[10px] uppercase tracking-widest text-[#666666]">
-            Time
-          </span>
-          <p className="mt-1 text-base font-medium text-white">
-            {state.startTime} – {state.endTime}
-          </p>
-        </div>
-      </div>
-
-      {/* COURSES RECAP */}
-      <div className="space-y-6">
-        {categories.map((cat) => (
-          <div key={cat.label} className="border border-[#252525] bg-[#111111]">
-            <div className="border-b border-[#222222] bg-[#161616] px-5 py-3 text-xs font-semibold uppercase tracking-widest text-[#D4AF37]">
-              {cat.label}
+      {/* ── Itemised menu ──────────────────────────────────────────── */}
+      <div className="space-y-5">
+        {groups.map((group) => (
+          <div key={group.category} className={`${card} overflow-hidden`}>
+            <div className="flex items-center justify-between border-b border-mgh-line-soft bg-mgh-surface-2 px-5 py-3">
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-mgh-gold">
+                {group.label}
+              </h3>
+              <span className="text-[10px] uppercase tracking-wider text-mgh-faint">
+                {group.rows.length}{" "}
+                {group.rows.length === 1 ? "item" : "items"}
+              </span>
             </div>
-            <div className="divide-y divide-[#222222] px-5">
-              {cat.items.map((item) => (
-                <div
-                  key={item.item_id}
-                  className="flex items-center justify-between py-3.5"
+
+            <ul className="divide-y divide-mgh-line-soft px-5">
+              {group.rows.map((row) => (
+                <li
+                  key={row.item.item_id}
+                  className="flex items-center justify-between gap-4 py-3.5"
                 >
-                  <span className="text-sm font-medium text-white">
-                    {item.name}
+                  <span className="min-w-0 flex-1 truncate text-sm font-medium text-mgh-text">
+                    {row.name}
                   </span>
-                  <span className="text-sm font-semibold text-[#D4AF37]">
-                    R{Number(item.price).toFixed(2)}
+                  <span className="shrink-0 text-xs tabular-nums text-mgh-faint">
+                    {formatZAR(row.unitPrice)} × {row.quantity}
                   </span>
-                </div>
+                  <span className="w-24 shrink-0 text-right text-sm font-semibold tabular-nums text-mgh-gold">
+                    {formatZAR(row.lineTotal)}
+                  </span>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
         ))}
       </div>
 
-      {/* NOTICE BOX */}
-      <div className="mt-6 flex items-start gap-3 border border-[#D4AF37]/30 bg-[#D4AF37]/5 p-4 text-xs leading-6 text-[#A0A0A0]">
-        <Info size={18} className="mt-0.5 flex-shrink-0 text-[#D4AF37]" />
+      {/* ── Totals ─────────────────────────────────────────────────── */}
+      <div className={`${card} mt-6 p-6`}>
+        <dl className="space-y-2.5 text-sm">
+          <div className="flex items-center justify-between text-mgh-muted">
+            <dt>Per guest</dt>
+            <dd className="tabular-nums">{formatZAR(totals.perGuest)}</dd>
+          </div>
+          <div className="flex items-center justify-between text-mgh-muted">
+            <dt>Guests</dt>
+            <dd className="tabular-nums">× {guests}</dd>
+          </div>
+          <div className="flex items-baseline justify-between border-t border-mgh-gold/40 pt-4 text-mgh-gold">
+            <dt className="text-xs font-semibold uppercase tracking-widest">
+              Estimated total
+            </dt>
+            <dd className="font-serif text-2xl font-medium tabular-nums">
+              {formatZAR(totals.total)}
+            </dd>
+          </div>
+        </dl>
+      </div>
+
+      {/* ── Contact ────────────────────────────────────────────────── */}
+      <div className={`${card} mt-6 p-6`}>
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <h3 className="text-xs font-semibold uppercase tracking-widest text-mgh-gold">
+            Contact
+          </h3>
+          <button
+            type="button"
+            onClick={goEditDetails}
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-mgh-dim transition-colors hover:text-mgh-gold focus:outline-none focus:ring-2 focus:ring-mgh-gold/40"
+          >
+            <Pencil size={12} aria-hidden="true" />
+            Edit
+          </button>
+        </div>
+
+        <dl className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-3">
+          <ContactItem label="Name" value={state.contactName} />
+          <ContactItem
+            label="Email"
+            value={state.contactEmail || state.authUser?.email}
+          />
+          <ContactItem
+            label="Phone"
+            value={state.contactPhone || "Not provided"}
+          />
+        </dl>
+      </div>
+
+      {/* ── Notice ─────────────────────────────────────────────────── */}
+      <div className="mt-6 flex items-start gap-3 rounded-2xl border border-mgh-gold/30 bg-mgh-gold/5 p-4 text-xs leading-6 text-mgh-muted">
+        <Info
+          size={18}
+          className="mt-0.5 shrink-0 text-mgh-gold"
+          aria-hidden="true"
+        />
         <span>
-          <strong className="text-white">Note:</strong> Submitting this request
-          places an order inquiry in our system. Our catering team will contact
-          you to confirm pricing adjustments for staff, transport, and special
-          arrangements.
+          <strong className="text-mgh-text">Note:</strong> This is a request,
+          not a confirmed booking. The estimate above covers food and beverage
+          only — our catering team will contact you to confirm pricing for
+          staff, transport and any special arrangements.
         </span>
       </div>
 
-      {/* SEND FORM OR BUTTON */}
-      {!showSend ? (
-        <div className="mt-10 flex items-center justify-between border-t border-[#222222] pt-6">
-          <button
-            type="button"
-            onClick={() => dispatch({ type: "PREV_STEP" })}
-            className="border border-[#333333] px-6 py-3 text-xs font-semibold uppercase tracking-widest text-[#A0A0A0] transition-colors hover:border-white hover:text-white"
-          >
-            ← Edit Details
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setShowSend(true)}
-            className="border border-[#D4AF37] bg-[#D4AF37] px-8 py-3 text-xs font-semibold uppercase tracking-widest text-black transition-all hover:bg-transparent hover:text-[#D4AF37]"
-          >
-            Submit Quote Request →
-          </button>
-        </div>
-      ) : (
-        <div className="mt-8 border border-[#252525] bg-[#111111] p-6">
-          <h3 className="font-serif text-xl font-medium text-white">
-            Contact & Submission
-          </h3>
-
-          {sendError && (
-            <p className="mt-3 border border-red-500/30 bg-red-950/20 p-3 text-xs text-red-400">
-              {sendError}
-            </p>
-          )}
-
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-2 block text-xs uppercase tracking-wider text-[#A0A0A0]">
-                Full Name *
-              </label>
-              <input
-                type="text"
-                value={state.contactName}
-                onChange={(e) =>
-                  dispatch({
-                    type: "SET_CONTACT",
-                    field: "contactName",
-                    payload: e.target.value,
-                  })
-                }
-                className="w-full border border-[#292929] bg-[#161616] px-4 py-3 text-sm text-white focus:border-[#D4AF37] focus:outline-none"
-              />
-              {sendErrors.contactName && (
-                <p className="mt-1 text-xs text-red-400">
-                  {sendErrors.contactName}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label className="mb-2 block text-xs uppercase tracking-wider text-[#A0A0A0]">
-                Phone Number
-              </label>
-              <input
-                type="tel"
-                placeholder="+27..."
-                value={state.contactPhone}
-                onChange={(e) =>
-                  dispatch({
-                    type: "SET_CONTACT",
-                    field: "contactPhone",
-                    payload: e.target.value,
-                  })
-                }
-                className="w-full border border-[#292929] bg-[#161616] px-4 py-3 text-sm text-white focus:border-[#D4AF37] focus:outline-none"
-              />
-            </div>
-          </div>
-
-          <div className="mt-6 flex items-center justify-end gap-4">
-            <button
-              type="button"
-              disabled={sending}
-              onClick={() => setShowSend(false)}
-              className="px-4 py-2 text-xs uppercase text-[#888888] hover:text-white"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              disabled={sending}
-              onClick={handleSend}
-              className="border border-[#D4AF37] bg-[#D4AF37] px-8 py-3 text-xs font-semibold uppercase tracking-widest text-black hover:bg-transparent hover:text-[#D4AF37]"
-            >
-              {sending ? "Sending Request..." : "Confirm & Send Request"}
-            </button>
-          </div>
-        </div>
+      {sendError && (
+        <p
+          role="alert"
+          className="mt-6 flex items-start gap-2.5 rounded-xl border border-mgh-danger/40 bg-mgh-danger/10 p-4 text-sm text-mgh-danger"
+        >
+          <AlertTriangle size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
+          {sendError}
+        </p>
       )}
+
+      <div className="mt-10 flex flex-col-reverse items-stretch gap-4 border-t border-mgh-line-soft pt-6 sm:flex-row sm:items-center sm:justify-between">
+        <button
+          type="button"
+          disabled={sending}
+          onClick={() => dispatch({ type: "PREV_STEP" })}
+          className="rounded-xl border border-mgh-line-strong px-6 py-3 text-xs font-semibold uppercase tracking-widest text-mgh-muted transition-colors hover:border-mgh-text hover:text-mgh-text focus:outline-none focus:ring-2 focus:ring-mgh-gold/40 disabled:opacity-50"
+        >
+          ← Edit Details
+        </button>
+
+        <button
+          type="submit"
+          disabled={sending || totals.itemCount === 0}
+          className="rounded-xl border border-mgh-gold bg-mgh-gold px-8 py-3 text-xs font-semibold uppercase tracking-widest text-mgh-gold-ink transition-all hover:bg-transparent hover:text-mgh-gold focus:outline-none focus:ring-2 focus:ring-mgh-gold/40 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-mgh-gold disabled:hover:text-mgh-gold-ink"
+        >
+          {sending ? "Submitting…" : "Confirm & Send Request →"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function Metric({ icon: Icon, label, value }) {
+  return (
+    <div>
+      <dt className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-mgh-faint">
+        <Icon size={11} aria-hidden="true" />
+        {label}
+      </dt>
+      <dd className="mt-1.5 text-sm font-medium text-mgh-text">{value}</dd>
+    </div>
+  );
+}
+
+function ContactItem({ label, value }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-[10px] uppercase tracking-widest text-mgh-faint">
+        {label}
+      </dt>
+      <dd className="mt-1 truncate text-mgh-muted">{value || "—"}</dd>
     </div>
   );
 }

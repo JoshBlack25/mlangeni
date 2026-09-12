@@ -7,8 +7,9 @@ const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const playfair = Playfair_Display({
   subsets: ["latin"],
-  weight: ["400", "500"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
+  variable: "--font-playfair",
 });
 
 export const metadata: Metadata = {
@@ -25,7 +26,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn("h-full", "antialiased", playfair.className, "font-sans", geist.variable)}
+      className={cn("h-full", "antialiased", geist.variable, playfair.variable)}
     >
       <body className="min-h-full flex flex-col bg-[#0a0a0a] text-white">
         {children}
