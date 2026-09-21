@@ -35,7 +35,24 @@ export default function EnquiriesContent() {
         return;
       }
 
-      setEnquiries(data ?? []);
+      const rows = data ?? [];
+      const userIds = rows.map((row) => row.user_id).filter(Boolean);
+      const { data: customers } = userIds.length
+        ? await supabase
+            .from("customer")
+            .select("customer_id, user_id")
+            .in("user_id", userIds)
+        : { data: [] };
+      const customerByUserId = new Map(
+        (customers ?? []).map((customer) => [customer.user_id, customer.customer_id]),
+      );
+
+      setEnquiries(
+        rows.map((row) => ({
+          ...row,
+          customer_id: customerByUserId.get(row.user_id) ?? null,
+        })),
+      );
     }
 
     loadEnquiries();

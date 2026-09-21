@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { MessageCircle, User, UserCheck, Users, Calendar } from "lucide-react";
+import Link from "next/link";
 import { supabase } from "@/services/supabaseClient";
 import StatusDropdown from "./StatusDropdown";
 
@@ -98,6 +99,16 @@ export default function EnquiryRow({ enquiry, onStatusChange }) {
             >
               <MessageCircle size={17} />
             </a>
+          )}
+
+          {enquiry.customer_id && (
+            <Link
+              href={`/dashboard/admin/chat?customerId=${enquiry.customer_id}`}
+              aria-label={`Open chat with ${enquiry.name}`}
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#D4AF37]/40 text-[#D4AF37] transition hover:border-[#D4AF37] hover:bg-[#D4AF37] hover:text-black"
+            >
+              <MessageCircle size={17} />
+            </Link>
           )}
 
           <StatusDropdown
