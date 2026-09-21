@@ -1,8 +1,6 @@
-import { Resend } from "resend";
 import { NextResponse } from "next/server";
 
-import { getEmailConfig } from "@/lib/email/config";
-import { deliverEmail } from "@/lib/email/send";
+import { getGmailConfig, deliverGmail } from "@/lib/email/gmail";
 import { clientIp, isRateLimited } from "@/lib/email/rateLimit";
 import {
   button,
@@ -12,31 +10,42 @@ import {
   sectionTitle,
 } from "@/lib/email/layout";
 import { firstName, sanitize } from "@/lib/email/theme";
+import {
+  SESSION_OPTIONS,
+  normalizeSession,
+} from "@/app/components/constants/sessions";
 
 /**
  * Public enquiry form → admin notification + enquirer confirmation.
  *
- * The request contract is unchanged (app/sections/EnquiryForm.jsx and
- * services/emailService.ts depend on it); what changed is that recipients now
- * come from env instead of a hardcoded placeholder, the markup is the shared
- * table-based shell, and one failed send no longer 500s the whole request.
+ * Sends through Gmail SMTP (nodemailer). The request contract is unchanged
+ * (app/sections/EnquiryForm.jsx and services/emailService.ts depend on it).
+ * One failed send no longer 500s the whole request; only a failed admin copy
+ * does, because the enquiry is lost without it.
  */
 
-const VALID_SESSIONS = ["Morning", "Afternoon", "Evening/Night"];
+// nodemailer needs Node APIs (net/tls), so this route must not run on Edge.
+export const runtime = "nodejs";
+
+const VALID_SESSIONS = SESSION_OPTIONS.map((s) => s.value);
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(req: Request) {
   try {
-    if (isRateLimited("enquiry", clientIp(req), { limit: 3, windowMs: 60_000 })) {
+    if (
+      isRateLimited("enquiry", clientIp(req), { limit: 3, windowMs: 60_000 })
+    ) {
       return NextResponse.json(
         { error: "Too many requests. Please wait before trying again." },
         { status: 429 },
       );
     }
 
-    const config = getEmailConfig();
+    const config = getGmailConfig();
     if (!config.enabled) {
-      console.warn("[send-email] RESEND_API_KEY is not set; skipping send.");
+      console.warn(
+        "[send-email] GMAIL_USER / GMAIL_APP_PASSWORD are not set; skipping send.",
+      );
       return NextResponse.json(
         { success: false, error: "Email is not configured." },
         { status: 503 },
@@ -64,18 +73,27 @@ export async function POST(req: Request) {
         { status: 400 },
       );
     }
-    if (!VALID_SESSIONS.includes(session)) {
+
+    // normalizeSession also accepts the legacy "Morning" / "Evening/Night" values
+    const sessionValue = normalizeSession(session);
+    if (!VALID_SESSIONS.includes(sessionValue)) {
       return NextResponse.json(
         { error: "Invalid session selected" },
         { status: 400 },
       );
     }
+    const sessionLabel =
+      SESSION_OPTIONS.find((s) => s.value === sessionValue)?.label ??
+      sessionValue;
 
     const rows = [
       { label: "Event Date", value: String(eventDate) },
-      { label: "Session", value: String(session) },
+      { label: "Session", value: sessionLabel },
       { label: "Number of Guests", value: String(guests) },
-      { label: "Message", value: message ? String(message) : "No message provided" },
+      {
+        label: "Message",
+        value: message ? String(message) : "No message provided",
+      },
     ];
 
     const adminHtml = emailShell({
@@ -112,42 +130,42 @@ export async function POST(req: Request) {
       ].join(""),
     });
 
-    const resend = new Resend(process.env.RESEND_API_KEY);
-
+    // deliverGmail never throws; each result is { ok: true } or { ok: false, error }.
     const [admin, enquirer] = await Promise.all([
-      deliverEmail(
-        resend,
-        {
-          to: config.adminTo,
-          subject: `New Enquiry — ${sanitize(name)}`,
-          html: adminHtml,
-          replyTo: String(email),
-        },
-        config,
-        "enquiry admin",
-      ),
-      deliverEmail(
-        resend,
-        {
-          to: String(email),
-          subject: `We have received your enquiry, ${firstName(String(name))}`,
-          html: customerHtml,
-          redirectInSandbox: true,
-        },
-        config,
-        "enquiry confirmation",
-      ),
+      deliverGmail({
+        to: config.adminTo,
+        subject: `New Enquiry — ${sanitize(name)}`,
+        html: adminHtml,
+        replyTo: String(email),
+      }),
+      deliverGmail({
+        to: String(email),
+        subject: `We have received your enquiry, ${firstName(String(name))}`,
+        html: customerHtml,
+        replyTo: config.replyTo,
+      }),
     ]);
 
     // The admin copy is the one that matters — the enquiry is lost without it.
-    if (admin === "failed") {
+    if (!admin.ok) {
       return NextResponse.json(
         { success: false, error: "Failed to send email" },
         { status: 500 },
       );
     }
 
-    return NextResponse.json({ success: true, admin, enquirer });
+    if (!enquirer.ok) {
+      console.warn(
+        "[send-email] admin copy sent, but the customer confirmation failed:",
+        enquirer.error,
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      admin: "sent",
+      enquirer: enquirer.ok ? "sent" : "failed",
+    });
   } catch (error) {
     console.error("[send-email] unexpected failure:", error);
     return NextResponse.json(

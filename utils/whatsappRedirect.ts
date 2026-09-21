@@ -1,3 +1,5 @@
+import { SESSION_OPTIONS } from "@/app/components/constants/sessions";
+
 const WHATSAPP_BUSINESS_NUMBER = "27XXXXXXXXX"; // replace with your WhatsApp business number, e.g. 27821234567
 
 export interface EnquiryData {
@@ -18,6 +20,10 @@ export function redirectToWhatsApp(data: EnquiryData): void {
     day: "numeric",
   });
 
+  const sessionLabel =
+    SESSION_OPTIONS.find((s) => s.value === data.session)?.label ??
+    data.session;
+
   const message = `
 🎉 *New Event Enquiry*
 
@@ -25,7 +31,7 @@ export function redirectToWhatsApp(data: EnquiryData): void {
 📧 *Email:* ${data.email}
 📞 *Phone:* ${data.phone}
 📅 *Event Date:* ${formattedDate}
-🕐 *Session:* ${data.session}
+🕐 *Session:* ${sessionLabel}
 👥 *Number of Guests:* ${data.guests}
 💬 *Message:* ${data.message || "No message provided"}
   `.trim();

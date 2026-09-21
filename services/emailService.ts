@@ -8,6 +8,7 @@ export async function sendEnquiryEmail(data: EnquiryData): Promise<void> {
   });
 
   if (!response.ok) {
-    throw new Error("Failed to send email");
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.error ?? `Failed to send email (${response.status})`);
   }
 }
