@@ -179,7 +179,7 @@ export default function UpcomingEvents() {
     <div className="group flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md transition-all duration-300 hover:border-[#D4AF37]">
       {/* HERO SLOT — links to the individual next event */}
       <Link
-        href={`/dashboard/customer/orders/${next.order_id}`}
+        href={`/dashboard/customer/order?orderId=${next.order_id}`}
         className="relative flex min-h-[220px] flex-1 flex-col justify-end overflow-hidden p-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37]"
       >
         <img
@@ -231,7 +231,7 @@ export default function UpcomingEvents() {
           {upNext.map((event) => (
             <Link
               key={event.order_id}
-              href={`/dashboard/customer/orders/${event.order_id}`}
+              href={`/dashboard/customer/order?orderId=${event.order_id}`}
               className="flex items-center justify-between gap-3 border-b border-white/5 px-6 py-3 last:border-b-0 transition-colors hover:bg-white/5"
             >
               <div className="min-w-0">

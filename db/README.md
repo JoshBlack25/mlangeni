@@ -28,6 +28,7 @@ Every file is safe to re-run.
 | `005_testimonials_curation.sql` | Ties a review to the event it is about, adds the admin's `featured` / `display_order` controls, splits the SELECT policy by role, and adds `get_public_testimonials()` so anonymous visitors can see reviewers' names without the `customer` table being readable | Testimonials — customer submission, admin moderation, homepage carousel |
 | `006_menu_builder_enquiries.sql` | **Superseded — do not run.** Routed the menu builder through the enquiry approval process. Kept in history only because 007 reverts it | — |
 | `007_revert_menu_builder_enquiries.sql` | Reverts 006's menu-builder scaffolding but **keeps** its security fix: `get_booked_sessions()` stays, and the world-readable `enquiries` policy stays dropped | Enquiry availability — **not** optional if 006 was ever run |
+| `007_customer_admin_chat.sql` | Adds customer/admin conversations, realtime messages, participant-only RLS, dashboard notifications, and chat RPCs | Customer/admin dashboard chat |
 
 ## The app works without these
 

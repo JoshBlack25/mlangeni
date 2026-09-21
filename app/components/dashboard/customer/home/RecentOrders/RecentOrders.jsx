@@ -143,7 +143,7 @@ export default function RecentOrders() {
         {orders.map((order) => (
           <Link
             key={order.order_id}
-            href={`/dashboard/customer/orders/${order.order_id}`}
+            href={`/dashboard/customer/order?orderId=${order.order_id}`}
             className="group flex items-center justify-between gap-4 border-t border-white/5 px-6 py-3 transition-colors duration-200 hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#D4AF37]"
           >
             <div className="flex min-w-0 items-center gap-4">

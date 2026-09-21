@@ -8,6 +8,7 @@ import {
   CalendarCheck,
   CalendarDays,
   ClipboardList,
+  MessageCircle,
   UsersRound,
 } from "lucide-react";
 import { supabase } from "@/services/supabaseClient";
@@ -76,6 +77,7 @@ export default function AdminConsultationsPage() {
           .select(
             `
             consultations_id,
+            customer_id,
             admin_id,
             status,
             created_at,
@@ -319,13 +321,22 @@ export default function AdminConsultationsPage() {
                   </div>
 
                   <div className="flex md:justify-end">
-                    <Link
-                      href={`/dashboard/admin/consultations/${consultation.consultations_id}`}
-                      className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[#D4AF37]/40 px-4 text-sm font-medium text-[#D4AF37] transition-all duration-300 hover:border-[#D4AF37] hover:bg-[#D4AF37] hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A]"
-                    >
-                      {isMeetingView ? "View Meeting" : "View Order"}
-                      <ArrowUpRight size={15} />
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/dashboard/admin/chat?customerId=${consultation.customer_id}`}
+                        aria-label={`Open chat with ${getCustomerName(consultation.customer)}`}
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[#D4AF37]/40 text-[#D4AF37] transition-all duration-300 hover:border-[#D4AF37] hover:bg-[#D4AF37] hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A]"
+                      >
+                        <MessageCircle size={16} />
+                      </Link>
+                      <Link
+                        href={`/dashboard/admin/consultations/${consultation.consultations_id}`}
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[#D4AF37]/40 px-4 text-sm font-medium text-[#D4AF37] transition-all duration-300 hover:border-[#D4AF37] hover:bg-[#D4AF37] hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A]"
+                      >
+                        {isMeetingView ? "View Meeting" : "View Order"}
+                        <ArrowUpRight size={15} />
+                      </Link>
+                    </div>
                   </div>
                 </motion.article>
               ))}
