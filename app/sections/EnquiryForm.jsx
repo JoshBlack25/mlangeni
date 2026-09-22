@@ -153,7 +153,14 @@ export default function EnquiryForm() {
         },
       ]);
       if (supabaseError) throw supabaseError;
-      await sendEnquiryEmail(enquiryData);
+
+      // The enquiry is saved, so the visitor's submission has succeeded.
+      // The email runs in the background: a slow or failed send is logged
+      // but never blocks the success screen or shows a false error.
+      sendEnquiryEmail(enquiryData).catch((err) =>
+        console.error("Enquiry email failed:", err),
+      );
+
       redirectToWhatsApp(enquiryData);
       setShowModal(true);
     } catch (error) {

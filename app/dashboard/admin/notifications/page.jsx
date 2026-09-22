@@ -115,10 +115,6 @@ export default function AdminNotificationsPage() {
     if (!notification.is_read) {
       await markAsRead(notification.notification_id);
     }
-
-    if (notification.link_url) {
-      router.push(notification.link_url);
-    }
   }
 
   return (

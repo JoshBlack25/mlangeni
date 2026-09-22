@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, Search } from "lucide-react";
 import { supabase } from "@/services/supabaseClient";
@@ -9,8 +10,13 @@ import EnquiryRow from "./EnquiryRow";
 const filters = ["Pending", "Confirmed", "Cancelled", "All"];
 
 export default function EnquiriesContent() {
+  const searchParams = useSearchParams();
+  const highlightId = searchParams.get("enquiryId");
+
   const [enquiries, setEnquiries] = useState(null); // null = loading
-  const [activeFilter, setActiveFilter] = useState("Pending");
+  const [activeFilter, setActiveFilter] = useState(
+    highlightId ? "All" : "Pending",
+  );
   const [search, setSearch] = useState("");
   const [error, setError] = useState(null);
 
@@ -44,7 +50,10 @@ export default function EnquiriesContent() {
             .in("user_id", userIds)
         : { data: [] };
       const customerByUserId = new Map(
-        (customers ?? []).map((customer) => [customer.user_id, customer.customer_id]),
+        (customers ?? []).map((customer) => [
+          customer.user_id,
+          customer.customer_id,
+        ]),
       );
 
       setEnquiries(
@@ -297,6 +306,7 @@ export default function EnquiriesContent() {
                   <EnquiryRow
                     enquiry={enquiry}
                     onStatusChange={handleStatusChange}
+                    autoOpen={String(enquiry.id) === highlightId}
                   />
                 </motion.div>
               ))}
