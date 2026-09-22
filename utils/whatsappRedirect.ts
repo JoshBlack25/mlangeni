@@ -1,6 +1,12 @@
 import { SESSION_OPTIONS } from "@/app/components/constants/sessions";
 
-const WHATSAPP_BUSINESS_NUMBER = "27XXXXXXXXX"; // replace with your WhatsApp business number, e.g. 27821234567
+// Digits only, international format (e.g. 27821234567).
+// Set NEXT_PUBLIC_WHATSAPP_NUMBER in .env.local and in Vercel.
+// While it is empty, the WhatsApp redirect is skipped.
+// NEXT_PUBLIC_ values are baked in at build time, so redeploy after changing it.
+const WHATSAPP_BUSINESS_NUMBER = (
+  process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? ""
+).replace(/\D/g, "");
 
 export interface EnquiryData {
   name: string;
@@ -13,6 +19,8 @@ export interface EnquiryData {
 }
 
 export function redirectToWhatsApp(data: EnquiryData): void {
+  if (!WHATSAPP_BUSINESS_NUMBER) return;
+
   const formattedDate = new Date(data.eventDate).toLocaleDateString("en-ZA", {
     weekday: "long",
     year: "numeric",

@@ -211,21 +211,12 @@ export default function NotificationBell({ basePath = "/dashboard/customer" }) {
                   </div>
                 );
 
-                if (item.link_url) {
-                  return (
-                    <Link
-                      key={item.notification_id}
-                      href={item.link_url}
-                      onClick={() => handleRowClick(item)}
-                      className={rowClassName}
-                    >
-                      {content}
-                    </Link>
-                  );
-                }
-
                 return (
-                  <div key={item.notification_id} className={rowClassName}>
+                  <div
+                    key={item.notification_id}
+                    onClick={() => handleRowClick(item)}
+                    className={rowClassName}
+                  >
                     {content}
                   </div>
                 );

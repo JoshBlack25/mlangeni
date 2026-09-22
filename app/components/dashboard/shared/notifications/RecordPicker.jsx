@@ -60,6 +60,9 @@ const categoryConfig = {
         .order("created_at", { ascending: false }),
     formatLabel: (row) =>
       `${new Date(row.event_date).toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" })} — ${row.status}`,
+    // Admin's route is plural (/enquiries), customer's is singular (/enquiry).
+    // linkPrefix here always means the ADMIN path; the onChange above swaps
+    // in the customer path directly since it has no per-record view.
     linkPrefix: "/enquiries",
   },
 };
@@ -127,10 +130,11 @@ export default function RecordPicker({
               onChange(null);
               return;
             }
+            // Notifications never navigate — the modal is the only place
+            // they're read — so we no longer build a link, just the label.
             onChange({
               id: record[config.idField],
               label: config.formatLabel(record),
-              linkPath: `${basePath}${config.linkPrefix}/${record[config.idField]}`,
             });
           }}
           className="w-full rounded-lg border border-[#1F1F1F] bg-[#0A0A0A] px-4 py-3 text-sm text-white focus:border-[#D4AF37] focus:outline-none"
