@@ -17,6 +17,7 @@ import {
   Send,
 } from "lucide-react";
 import { supabase } from "@/services/supabaseClient";
+import { useRouter } from "next/navigation";
 import { useNotifications } from "@/app/components/dashboard/shared/notifications/hooks/useNotifications";
 import SendNotificationModal from "@/app/components/dashboard/shared/notifications/SendNotificationModal";
 
@@ -73,6 +74,7 @@ function formatFullDate(dateString) {
 }
 
 export default function NotificationsPage() {
+  const router = useRouter();
   const [activeFilter, setActiveFilter] = useState("All");
   const [selectedNotification, setSelectedNotification] = useState(null);
   const [showSendModal, setShowSendModal] = useState(false);
@@ -125,6 +127,10 @@ export default function NotificationsPage() {
 
     if (!notification.is_read) {
       await markAsRead(notification.notification_id);
+    }
+
+    if (notification.link_url) {
+      router.push(notification.link_url);
     }
   }
 

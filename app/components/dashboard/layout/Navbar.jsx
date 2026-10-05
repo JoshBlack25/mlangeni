@@ -13,6 +13,7 @@ import {
   ShoppingCart,
   UtensilsCrossed,
   Send,
+  Star,
   User,
   LogOut,
 } from "lucide-react";
@@ -52,6 +53,11 @@ const links = [
     title: "Enquire",
     icon: Send,
     href: "/dashboard/customer/enquiry",
+  },
+  {
+    title: "Reviews",
+    icon: Star,
+    href: "/dashboard/customer/reviews",
   },
   {
     title: "Profile",

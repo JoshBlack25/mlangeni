@@ -268,7 +268,7 @@ export default function OrdersPage() {
                       </div>
 
                       <Link
-                        href={`/dashboard/customer/orders/${order.order_id}`}
+                        href={`/dashboard/customer/order?orderId=${order.order_id}`}
                         className="inline-flex items-center gap-2 rounded-lg border border-[#D4AF37]/30 bg-[#D4AF37]/10 px-3 py-2 text-sm font-medium text-[#D4AF37] transition-all duration-300 hover:bg-[#D4AF37]/20"
                       >
                         View details

@@ -1,90 +1,111 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/services/supabaseClient";
 
-function getStage(consultation) {
-  const { status, invoice } = consultation;
+function formatDate(dateString) {
+  if (!dateString) return "TBC";
 
-  if (status === "requested")
-    return { label: "New — Needs Scheduling", tone: "gold" };
-  if (status === "scheduled")
-    return { label: "Planning In Progress", tone: "neutral" };
+  const date = new Date(dateString);
 
-  // status === "completed" from here
-  if (!invoice) return { label: "Invoice Pending", tone: "neutral" };
-  if (invoice.status === "paid")
-    return { label: "Paid — Ready for Calendar", tone: "green" };
-  if (invoice.status === "overdue")
-    return { label: "Payment Overdue", tone: "red" };
-  return { label: "Awaiting Payment", tone: "gold" }; // draft or sent
+  if (Number.isNaN(date.getTime())) return "TBC";
+
+  return date.toLocaleDateString("en-ZA", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
-const toneStyles = {
-  gold: "bg-[#D4AF37]/10 text-[#D4AF37] border-[#D4AF37]/30",
-  neutral: "bg-white/5 text-[#A0A0A0] border-[#1F1F1F]",
-  green: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
-  red: "bg-red-500/10 text-red-400 border-red-500/30",
-};
+function formatTime(dateString) {
+  if (!dateString) return "TBC";
+
+  const date = new Date(dateString);
+
+  if (Number.isNaN(date.getTime())) return "TBC";
+
+  return date.toLocaleTimeString("en-ZA", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function getCustomerName(customer) {
+  if (!customer) return "Unknown client";
+
+  const name = `${customer.first_name ?? ""} ${customer.last_name ?? ""}`.trim();
+
+  return name || "Unknown client";
+}
 
 export default function ActiveConsultations() {
-  const [consultations, setConsultations] = useState(null); // null = loading
+  const [meetings, setMeetings] = useState(null);
 
   useEffect(() => {
-    async function loadConsultations() {
+    async function loadMeetings() {
       const { data, error } = await supabase
         .from("consultations")
         .select(
           `
           consultations_id,
-          status,
           meeting_date,
           customer:customer_id ( first_name, last_name ),
-          invoices ( status )
+          order:order_id (
+            event_date,
+            event_type ( event_name )
+          ),
+          invoices (
+            invoices_id,
+            status
+          )
         `,
         )
-        .neq("status", "cancelled")
+        .eq("status", "scheduled")
         .order("meeting_date", { ascending: true })
         .limit(6);
 
       if (error) {
-        console.error("Failed to load consultations:", error);
-        setConsultations([]);
+        console.error("Failed to load active meetings:", error);
+        setMeetings([]);
         return;
       }
 
-      const mapped = (data ?? []).map((c) => ({
-        id: c.consultations_id,
-        status: c.status,
-        meetingDate: c.meeting_date,
-        clientName: c.customer
-          ? `${c.customer.first_name ?? ""} ${c.customer.last_name ?? ""}`.trim()
-          : "Unknown client",
-        invoice: Array.isArray(c.invoices) ? c.invoices[0] : c.invoices,
-      }));
+      const mapped = (data ?? [])
+        .filter(
+          (consultation) =>
+            !(consultation.invoices ?? []).some(
+              (invoice) => invoice.status !== "draft",
+            ),
+        )
+        .map((consultation) => ({
+          id: consultation.consultations_id,
+          meetingDate: consultation.meeting_date,
+          clientName: getCustomerName(consultation.customer),
+          eventDate: consultation.order?.event_date,
+          eventType:
+            consultation.order?.event_type?.event_name ?? "Event type pending",
+        }));
 
-      setConsultations(mapped);
+      setMeetings(mapped);
     }
 
-    loadConsultations();
+    loadMeetings();
   }, []);
 
   return (
     <div className="flex h-full flex-col rounded-2xl border border-[#1F1F1F] bg-white/5 p-6 backdrop-blur-md">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-white">
-          Active Consultations
-        </h3>
+        <h3 className="text-lg font-semibold text-white">Active Meetings</h3>
         <Link
-          href="/dashboard/admin/consultations"
+          href="/dashboard/admin/active-meetings"
           className="text-sm font-medium text-[#D4AF37] hover:underline"
         >
           View all
         </Link>
       </div>
 
-      {consultations === null ? (
+      {meetings === null ? (
         <div className="flex flex-1 flex-col gap-3">
           {[...Array(4)].map((_, i) => (
             <div
@@ -93,40 +114,35 @@ export default function ActiveConsultations() {
             />
           ))}
         </div>
-      ) : consultations.length === 0 ? (
+      ) : meetings.length === 0 ? (
         <p className="flex flex-1 items-center justify-center text-sm text-[#A0A0A0]">
-          No active consultations right now.
+          No active meetings right now.
         </p>
       ) : (
         <div className="flex flex-1 flex-col gap-3 overflow-y-auto">
-          {consultations.map((c) => {
-            const stage = getStage(c);
+          {meetings.map((meeting) => (
+            <Link
+              key={meeting.id}
+              href={`/dashboard/admin/consultations/${meeting.id}`}
+              className="grid grid-cols-1 gap-3 rounded-xl border border-[#1F1F1F] bg-[#0A0A0A]/40 p-4 transition hover:border-[#D4AF37] md:grid-cols-[1fr_auto] md:items-center"
+            >
+              <div>
+                <p className="font-medium text-white">{meeting.clientName}</p>
+                <p className="mt-1 text-sm text-[#A0A0A0]">
+                  {meeting.eventType} - Event {formatDate(meeting.eventDate)}
+                </p>
+              </div>
 
-            return (
-              <Link
-                key={c.id}
-                href={`/dashboard/admin/consultations/${c.id}`}
-                className="flex items-center justify-between rounded-xl border border-[#1F1F1F] bg-[#0A0A0A]/40 p-4 transition hover:border-[#D4AF37]"
-              >
-                <div>
-                  <p className="font-medium text-white">{c.clientName}</p>
-                  <p className="text-sm text-[#A0A0A0]">
-                    {new Date(c.meetingDate).toLocaleDateString("en-ZA", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                  </p>
-                </div>
-
-                <span
-                  className={`rounded-full border px-3 py-1 text-xs font-medium ${toneStyles[stage.tone]}`}
-                >
-                  {stage.label}
-                </span>
-              </Link>
-            );
-          })}
+              <div className="border-l border-white/10 pl-4 text-left md:text-right">
+                <p className="text-sm font-medium text-[#D4AF37]">
+                  {formatDate(meeting.meetingDate)}
+                </p>
+                <p className="mt-1 text-xs text-[#797676]">
+                  {formatTime(meeting.meetingDate)}
+                </p>
+              </div>
+            </Link>
+          ))}
         </div>
       )}
     </div>

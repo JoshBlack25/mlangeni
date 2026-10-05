@@ -12,8 +12,18 @@ import {
   PopoverTrigger,
 } from "@/app/components/package/popover"
 
-export function PackageCalendar({value, onChange}) {
+function startOfDay(date) {
+  if (!date) return null;
+
+  const copy = new Date(date);
+  copy.setHours(0, 0, 0, 0);
+
+  return copy;
+}
+
+export function PackageCalendar({value, onChange, minDate}) {
   const [open, setOpen] = React.useState(false);
+  const normalizedMinDate = startOfDay(minDate);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -25,10 +35,21 @@ export function PackageCalendar({value, onChange}) {
           mode="single"
           selected={value}
           onSelect={(selectedDate)=>{
+            const normalizedSelectedDate = startOfDay(selectedDate);
+
+            if (
+              normalizedMinDate &&
+              normalizedSelectedDate &&
+              normalizedSelectedDate < normalizedMinDate
+            ) {
+              return;
+            }
+
             onChange(selectedDate);
             setOpen(false);
           }}
-          defaultMonth={value}
+          disabled={normalizedMinDate ? { before: normalizedMinDate } : undefined}
+          defaultMonth={value ?? normalizedMinDate ?? undefined}
         />
       </PopoverContent>
     </Popover>

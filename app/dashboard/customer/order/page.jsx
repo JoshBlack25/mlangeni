@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   CalendarDays,
@@ -73,8 +73,8 @@ function statusStyles(status) {
 
 export default function OrderDetailPage() {
   const router = useRouter();
-  const params = useParams();
-  const orderId = params?.orderId;
+  const params = useSearchParams();
+  const orderId = params.get("orderId");
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

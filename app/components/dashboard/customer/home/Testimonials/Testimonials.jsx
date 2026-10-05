@@ -4,48 +4,62 @@ import { useState, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Star, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
-
-// Mock data for now — this can end up sharing a source with the browser
-// site's Testimonial.jsx carousel once reviews are wired to Supabase.
-const testimonials = [
-  {
-    name: "Diana Johnston",
-    rating: 5,
-    quote:
-      "Every detail was handled beautifully — our guests are still talking about the food.",
-    avatar:
-      "https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png",
-  },
-  {
-    name: "Lauren Contreras",
-    rating: 5,
-    quote:
-      "Professional from the first consultation right through to the final course. Couldn't recommend them more.",
-    avatar:
-      "https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png",
-  },
-  {
-    name: "Edward Alexander",
-    rating: 4,
-    quote:
-      "Fantastic presentation and the team was flexible with our last-minute changes.",
-    avatar:
-      "https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png",
-  },
-];
+import Monogram from "@/app/components/dashboard/shared/Monogram";
+import StarRating from "@/app/components/dashboard/shared/StarRating";
+import { fetchPublicTestimonials } from "@/services/testimonialsService";
 
 export default function Testimonials() {
+  // null = still loading. The component used to have static data and so had no
+  // loading state at all.
+  const [testimonials, setTestimonials] = useState(null);
   const [index, setIndex] = useState(0);
   const isAutoPlaying = useRef(true);
 
   useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      // featuredOnly: false — this card is social proof for a signed-in
+      // customer, so every approved review belongs here, with the ones the
+      // admin picked for the homepage first.
+      const { testimonials: rows } = await fetchPublicTestimonials(6, false);
+      if (cancelled) return;
+      setTestimonials(rows);
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!testimonials || testimonials.length < 2) return;
+
     const timer = setInterval(() => {
       if (isAutoPlaying.current) {
         setIndex((prev) => (prev + 1) % testimonials.length);
       }
     }, 5000);
+
     return () => clearInterval(timer);
-  }, []);
+  }, [testimonials]);
+
+  if (testimonials === null) {
+    return (
+      <div
+        className="flex h-full flex-col rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md"
+        aria-hidden
+      >
+        <div className="h-3 w-24 animate-pulse rounded bg-white/10" />
+        <div className="mt-8 flex flex-1 flex-col items-center justify-center gap-3">
+          <div className="h-14 w-14 animate-pulse rounded-full bg-white/10" />
+          <div className="h-3 w-3/4 animate-pulse rounded bg-white/10" />
+          <div className="h-3 w-2/3 animate-pulse rounded bg-white/10" />
+        </div>
+      </div>
+    );
+  }
 
   if (testimonials.length === 0) {
     return (
@@ -55,11 +69,17 @@ export default function Testimonials() {
         <p className="mt-2 max-w-[16rem] text-sm text-[#A0A0A0]">
           Guest reviews will appear here once they start coming in.
         </p>
+        <Link
+          href="/dashboard/customer/reviews"
+          className="mt-5 text-sm font-medium text-[#D4AF37] transition-opacity hover:opacity-80"
+        >
+          Leave the first one
+        </Link>
       </div>
     );
   }
 
-  const active = testimonials[index];
+  const active = testimonials[index % testimonials.length];
 
   return (
     <div
@@ -78,58 +98,46 @@ export default function Testimonials() {
       <div className="flex flex-1 flex-col items-center justify-center px-6 py-8 text-center">
         <AnimatePresence mode="wait">
           <motion.div
-            key={index}
+            key={active.testimonial_id}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
             className="flex flex-col items-center"
           >
-            <img
-              src={active.avatar}
-              alt={active.name}
-              className="h-14 w-14 rounded-full border border-[#D4AF37]/40 object-cover"
-            />
+            <Monogram initials={active.initials} size={56} />
 
-            <div className="mt-3 flex items-center gap-1">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star
-                  key={i}
-                  size={13}
-                  className={
-                    i < active.rating
-                      ? "fill-[#D4AF37] text-[#D4AF37]"
-                      : "fill-transparent text-white/20"
-                  }
-                />
-              ))}
-            </div>
+            <StarRating value={active.rating} size={13} className="mt-3" />
 
             <p className="mt-4 text-sm italic leading-relaxed text-white/80">
-              &ldquo;{active.quote}&rdquo;
+              &ldquo;{active.message}&rdquo;
             </p>
 
             <p className="mt-4 text-sm font-medium text-[#D4AF37]">
-              {active.name}
+              {active.display_name}
             </p>
-            <p className="text-xs text-[#797676]">Verified Customer</p>
+            <p className="text-xs text-[#797676]">
+              {active.event_name ?? "Verified Customer"}
+            </p>
           </motion.div>
         </AnimatePresence>
       </div>
 
       {/* DOTS */}
-      <div className="flex justify-center gap-1.5 pb-5">
-        {testimonials.map((_, i) => (
-          <button
-            key={i}
-            onClick={() => setIndex(i)}
-            aria-label={`Show review ${i + 1}`}
-            className={`h-1.5 rounded-full transition-all duration-300 ${
-              i === index ? "w-4 bg-[#D4AF37]" : "w-1.5 bg-white/20"
-            }`}
-          />
-        ))}
-      </div>
+      {testimonials.length > 1 && (
+        <div className="flex justify-center gap-1.5 pb-5">
+          {testimonials.map((t, i) => (
+            <button
+              key={t.testimonial_id}
+              onClick={() => setIndex(i)}
+              aria-label={`Show review ${i + 1}`}
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                i === index ? "w-4 bg-[#D4AF37]" : "w-1.5 bg-white/20"
+              }`}
+            />
+          ))}
+        </div>
+      )}
 
       {/* FOOTER */}
       <Link

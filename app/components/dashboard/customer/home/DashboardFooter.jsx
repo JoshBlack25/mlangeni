@@ -10,9 +10,9 @@ const goldGlow =
 
 const quickLinks = [
   { label: "My Dashboard", href: "/dashboard/customer" },
-  { label: "My Bookings", href: "/dashboard/customer/bookings" },
-  { label: "Invoices", href: "/dashboard/customer/invoices" },
-  { label: "Consultations", href: "/dashboard/customer/consultations" },
+  { label: "My Bookings", href: "/dashboard/customer/orders" },
+  { label: "Invoices", href: "/dashboard/customer/payments" },
+  { label: "Consultations", href: "/dashboard/customer/enquiry" },
 ];
 
 const legalLinks = [

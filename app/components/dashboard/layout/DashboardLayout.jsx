@@ -3,6 +3,7 @@
 import Header from "./Header";
 import Navbar from "./Navbar";
 import AdminNavbar from "./AdminNavbar";
+import ChatWidget from "../shared/chat/ChatWidget";
 
 const roleConfig = {
   customer: {
@@ -25,6 +26,7 @@ export default function DashboardLayout({ children, role = "customer" }) {
       <Header title={title} navbar={navbar} basePath={basePath} />
 
       <main>{children}</main>
+      {role === "customer" && <ChatWidget />}
     </div>
   );
 }

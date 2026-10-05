@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, Search } from "lucide-react";
 import { supabase } from "@/services/supabaseClient";
@@ -9,8 +10,13 @@ import EnquiryRow from "./EnquiryRow";
 const filters = ["Pending", "Confirmed", "Cancelled", "All"];
 
 export default function EnquiriesContent() {
+  const searchParams = useSearchParams();
+  const highlightId = searchParams.get("enquiryId");
+
   const [enquiries, setEnquiries] = useState(null); // null = loading
-  const [activeFilter, setActiveFilter] = useState("Pending");
+  const [activeFilter, setActiveFilter] = useState(
+    highlightId ? "All" : "Pending",
+  );
   const [search, setSearch] = useState("");
   const [error, setError] = useState(null);
 
@@ -35,7 +41,27 @@ export default function EnquiriesContent() {
         return;
       }
 
-      setEnquiries(data ?? []);
+      const rows = data ?? [];
+      const userIds = rows.map((row) => row.user_id).filter(Boolean);
+      const { data: customers } = userIds.length
+        ? await supabase
+            .from("customer")
+            .select("customer_id, user_id")
+            .in("user_id", userIds)
+        : { data: [] };
+      const customerByUserId = new Map(
+        (customers ?? []).map((customer) => [
+          customer.user_id,
+          customer.customer_id,
+        ]),
+      );
+
+      setEnquiries(
+        rows.map((row) => ({
+          ...row,
+          customer_id: customerByUserId.get(row.user_id) ?? null,
+        })),
+      );
     }
 
     loadEnquiries();
@@ -107,11 +133,13 @@ export default function EnquiriesContent() {
 
     if (search.trim()) {
       const q = search.trim().toLowerCase();
+      // `phone` is nullable since db/006 and stays that way (see db/007), so
+      // this can't assume a string — one null row would break every search.
       result = result.filter(
         (e) =>
-          e.name.toLowerCase().includes(q) ||
-          e.email.toLowerCase().includes(q) ||
-          e.phone.includes(q),
+          (e.name ?? "").toLowerCase().includes(q) ||
+          (e.email ?? "").toLowerCase().includes(q) ||
+          (e.phone ?? "").includes(q),
       );
     }
 
@@ -278,6 +306,7 @@ export default function EnquiriesContent() {
                   <EnquiryRow
                     enquiry={enquiry}
                     onStatusChange={handleStatusChange}
+                    autoOpen={String(enquiry.id) === highlightId}
                   />
                 </motion.div>
               ))}

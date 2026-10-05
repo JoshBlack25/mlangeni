@@ -12,6 +12,7 @@ import {
   Send,
   Receipt,
   Bell,
+  Star,
   Wrench,
   User,
   LogOut,
@@ -42,6 +43,11 @@ const links = [
     title: "Invoices",
     icon: Receipt,
     href: "/dashboard/admin/invoices",
+  },
+  {
+    title: "Reviews",
+    icon: Star,
+    href: "/dashboard/admin/tools/testimonials",
   },
   {
     title: "Notifications",

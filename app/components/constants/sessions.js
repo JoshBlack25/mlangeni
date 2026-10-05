@@ -26,3 +26,35 @@ export function isSessionUnavailable(sessionValue, bookedSessions) {
   if (sessionValue === "full_day") return bookedSessions.length > 0;
   return bookedSessions.includes(sessionValue);
 }
+
+/**
+ * The actual clock window each session occupies.
+ *
+ * `orders` stores start_time / end_time (both NOT NULL) and the
+ * orders_no_overlap exclusion constraint works on those, so a session picked in
+ * the menu builder still has to become a real time range. This is the single
+ * place that conversion happens — keep it in step with OPERATING_WINDOW in
+ * app/components/menu/availability.js, which is 06:00–23:59.
+ */
+export const SESSION_WINDOWS = {
+  morning: { start: "06:00", end: "12:00" },
+  afternoon: { start: "12:00", end: "17:00" },
+  evening: { start: "17:00", end: "23:59" },
+  full_day: { start: "06:00", end: "23:59" },
+};
+
+export function windowForSession(session) {
+  return SESSION_WINDOWS[normalizeSession(session)] ?? null;
+}
+
+/**
+ * The reverse lookup, so a booking saved before the builder used sessions can
+ * still show the right label instead of falling back to a blank select.
+ */
+export function sessionForWindow(start, end) {
+  const hhmm = (t) => String(t ?? "").slice(0, 5);
+  const entry = Object.entries(SESSION_WINDOWS).find(
+    ([, w]) => w.start === hhmm(start) && w.end === hhmm(end),
+  );
+  return entry ? entry[0] : "";
+}

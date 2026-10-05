@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { CheckCircle2, Send, ChevronDown } from "lucide-react";
 import { supabase } from "@/services/supabaseClient";
+import PendingEnquiries from "./PendingEnquiries";
 import {
   SESSION_OPTIONS,
   normalizeSession,
@@ -71,11 +72,12 @@ export default function EnquiryContent() {
     async function fetchBooked() {
       setCheckingAvailability(true);
 
-      const { data, error } = await supabase
-        .from("enquiries")
-        .select("session")
-        .eq("event_date", eventDate)
-        .eq("status", "confirmed");
+      // Must be the RPC: availability depends on OTHER customers' confirmed
+      // enquiries, and a signed-in customer can only see their own rows. A
+      // table read here reports every date as free instead of erroring.
+      const { data, error } = await supabase.rpc("get_booked_sessions", {
+        p_date: eventDate,
+      });
 
       if (error) {
         console.error("Failed to check availability:", error);
@@ -286,69 +288,76 @@ export default function EnquiryContent() {
                 </button>
               </form>
 
-              {/* AVAILABILITY TRACKER */}
-              <div className="w-full shrink-0 rounded-2xl border border-white/10 bg-black/40 p-8 text-left shadow-2xl backdrop-blur-md lg:w-[300px]">
-                <h3 className="mb-1 text-sm font-bold tracking-wide text-white">
-                  Session Availability
-                </h3>
+              {/* SIDEBAR — what you've already sent, then what's still free */}
+              <aside className="flex w-full shrink-0 flex-col gap-6 lg:w-[300px]">
+                <PendingEnquiries />
 
-                {eventDate ? (
-                  <>
-                    <p className="mb-5 text-[10px] tracking-[0.15em] text-white/30">
-                      {new Date(eventDate + "T00:00:00")
-                        .toLocaleDateString("en-US", {
-                          month: "long",
-                          day: "numeric",
-                          year: "numeric",
-                        })
-                        .toUpperCase()}
-                    </p>
+                {/* AVAILABILITY TRACKER */}
+                <div className="w-full rounded-2xl border border-white/10 bg-black/40 p-8 text-left shadow-2xl backdrop-blur-md">
+                  <h3 className="mb-1 text-sm font-bold tracking-wide text-white">
+                    Session Availability
+                  </h3>
 
-                    <div className="flex flex-col">
-                      {SESSION_OPTIONS.map((opt, i) => {
-                        const unavailable = isSessionUnavailable(
-                          opt.value,
-                          bookedSessions,
-                        );
-                        return (
-                          <div
-                            key={opt.value}
-                            className={`flex items-center justify-between py-3.5 ${
-                              i < SESSION_OPTIONS.length - 1
-                                ? "border-b border-white/10"
-                                : ""
-                            }`}
-                          >
-                            <span className="text-[10px] uppercase tracking-[0.2em] text-white/40">
-                              {opt.label} Session
-                            </span>
-                            <div className="flex items-center gap-2">
-                              <span
-                                className={`h-1.5 w-1.5 rounded-full ${
-                                  unavailable ? "bg-red-500" : "bg-emerald-400"
-                                }`}
-                              />
-                              <span
-                                className={`text-[10px] font-bold uppercase tracking-[0.15em] ${
-                                  unavailable
-                                    ? "text-red-400"
-                                    : "text-emerald-400"
-                                }`}
-                              >
-                                {unavailable ? "Unavailable" : "Available"}
+                  {eventDate ? (
+                    <>
+                      <p className="mb-5 text-[10px] tracking-[0.15em] text-white/30">
+                        {new Date(eventDate + "T00:00:00")
+                          .toLocaleDateString("en-US", {
+                            month: "long",
+                            day: "numeric",
+                            year: "numeric",
+                          })
+                          .toUpperCase()}
+                      </p>
+
+                      <div className="flex flex-col">
+                        {SESSION_OPTIONS.map((opt, i) => {
+                          const unavailable = isSessionUnavailable(
+                            opt.value,
+                            bookedSessions,
+                          );
+                          return (
+                            <div
+                              key={opt.value}
+                              className={`flex items-center justify-between py-3.5 ${
+                                i < SESSION_OPTIONS.length - 1
+                                  ? "border-b border-white/10"
+                                  : ""
+                              }`}
+                            >
+                              <span className="text-[10px] uppercase tracking-[0.2em] text-white/40">
+                                {opt.label} Session
                               </span>
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className={`h-1.5 w-1.5 rounded-full ${
+                                    unavailable
+                                      ? "bg-red-500"
+                                      : "bg-emerald-400"
+                                  }`}
+                                />
+                                <span
+                                  className={`text-[10px] font-bold uppercase tracking-[0.15em] ${
+                                    unavailable
+                                      ? "text-red-400"
+                                      : "text-emerald-400"
+                                  }`}
+                                >
+                                  {unavailable ? "Unavailable" : "Available"}
+                                </span>
+                              </div>
                             </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </>
-                ) : (
-                  <p className="mt-3 text-[11px] italic text-white/30">
-                    Select a date to view real-time session availability
-                  </p>
-                )}
-              </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  ) : (
+                    <p className="mt-3 text-[11px] italic text-white/30">
+                      Select a date to view real-time session availability
+                    </p>
+                  )}
+                </div>
+              </aside>
             </div>
           </div>
         )}

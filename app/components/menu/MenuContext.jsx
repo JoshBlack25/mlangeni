@@ -1,7 +1,8 @@
 "use client";
 
-import { createContext, useContext, useReducer } from "react";
+import { createContext, useContext, useMemo, useReducer } from "react";
 import { STEPS } from "./constants";
+import { windowForSession } from "@/app/components/constants/sessions";
 
 export const initialState = {
   step: 0,
@@ -13,9 +14,17 @@ export const initialState = {
   beverageChoice: null,
   beverageTypeChoice: null,
   guests: "",
-  eventDate: "",
+  /** A `Date` (or null) — never a string. See `availability.toDateKey`. */
+  eventDate: null,
   eventTypeId: "",
   eventLocation: "",
+  /**
+   * The customer picks a session (morning / afternoon / evening / all day);
+   * startTime and endTime are derived from it by SET_SESSION and are what
+   * actually reach `orders`, which needs a real time range for its
+   * no-overlap constraint.
+   */
+  session: "",
   startTime: "09:00",
   endTime: "17:00",
   notes: "",
@@ -23,6 +32,9 @@ export const initialState = {
   contactName: "",
   contactEmail: "",
   contactPhone: "",
+  submitting: false,
+  submitError: "",
+  emailWarning: "",
 };
 
 export function reducer(state, action) {
@@ -32,7 +44,13 @@ export function reducer(state, action) {
     case "SET_EVENT_TYPES":
       return { ...state, eventTypes: action.payload };
     case "SET_AUTH_USER":
-      return { ...state, authUser: action.payload };
+      return {
+        ...state,
+        authUser: action.payload,
+        // The quote is emailed to the account address, so seed it here rather
+        // than leaving contactEmail permanently blank.
+        contactEmail: action.payload?.email || state.contactEmail,
+      };
     case "SET_EXISTING_CUSTOMER":
       return {
         ...state,
@@ -45,6 +63,7 @@ export function reducer(state, action) {
               .trim()) ||
           state.contactName,
         contactPhone: action.payload?.phone_number || state.contactPhone,
+        contactEmail: action.payload?.email || state.contactEmail,
       };
     case "NEXT_STEP":
       return { ...state, step: Math.min(state.step + 1, STEPS.length - 1) };
@@ -81,13 +100,31 @@ export function reducer(state, action) {
       };
     }
     case "SET_BEVERAGE_CHOICE":
+      // Clearing the basket matters: answering "yes", picking drinks, then
+      // switching to "no" used to leave those drinks in the submitted order.
       return {
         ...state,
         beverageChoice: action.payload,
         beverageTypeChoice: null,
+        selections: { ...state.selections, beverages: [] },
       };
-    case "SET_BEVERAGE_TYPE":
-      return { ...state, beverageTypeChoice: action.payload };
+    case "SET_BEVERAGE_TYPE": {
+      // Narrowing the type keeps whatever is still valid rather than wiping
+      // the lot — going from "both" to "alcoholic" shouldn't lose the wines.
+      const keep = (item) => {
+        if (action.payload === "both") return true;
+        if (action.payload === "alcoholic") return !!item.is_alcoholic;
+        return !item.is_alcoholic;
+      };
+      return {
+        ...state,
+        beverageTypeChoice: action.payload,
+        selections: {
+          ...state.selections,
+          beverages: state.selections.beverages.filter(keep),
+        },
+      };
+    }
     case "SET_GUESTS":
       return { ...state, guests: action.payload };
     case "SET_DATE":
@@ -96,6 +133,17 @@ export function reducer(state, action) {
       return { ...state, eventTypeId: action.payload };
     case "SET_EVENT_LOCATION":
       return { ...state, eventLocation: action.payload };
+    case "SET_SESSION": {
+      const window = windowForSession(action.payload);
+      return {
+        ...state,
+        session: action.payload,
+        // Keep the previous range if the label is unrecognised, so a bad value
+        // can never leave the order without a time.
+        startTime: window ? window.start : state.startTime,
+        endTime: window ? window.end : state.endTime,
+      };
+    }
     case "SET_START_TIME":
       return { ...state, startTime: action.payload };
     case "SET_END_TIME":
@@ -104,8 +152,14 @@ export function reducer(state, action) {
       return { ...state, notes: action.payload };
     case "SET_CONTACT":
       return { ...state, [action.field]: action.payload };
+    case "SET_SUBMITTING":
+      return { ...state, submitting: action.payload };
+    case "SET_SUBMIT_ERROR":
+      return { ...state, submitError: action.payload, submitting: false };
+    case "SET_EMAIL_WARNING":
+      return { ...state, emailWarning: action.payload };
     case "SEND_QUOTE":
-      return { ...state, quoteSent: true };
+      return { ...state, quoteSent: true, submitting: false, submitError: "" };
     case "RESET":
       return {
         ...initialState,
@@ -124,8 +178,22 @@ export function reducer(state, action) {
 
 const MenuCtx = createContext(null);
 
+/**
+ * Owns the wizard state. Pass `value` only to drive the provider from outside
+ * (tests, stories); normally just wrap the tree and use `useMenu()`.
+ */
 export function MenuProvider({ children, value }) {
-  return <MenuCtx.Provider value={value}>{children}</MenuCtx.Provider>;
+  const [state, dispatch] = useReducer(reducer, initialState);
+  const ownValue = useMemo(() => ({ state, dispatch }), [state]);
+  return (
+    <MenuCtx.Provider value={value ?? ownValue}>{children}</MenuCtx.Provider>
+  );
 }
 
-export const useMenu = () => useContext(MenuCtx);
+export function useMenu() {
+  const ctx = useContext(MenuCtx);
+  if (!ctx) {
+    throw new Error("useMenu must be used inside a <MenuProvider>");
+  }
+  return ctx;
+}

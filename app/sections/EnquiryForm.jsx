@@ -98,11 +98,14 @@ export default function EnquiryForm() {
       return;
     }
     const fetchBooked = async () => {
-      const { data } = await supabase
-        .from("enquiries")
-        .select("session")
-        .eq("event_date", formData.eventDate)
-        .eq("status", "confirmed");
+      // Must go through the RPC. db/006 dropped the blanket public read on
+      // `enquiries` — it exposed every lead's name, email and phone — and
+      // db/007 deliberately keeps it dropped. A table read here returns zero
+      // rows for an anonymous visitor rather than erroring, which would show
+      // every session as free and let the date be double-booked.
+      const { data } = await supabase.rpc("get_booked_sessions", {
+        p_date: formData.eventDate,
+      });
       setBookedSessions((data ?? []).map((r) => normalizeSession(r.session)));
     };
     fetchBooked();
@@ -150,7 +153,14 @@ export default function EnquiryForm() {
         },
       ]);
       if (supabaseError) throw supabaseError;
-      await sendEnquiryEmail(enquiryData);
+
+      // The enquiry is saved, so the visitor's submission has succeeded.
+      // The email runs in the background: a slow or failed send is logged
+      // but never blocks the success screen or shows a false error.
+      sendEnquiryEmail(enquiryData).catch((err) =>
+        console.error("Enquiry email failed:", err),
+      );
+
       redirectToWhatsApp(enquiryData);
       setShowModal(true);
     } catch (error) {
@@ -222,7 +232,7 @@ export default function EnquiryForm() {
         .mgh-phone .PhoneInputInput::placeholder { color: #444; }
       `}</style>
 
-      <section className="bg-[#0a0a0a] text-white px-6 md:px-12 py-20 font-[Playfair_Display]">
+      <section className="bg-[#0a0a0a] text-white px-6 md:px-12 py-20 font-[Playfair_Display] overflow-hidden">
         <div className="max-w-7xl mx-auto">
           {/* Heading — fades up first */}
           <motion.div

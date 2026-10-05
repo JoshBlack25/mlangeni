@@ -10,15 +10,25 @@ import {
 import { useInView } from "framer-motion";
 import { supabase } from "@/services/supabaseClient";
 import AnimatedNumber from "../../../shared/AnimatedNumber";
+import {
+  BOOKED_ORDER_STATUSES,
+  getCustomerForUser,
+} from "@/app/utils/customerBookingRules";
+import {
+  getDummyConfirmedOrders,
+  isDummyOrderConfirmed,
+  mergeOrdersById,
+  subscribeDummyInvoicePayments,
+} from "@/app/utils/dummyInvoicePayments";
 
 const statConfig = [
   {
     key: "pendingConsultations",
-    label: "Pending Consultations",
+    label: "Pending Bookings",
     icon: MessageCircleMore,
   },
-  { key: "activeOrders", label: "Active Orders", icon: ClipboardList },
-  { key: "upcomingEvents", label: "Upcoming Events", icon: CalendarClock },
+  { key: "activeOrders", label: "Active Booking", icon: ClipboardList },
+  { key: "upcomingEvents", label: "Booked Event", icon: CalendarClock },
   { key: "totalBookings", label: "Total Bookings", icon: CalendarCheck },
 ];
 
@@ -30,42 +40,102 @@ export default function Stats() {
 
   useEffect(() => {
     async function fetchStats() {
-      const today = new Date().toISOString().slice(0, 10);
+      try {
+        const today = new Date().toISOString().slice(0, 10);
 
-      const [pending, active, upcoming, total] = await Promise.all([
-        supabase
-          .from("consultations")
-          .select("*", { count: "exact", head: true })
-          .eq("status", "requested"),
-        supabase
-          .from("orders")
-          .select("*", { count: "exact", head: true })
-          .in("status", ["confirmed", "in_progress"]),
-        supabase
-          .from("orders")
-          .select("*", { count: "exact", head: true })
-          .gte("event_date", today)
-          .neq("status", "cancelled"),
-        supabase.from("orders").select("*", { count: "exact", head: true }),
-      ]);
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
 
-      const firstError =
-        pending.error || active.error || upcoming.error || total.error;
+        if (userError) {
+          throw userError;
+        }
 
-      if (firstError) {
-        setError(firstError.message);
-        return;
+        if (!user) {
+          setValues({
+            pendingConsultations: 0,
+            activeOrders: 0,
+            upcomingEvents: 0,
+            totalBookings: 0,
+          });
+          return;
+        }
+
+        const customer = await getCustomerForUser(supabase, user.id);
+
+        if (!customer) {
+          setValues({
+            pendingConsultations: 0,
+            activeOrders: 0,
+            upcomingEvents: 0,
+            totalBookings: 0,
+          });
+          return;
+        }
+
+        const [pending, pendingOrders, bookedEvents, total] = await Promise.all([
+          supabase
+            .from("consultations")
+            .select("*", { count: "exact", head: true })
+            .eq("customer_id", customer.customer_id)
+            .eq("status", "requested")
+            .is("admin_id", null),
+          supabase
+            .from("orders")
+            .select("order_id")
+            .eq("customer_id", customer.customer_id)
+            .eq("status", "pending"),
+          supabase
+            .from("orders")
+            .select("order_id, event_date")
+            .eq("customer_id", customer.customer_id)
+            .in("status", BOOKED_ORDER_STATUSES)
+            .gte("event_date", today)
+            .neq("status", "cancelled"),
+          supabase
+            .from("orders")
+            .select("*", { count: "exact", head: true })
+            .eq("customer_id", customer.customer_id),
+        ]);
+
+        const firstError =
+          pending.error ||
+          pendingOrders.error ||
+          bookedEvents.error ||
+          total.error;
+
+        if (firstError) {
+          throw firstError;
+        }
+
+        const pendingBookingCount = pending.count ?? 0;
+        const pendingOrderCount = (pendingOrders.data ?? []).filter(
+          (order) => !isDummyOrderConfirmed(order.order_id),
+        ).length;
+        const dummyBookedEvents = getDummyConfirmedOrders(customer.email).filter(
+          (event) => event.event_date >= today,
+        );
+        const bookedEventCount = mergeOrdersById(
+          bookedEvents.data ?? [],
+          dummyBookedEvents,
+        ).length;
+
+        setValues({
+          pendingConsultations: pendingBookingCount,
+          activeOrders: Math.max(pendingOrderCount - pendingBookingCount, 0),
+          upcomingEvents: bookedEventCount,
+          totalBookings: total.count ?? 0,
+        });
+      } catch (err) {
+        setError(err.message || "Unable to load customer dashboard stats.");
       }
-
-      setValues({
-        pendingConsultations: pending.count ?? 0,
-        activeOrders: active.count ?? 0,
-        upcomingEvents: upcoming.count ?? 0,
-        totalBookings: total.count ?? 0,
-      });
     }
 
     fetchStats();
+    const unsubscribe = subscribeDummyInvoicePayments(fetchStats);
+
+    return unsubscribe;
   }, []);
 
   return (

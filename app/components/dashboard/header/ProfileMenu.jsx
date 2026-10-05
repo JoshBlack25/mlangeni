@@ -12,6 +12,7 @@ export default function ProfileMenu() {
   const dropdownRef = useRef(null);
   const router = useRouter();
   const [displayName, setDisplayName] = useState("Customer");
+  const [role, setRole] = useState(null); // "admin" | "customer" | null
 
   useEffect(() => {
     let mounted = true;
@@ -19,15 +20,19 @@ export default function ProfileMenu() {
     async function loadUser() {
       try {
         const { data: { user } = {}, error } = await supabase.auth.getUser();
-        if (error) return;
-        if (!user) return;
+        if (error || !user) return;
 
         const metadata = user.user_metadata ?? {};
         const first = metadata.first_name ?? user.user_metadata?.firstName ?? "";
         const last = metadata.last_name ?? user.user_metadata?.lastName ?? "";
-        const name = `${first} ${last}`.trim() || user.email?.split("@")[0] || "Customer";
+        const name = `${first} ${last}`.trim() || user.email?.split("@")[0] || "User";
 
-        if (mounted) setDisplayName(name);
+        const { data: isAdmin } = await supabase.rpc("is_admin");
+
+        if (mounted) {
+          setDisplayName(name);
+          setRole(isAdmin ? "admin" : "customer");
+        }
       } catch (e) {
         // ignore
       }
@@ -103,13 +108,19 @@ export default function ProfileMenu() {
             <div className="border-b border-[#1F1F1F] p-5">
               <h3 className="font-semibold text-white">{displayName}</h3>
 
-              <p className="text-sm text-[#A0A0A0]">Customer Account</p>
+              <p className="text-sm text-[#A0A0A0]">
+                {role === "admin" ? "Admin Account" : "Customer Account"}
+              </p>
             </div>
 
             <MenuItem
               icon={<User size={18} />}
               text="My Profile"
-              href="/dashboard/customer/profile"
+              href={
+                role === "admin"
+                  ? "/dashboard/admin/profile"
+                  : "/dashboard/customer/profile"
+              }
               onNavigate={() => setOpen(false)}
             />
 

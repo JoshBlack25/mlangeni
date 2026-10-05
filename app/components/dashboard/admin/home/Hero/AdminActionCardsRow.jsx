@@ -6,9 +6,11 @@ import Link from "next/link";
 import {
   Send,
   CalendarClock,
+  CalendarCheck,
   ClipboardList,
   Receipt,
   ArrowRight,
+  UtensilsCrossed,
 } from "lucide-react";
 
 const actions = [
@@ -23,8 +25,22 @@ const actions = [
     id: "consultations",
     href: "/dashboard/admin/consultations",
     title: "Consultations",
-    subtitle: "See what's scheduled and confirm meetings.",
+    subtitle: "Review new customer order requests.",
     icon: <CalendarClock size={22} />,
+  },
+  {
+    id: "active-meetings",
+    href: "/dashboard/admin/active-meetings",
+    title: "Active Meetings",
+    subtitle: "View scheduled meetings and prepare invoices.",
+    icon: <CalendarCheck size={22} />,
+  },
+  {
+    id: "invoices",
+    href: "/dashboard/admin/invoices",
+    title: "Invoices",
+    subtitle: "Review outstanding and recent payments.",
+    icon: <Receipt size={22} />,
   },
   {
     id: "orders",
@@ -34,11 +50,11 @@ const actions = [
     icon: <ClipboardList size={22} />,
   },
   {
-    id: "invoices",
-    href: "/dashboard/admin/invoices",
-    title: "Invoices",
-    subtitle: "Review outstanding and recent payments.",
-    icon: <Receipt size={22} />,
+    id: "menu-editor",
+    href: "/dashboard/admin/tools/menu-editor",
+    title: "Edit Menu",
+    subtitle: "Add or remove dishes and drinks from the live menu.",
+    icon: <UtensilsCrossed size={22} />,
   },
 ];
 

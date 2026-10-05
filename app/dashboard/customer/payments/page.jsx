@@ -1,87 +1,476 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   AlertCircle,
   CalendarDays,
   CheckCircle2,
-  CreditCard,
   LockKeyhole,
+  MapPin,
   Receipt,
   ShieldCheck,
+  UserRound,
   WalletCards,
 } from "lucide-react";
+import { supabase } from "@/services/supabaseClient";
+import {
+  isDummyInvoicePaid,
+  markDummyInvoicePaid,
+} from "@/app/utils/dummyInvoicePayments";
+import {
+  getPaymentFailureNote,
+  getRuntimeInvoiceStatus,
+  isInvoicePastDue,
+  PAYMENT_FAILURE_CANCELLATION_REASON,
+} from "@/app/utils/invoiceDueDates";
 
 const currency = new Intl.NumberFormat("en-ZA", {
   style: "currency",
   currency: "ZAR",
 });
 
-//indvoice data that is hardcoded for now
-const invoices = [
-  {
-    id: "f3c8a9b2-1452-4a9d-9d24-775e1c1a7d44",
-    reference: "INV-F3C8A9B2",
-    title: "Wedding Catering Package",
-    description: "Final balance for menu, staffing, and service setup.",
-    amount: 12450,
-    dueDate: "2026-08-22",
-    status: "pending",
-  },
-  {
-    id: "7ad1c321-60ec-4a5d-8f9b-04994d3299b0",
-    reference: "INV-7AD1C321",
-    title: "Private Birthday Party Catering",
-    description: "Balance for food and decoration.",
-    amount: 3850,
-    dueDate: "2026-08-29",
-    status: "pending",
-  },
-];
-
-const historyRows = [
-  "Payment reference",
-  "Invoice number",
-  "Payment date",
-];
-
 function formatDate(dateString) {
-  return new Date(dateString).toLocaleDateString("en-ZA", {
+  if (!dateString) return "TBC";
+
+  const date = new Date(dateString);
+
+  if (Number.isNaN(date.getTime())) return "TBC";
+
+  return date.toLocaleDateString("en-ZA", {
     day: "numeric",
     month: "short",
     year: "numeric",
   });
 }
 
-function statusLabel(status) {
-  if (status === "sent") return "Due";
+function formatTime(value) {
+  if (!value) return "TBC";
 
-  return status.charAt(0).toUpperCase() + status.slice(1);
+  if (/^\d{2}:\d{2}/.test(value)) {
+    return value.slice(0, 5);
+  }
+
+  const date = new Date(value);
+
+  return Number.isNaN(date.getTime())
+    ? "TBC"
+    : date.toLocaleTimeString("en-ZA", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+}
+
+function getLineTotal(item) {
+  return Number(item.quantity || 0) * Number(item.unitPrice || 0);
+}
+
+function getInvoiceTotal(invoice) {
+  return Number(invoice?.totalAmount || 0);
+}
+
+function statusLabel(status) {
+  if (!status) return "Pending";
+  if (status === "sent") return "Due";
+  if (status === "overdue") return "Cancelled";
+
+  return status
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 }
 
 function statusStyles(status) {
-  if (status === "sent") {
-    return "text-[#D4AF37]";
+  if (status === "paid") return "text-emerald-400";
+  if (status === "overdue") return "text-red-400";
+
+  return "text-[#D4AF37]";
+}
+
+function isOutstanding(invoice) {
+  return invoice?.status === "sent" || invoice?.status === "pending";
+}
+
+function getCustomerName(customer) {
+  if (!customer) return "Unknown customer";
+
+  const name = `${customer.first_name ?? ""} ${customer.last_name ?? ""}`.trim();
+
+  return name || customer.email || "Unknown customer";
+}
+
+function getReference(id) {
+  if (!id) return "INV-TBC";
+
+  return `INV-${id.slice(0, 8).toUpperCase()}`;
+}
+
+function getOrderNumber(id) {
+  if (!id) return "ORD-TBC";
+
+  return `ORD-${id.slice(0, 8).toUpperCase()}`;
+}
+
+function getOrderItems(order) {
+  if (!order) return [];
+
+  const customItems = (order.customer_menu_items ?? [])
+    .map((item) => ({
+      id: item.custom_menu_id ?? item.menu_item?.item_id ?? item.menu_item?.name,
+      name: item.menu_item?.name ?? "Menu item",
+      description: item.menu_item?.description ?? "Custom menu selection",
+      quantity: Number(item.quantity ?? 1),
+      unitPrice: Number(item.menu_item?.price ?? 0),
+    }))
+    .filter((item) => item.name);
+
+  if (customItems.length > 0) return customItems;
+
+  const packageItems = (order.premade_menu?.premade_menu_items ?? [])
+    .map((item, index) => ({
+      id: item.menu_item?.item_id ?? `${order.premade_menu?.name}-${index}`,
+      name: item.menu_item?.name ?? "Package item",
+      description: order.premade_menu?.name ?? "Package menu selection",
+      quantity: 1,
+      unitPrice: Number(item.menu_item?.price ?? 0),
+    }))
+    .filter((item) => item.name);
+
+  if (packageItems.length > 0) return packageItems;
+
+  return [];
+}
+
+function normalizeInvoiceItems(items, invoiceTotal) {
+  const itemTotal = items.reduce((total, item) => total + getLineTotal(item), 0);
+
+  if (items.length === 0) {
+    return [
+      {
+        id: "invoice-total",
+        name: "Final invoice total",
+        description: "Amount sent by the admin after meeting review",
+        quantity: 1,
+        unitPrice: invoiceTotal,
+      },
+    ];
   }
 
-  return "text-[#A0A0A0]";
+  if (Math.abs(itemTotal - invoiceTotal) <= 0.01) {
+    return items;
+  }
+
+  return [
+    ...items,
+    {
+      id: "invoice-adjustment",
+      name:
+        itemTotal > invoiceTotal
+          ? "Final invoice discount"
+          : "Final invoice adjustment",
+      description: "Admin final amount after the in-person meeting",
+      quantity: 1,
+      unitPrice: invoiceTotal - itemTotal,
+    },
+  ];
+}
+
+function mapInvoice(invoice) {
+  const consultation = invoice.consultation;
+  const order = consultation?.order;
+  const invoiceTotal = Number(invoice.total_amount || 0);
+  const eventTime = `${formatTime(order?.start_time)} - ${formatTime(
+    order?.end_time,
+  )}`;
+
+  return {
+    id: invoice.invoices_id,
+    consultationId: consultation?.consultations_id ?? null,
+    reference: getReference(invoice.invoices_id),
+    orderId: order?.order_id ?? null,
+    orderNumber: getOrderNumber(order?.order_id),
+    title: `${order?.event_type?.event_name ?? "Event"} Invoice`,
+    customerName: getCustomerName(consultation?.customer),
+    customerEmail: consultation?.customer?.email ?? "Email pending",
+    customerPhone: consultation?.customer?.phone_number ?? "Phone pending",
+    eventType: order?.event_type?.event_name ?? "Event type pending",
+    eventDate: order?.event_date,
+    eventTime,
+    guests: order?.number_of_guest ?? "TBC",
+    location: order?.event_location || "Event location pending",
+    issuedDate: invoice.created_at,
+    dueDate: invoice.due_date,
+    status: getRuntimeInvoiceStatus(invoice),
+    orderStatus: order?.status ?? "pending",
+    cancellationReason: isInvoicePastDue(invoice)
+      ? PAYMENT_FAILURE_CANCELLATION_REASON
+      : null,
+    totalAmount: invoiceTotal,
+    adminNote: invoice.notes || "No note was added to this invoice.",
+    items: normalizeInvoiceItems(getOrderItems(order), invoiceTotal),
+  };
+}
+
+function applyDummyPaymentStatus(invoice) {
+  if (!isDummyInvoicePaid(invoice.id)) {
+    return invoice;
+  }
+
+  return {
+    ...invoice,
+    status: "paid",
+    cancellationReason: null,
+  };
 }
 
 export default function PaymentsPage() {
-  const [selectedInvoiceId, setSelectedInvoiceId] = useState(invoices[0].id);
+  const router = useRouter();
+  const [invoices, setInvoices] = useState(null);
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState(null);
+  const [error, setError] = useState(null);
+  const [paymentError, setPaymentError] = useState(null);
+  const [paymentMessage, setPaymentMessage] = useState(null);
+  const [payingInvoiceId, setPayingInvoiceId] = useState(null);
 
-  const selectedInvoice = useMemo(
-    () =>
-      invoices.find((invoice) => invoice.id === selectedInvoiceId) ??
-      invoices[0],
-    [selectedInvoiceId],
-  );
+  useEffect(() => {
+    let mounted = true;
 
-  const outstandingTotal = invoices.reduce(
-    (total, invoice) => total + invoice.amount,
-    0,
-  );
+    async function loadInvoices() {
+      try {
+        setError(null);
+
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
+
+        if (userError) {
+          throw userError;
+        }
+
+        if (!user) {
+          router.replace("/login");
+          return;
+        }
+
+        const { data: customerRow, error: customerError } = await supabase
+          .from("customer")
+          .select("customer_id")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (customerError) {
+          throw customerError;
+        }
+
+        if (!customerRow) {
+          if (mounted) {
+            setInvoices([]);
+            setSelectedInvoiceId(null);
+          }
+          return;
+        }
+
+        const { data, error: invoicesError } = await supabase
+          .from("invoices")
+          .select(
+            `
+            invoices_id,
+            total_amount,
+            status,
+            due_date,
+            notes,
+            created_at,
+            consultation:consultation_id!inner (
+              consultations_id,
+              customer_id,
+              note,
+              customer:customer_id (
+                first_name,
+                last_name,
+                email,
+                phone_number
+              ),
+              order:order_id (
+                order_id,
+                status,
+                total_price,
+                event_date,
+                start_time,
+                end_time,
+                event_location,
+                number_of_guest,
+                event_type ( event_name ),
+                customer_menu_items (
+                  custom_menu_id,
+                  quantity,
+                  menu_item ( item_id, name, description, price )
+                ),
+                premade_menu (
+                  premade_menu_id,
+                  name,
+                  description,
+                  premade_menu_items (
+                    menu_item ( item_id, name, description, price )
+                  )
+                )
+              )
+            )
+          `,
+          )
+          .eq("consultation.customer_id", customerRow.customer_id)
+          .neq("status", "draft")
+          .order("due_date", { ascending: true });
+
+        if (invoicesError) {
+          throw invoicesError;
+        }
+
+        await Promise.all((data ?? []).map(markInvoicePaymentFailure));
+
+        const mappedInvoices = (data ?? [])
+          .map(mapInvoice)
+          .map(applyDummyPaymentStatus);
+
+        if (mounted) {
+          setInvoices(mappedInvoices);
+          setSelectedInvoiceId((current) =>
+            current && mappedInvoices.some((invoice) => invoice.id === current)
+              ? current
+              : mappedInvoices[0]?.id ?? null,
+          );
+        }
+      } catch (err) {
+        if (mounted) {
+          setError(err.message || "Unable to load your invoices right now.");
+          setInvoices([]);
+          setSelectedInvoiceId(null);
+        }
+      }
+    }
+
+    loadInvoices();
+
+    return () => {
+      mounted = false;
+    };
+  }, [router]);
+
+  async function markInvoicePaymentFailure(invoice) {
+    if (
+      isDummyInvoicePaid(invoice.invoices_id) ||
+      invoice.status === "paid" ||
+      !isInvoicePastDue(invoice)
+    ) {
+      return;
+    }
+
+    const consultation = invoice.consultation;
+    const order = consultation?.order;
+
+    if (
+      !order?.order_id ||
+      order.status === "cancelled" ||
+      order.status === "confirmed"
+    ) {
+      return;
+    }
+
+    try {
+      const updates = [
+        supabase
+          .from("invoices")
+          .update({ status: "overdue" })
+          .eq("invoices_id", invoice.invoices_id),
+        supabase
+          .from("orders")
+          .update({ status: "cancelled" })
+          .eq("order_id", order.order_id),
+      ];
+
+      if (consultation?.consultations_id) {
+        updates.push(
+          supabase
+            .from("consultations")
+            .update({ note: getPaymentFailureNote(consultation.note) })
+            .eq("consultations_id", consultation.consultations_id),
+        );
+      }
+
+      const results = await Promise.all(updates);
+      const failedUpdate = results.find((result) => result.error);
+
+      if (failedUpdate) {
+        console.warn(
+          "The overdue invoice was shown as cancelled, but one database update was blocked.",
+          failedUpdate.error,
+        );
+      }
+    } catch (err) {
+      console.warn("Unable to persist overdue invoice cancellation.", err);
+    }
+  }
+
+  const invoiceList = invoices ?? [];
+  const selectedInvoice =
+    invoiceList.find((invoice) => invoice.id === selectedInvoiceId) ??
+    invoiceList[0] ??
+    null;
+  const selectedTotal = selectedInvoice ? getInvoiceTotal(selectedInvoice) : 0;
+  const outstandingTotal = invoiceList
+    .filter((invoice) => isOutstanding(invoice))
+    .reduce((total, invoice) => total + getInvoiceTotal(invoice), 0);
+  const selectedInvoicePaid = selectedInvoice?.status === "paid";
+  const selectedInvoiceCancelled = Boolean(selectedInvoice?.cancellationReason);
+  const payingSelectedInvoice = payingInvoiceId === selectedInvoice?.id;
+
+  function handleSelectInvoice(invoiceId) {
+    setSelectedInvoiceId(invoiceId);
+    setPaymentError(null);
+    setPaymentMessage(null);
+  }
+
+  async function handlePayInvoice() {
+    if (!selectedInvoice || selectedInvoice.status === "paid") {
+      return;
+    }
+
+    if (selectedInvoiceCancelled) {
+      setPaymentError(PAYMENT_FAILURE_CANCELLATION_REASON);
+      return;
+    }
+
+    try {
+      setPayingInvoiceId(selectedInvoice.id);
+      setPaymentError(null);
+      setPaymentMessage(null);
+
+      markDummyInvoicePaid({
+        invoiceId: selectedInvoice.id,
+        invoiceReference: selectedInvoice.reference,
+        orderId: selectedInvoice.orderId,
+        orderNumber: selectedInvoice.orderNumber,
+        amount: selectedTotal,
+      });
+
+      setInvoices((current) =>
+        (current ?? []).map((invoice) =>
+          invoice.id === selectedInvoice.id
+            ? { ...invoice, status: "paid" }
+            : invoice,
+        ),
+      );
+      setPaymentMessage({
+        invoiceReference: selectedInvoice.reference,
+        orderNumber: selectedInvoice.orderNumber,
+      });
+    } catch (err) {
+      setPaymentError(err.message || "Unable to complete this dummy payment.");
+    } finally {
+      setPayingInvoiceId(null);
+    }
+  }
 
   return (
     <main className="min-h-screen bg-[#0A0A0A] px-6 py-10 text-white md:px-10 lg:px-14">
@@ -94,23 +483,23 @@ export default function PaymentsPage() {
         >
           <div>
             <div className="mb-4 flex items-center gap-2 text-sm uppercase tracking-[0.25em] text-[#D4AF37]">
-              <CreditCard size={17} />
+              <Receipt size={17} />
               <span>Payments</span>
             </div>
 
             <h1 className="font-serif text-4xl font-medium tracking-tight text-white md:text-5xl">
-              Settle Your Invoice
+              Invoice Payments
             </h1>
 
             <p className="mt-4 max-w-2xl text-sm leading-7 text-[#A0A0A0] md:text-base">
-              Review the invoice issued for your booking and complete the
-              payment through a secure card checkout.
+              Review the invoice sent after your in-person meeting, confirm the
+              final event details, and complete payment securely.
             </p>
           </div>
 
-          <div className="flex h-11 items-center gap-2 border-l-2 border-[#D4AF37] bg-white/[0.03] px-4 text-sm text-[#D4AF37]">
-            <ShieldCheck size={16} />
-            <span>Secure checkout</span>
+          <div className="border-l-2 border-[#D4AF37] bg-white/[0.03] px-4 py-3 text-sm text-[#D4AF37]">
+            {invoices === null ? "..." : invoiceList.length} invoices ready for
+            payment
           </div>
         </motion.div>
 
@@ -121,353 +510,519 @@ export default function PaymentsPage() {
           className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-3"
         >
           <SummaryCard
-            icon={Receipt}
             label="Outstanding"
-            value={currency.format(outstandingTotal)}
-            caption={`${invoices.length} invoices ready for payment`}
+            value={invoices === null ? "..." : currency.format(outstandingTotal)}
+            caption="Invoices awaiting payment"
           />
           <SummaryCard
-            icon={CalendarDays}
             label="Next Due Date"
-            value={formatDate(invoices[0].dueDate)}
-            caption={invoices[0].reference}
+            value={selectedInvoice ? formatDate(selectedInvoice.dueDate) : "TBC"}
+            caption={selectedInvoice?.reference ?? "No invoice selected"}
           />
           <SummaryCard
-            icon={CheckCircle2}
-            label="Payment Status"
-            value="Pending"
-            caption="Awaiting customer payment"
+            label="Selected Invoice"
+            value={
+              selectedInvoice ? currency.format(selectedTotal) : currency.format(0)
+            }
+            caption={selectedInvoice?.title ?? "Waiting for invoice"}
           />
         </motion.section>
 
-        <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[0.95fr_1.25fr]">
-          <motion.aside
-            initial={{ opacity: 0, x: -18 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.45, delay: 0.18 }}
-            className="flex flex-col gap-6"
-          >
-            <section className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md">
-              <div className="mb-5 flex items-center justify-between gap-4">
-                <div>
+        {invoices === null ? (
+          <LoadingState />
+        ) : error ? (
+          <EmptyState
+            tone="error"
+            title="We could not load your invoices"
+            message={error}
+          />
+        ) : !selectedInvoice ? (
+          <EmptyState
+            title="No invoices yet"
+            message="Invoices sent by the admin after your in-person meeting will show here with the due date and payment details."
+          />
+        ) : (
+          <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[0.9fr_1.35fr]">
+            <motion.aside
+              initial={{ opacity: 0, x: -18 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.45, delay: 0.18 }}
+              className="flex flex-col gap-6"
+            >
+              <section className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md">
+                <div className="mb-5 border-b border-white/10 pb-5">
                   <p className="text-xs uppercase tracking-[0.2em] text-[#A0A0A0]">
-                    Invoice
+                    Invoices
                   </p>
                   <h2 className="mt-2 text-xl font-semibold text-white">
-                    Choose an Invoice
+                    Select Invoice
                   </h2>
                 </div>
 
-                <Receipt size={22} className="text-[#D4AF37]" />
-              </div>
+                <div className="space-y-3">
+                  {invoiceList.map((invoice) => {
+                    const active = selectedInvoice.id === invoice.id;
+                    const amount = getInvoiceTotal(invoice);
 
-              <div className="space-y-3">
-                {invoices.map((invoice) => {
-                  const active = selectedInvoice.id === invoice.id;
+                    return (
+                      <button
+                        key={invoice.id}
+                        type="button"
+                        onClick={() => handleSelectInvoice(invoice.id)}
+                        className={`w-full rounded-xl border p-4 text-left transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A] ${
+                          active
+                            ? "border-[#D4AF37]/70 bg-[#D4AF37]/10"
+                            : "border-white/10 bg-[#101010] hover:border-[#D4AF37]/40 hover:bg-white/[0.06]"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-white">
+                              {invoice.title}
+                            </p>
+                            <p className="mt-1 text-xs text-[#797676]">
+                              {invoice.reference}
+                            </p>
+                          </div>
 
-                  return (
-                    <button
-                      key={invoice.id}
-                      type="button"
-                      onClick={() => setSelectedInvoiceId(invoice.id)}
-                      className={`group w-full rounded-2xl border p-4 text-left transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A] ${
-                        active
-                          ? "border-[#D4AF37]/60 bg-[#D4AF37]/10"
-                          : "border-white/10 bg-[#101010] hover:border-[#D4AF37]/40 hover:bg-white/[0.06]"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-white">
-                            {invoice.title}
-                          </p>
-                          <p className="mt-1 text-xs text-[#797676]">
-                            {invoice.reference}
-                          </p>
+                          <span
+                            className={`shrink-0 border-l border-white/10 pl-3 text-[11px] font-medium uppercase tracking-[0.16em] ${statusStyles(
+                              invoice.status,
+                            )}`}
+                          >
+                            {statusLabel(invoice.status)}
+                          </span>
                         </div>
 
-                        <span
-                          className={`shrink-0 border-l border-white/10 pl-3 text-[11px] font-medium uppercase tracking-[0.16em] ${statusStyles(
-                            invoice.status,
-                          )}`}
-                        >
-                          {statusLabel(invoice.status)}
-                        </span>
-                      </div>
-
-                      <p className="mt-4 text-sm leading-6 text-[#8F8F8F]">
-                        {invoice.description}
-                      </p>
-
-                      <div className="mt-5 flex items-end justify-between gap-4">
-                        <div className="text-xs text-[#797676]">
-                          Due {formatDate(invoice.dueDate)}
+                        <div className="mt-4 grid grid-cols-2 gap-3 text-xs text-[#797676]">
+                          <span>Issued {formatDate(invoice.issuedDate)}</span>
+                          <span className="text-right">
+                            Due {formatDate(invoice.dueDate)}
+                          </span>
                         </div>
 
-                        <div className="text-right text-lg font-semibold text-white">
-                          {currency.format(invoice.amount)}
+                        <div className="mt-4 flex items-end justify-between gap-4 border-t border-white/10 pt-4">
+                          <span className="text-xs text-[#797676]">
+                            {invoice.eventType}
+                          </span>
+                          <span className="text-lg font-semibold text-white">
+                            {currency.format(amount)}
+                          </span>
                         </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
 
-            <section className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md">
-              <div className="mb-5 inline-flex rounded-xl bg-[#D4AF37]/10 p-3 text-[#D4AF37]">
-                <LockKeyhole size={22} />
-              </div>
-
-              <h2 className="text-lg font-semibold text-white">
-                Payment Protection
-              </h2>
-
-              <div className="mt-5 space-y-4">
-                <TrustRow
-                  icon={ShieldCheck}
-                  title="Encrypted card details"
-                  detail="Your payment information is handled through a secure checkout flow."
-                />
-                <TrustRow
-                  icon={Receipt}
-                  title="Invoice matched"
-                  detail="Each payment is tied to the selected invoice reference."
-                />
-                <TrustRow
-                  icon={AlertCircle}
-                  title="Review before paying"
-                  detail="Confirm the invoice amount before the payment is processed."
-                />
-              </div>
-            </section>
-          </motion.aside>
-
-          <motion.section
-            initial={{ opacity: 0, x: 18 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.45, delay: 0.22 }}
-            className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md"
-          >
-            <div className="border-b border-white/10 px-6 py-6 md:px-8">
-              <p className="text-xs uppercase tracking-[0.2em] text-[#A0A0A0]">
-                Payment Details
-              </p>
-
-              <div className="mt-4 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                <div>
-                  <h2 className="font-serif text-3xl text-white">
-                    {currency.format(selectedInvoice.amount)}
-                  </h2>
-                  <p className="mt-2 text-sm text-[#797676]">
-                    {selectedInvoice.reference} - Due{" "}
-                    {formatDate(selectedInvoice.dueDate)}
+              <section className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md">
+                <div className="border-b border-white/10 pb-5">
+                  <p className="text-xs uppercase tracking-[0.2em] text-[#A0A0A0]">
+                    Security
                   </p>
+                  <h2 className="mt-2 text-lg font-semibold text-white">
+                    Payment Protection
+                  </h2>
                 </div>
 
-                <span
-                  className={`w-fit border-l border-white/10 pl-3 text-xs font-medium uppercase tracking-[0.16em] ${statusStyles(
-                    selectedInvoice.status,
-                  )}`}
-                >
-                  Status: {statusLabel(selectedInvoice.status)}
-                </span>
-              </div>
-            </div>
-
-            <form
-              className="space-y-6 px-6 py-6 md:px-8 md:py-8"
-              onSubmit={(event) => event.preventDefault()}
-            >
-              <div>
-                <label
-                  htmlFor="invoice"
-                  className="mb-2 block text-xs uppercase tracking-[0.18em] text-[#A0A0A0]"
-                >
-                  Invoice
-                </label>
-
-                <div className="relative">
-                  <select
-                    id="invoice"
-                    value={selectedInvoiceId}
-                    onChange={(event) => setSelectedInvoiceId(event.target.value)}
-                    className="h-12 w-full appearance-none rounded-xl border border-white/10 bg-[#101010] px-4 pr-11 text-sm text-white outline-none transition focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20"
-                  >
-                    {invoices.map((invoice) => (
-                      <option key={invoice.id} value={invoice.id}>
-                        {invoice.reference} - {invoice.title}
-                      </option>
-                    ))}
-                  </select>
-                  <WalletCards
-                    size={18}
-                    className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#D4AF37]"
+                <div className="mt-5 space-y-4">
+                  <TrustRow
+                    icon={ShieldCheck}
+                    title="Secure checkout"
+                    detail="Payment details are entered only after reviewing the invoice."
+                  />
+                  <TrustRow
+                    icon={Receipt}
+                    title="Invoice matched"
+                    detail="The payment amount follows the invoice selected above."
+                  />
+                  <TrustRow
+                    icon={AlertCircle}
+                    title="Review before paying"
+                    detail="Confirm the event, line items, and note before continuing."
                   />
                 </div>
-              </div>
+              </section>
+            </motion.aside>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <ReadOnlyField
-                  label="Invoice Amount"
-                  value={currency.format(selectedInvoice.amount)}
-                />
-                <ReadOnlyField label="Payment Reference" value="Generated on payment" />
-              </div>
-
-              <div>
-                <p className="mb-3 text-xs uppercase tracking-[0.18em] text-[#A0A0A0]">
-                  Payment Method
+            <motion.section
+              initial={{ opacity: 0, x: 18 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.45, delay: 0.22 }}
+              className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md"
+            >
+              <div className="border-b border-white/10 px-6 py-6 md:px-8">
+                <p className="text-xs uppercase tracking-[0.2em] text-[#A0A0A0]">
+                  Invoice Details
                 </p>
 
-                <div className="flex items-center justify-between gap-4 rounded-xl border border-[#D4AF37]/50 bg-[#D4AF37]/10 p-4">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#D4AF37] text-black">
-                      <CreditCard size={18} />
-                    </span>
-
-                    <span className="min-w-0">
-                      <span className="block text-sm font-semibold text-white">
-                        Card Payment
-                      </span>
-                      <span className="mt-1 block text-xs text-[#797676]">
-                        Visa or Mastercard
-                      </span>
-                    </span>
+                <div className="mt-4 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <h2 className="font-serif text-3xl text-white">
+                      {selectedInvoice.reference}
+                    </h2>
+                    <p className="mt-2 text-sm text-[#797676]">
+                      Issued {formatDate(selectedInvoice.issuedDate)} - Due{" "}
+                      {formatDate(selectedInvoice.dueDate)}
+                    </p>
                   </div>
 
-                  <span className="shrink-0 border-l border-[#D4AF37]/40 pl-3 text-[11px] font-medium uppercase tracking-[0.16em] text-[#D4AF37]">
-                    Card ready
+                  <span
+                    className={`w-fit border-l border-white/10 pl-3 text-xs font-medium uppercase tracking-[0.16em] ${statusStyles(
+                      selectedInvoice.status,
+                    )}`}
+                  >
+                    {statusLabel(selectedInvoice.status)}
                   </span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <TextField
-                  id="cardholder"
-                  label="Cardholder Name"
-                  placeholder="Name on card"
-                />
-                <TextField
-                  id="email"
-                  type="email"
-                  label="Email Address"
-                  placeholder="you@example.com"
-                />
-              </div>
+              <div className="space-y-6 px-6 py-6 md:px-8 md:py-8">
+                <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <InfoTile
+                    icon={UserRound}
+                    label="Customer"
+                    value={selectedInvoice.customerName}
+                    caption={`${selectedInvoice.customerEmail} | ${selectedInvoice.customerPhone}`}
+                  />
+                  <InfoTile
+                    icon={CalendarDays}
+                    label="Event"
+                    value={selectedInvoice.eventType}
+                    caption={`${formatDate(selectedInvoice.eventDate)} - ${
+                      selectedInvoice.eventTime
+                    }`}
+                  />
+                  <InfoTile
+                    icon={MapPin}
+                    label="Location"
+                    value={selectedInvoice.location}
+                    caption={`${selectedInvoice.guests} guests`}
+                  />
+                </section>
 
-              <TextField
-                id="card-number"
-                label="Card Number"
-                placeholder="1234 1234 1234 1234"
-                inputMode="numeric"
-              />
+                <section className="rounded-xl border border-white/10 bg-[#101010] p-5">
+                  <div className="mb-4 flex flex-col gap-3 border-b border-white/10 pb-4 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.18em] text-[#A0A0A0]">
+                        Invoice Items
+                      </p>
+                      <h3 className="mt-2 text-lg font-semibold text-white">
+                        Final Charges
+                      </h3>
+                    </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <TextField
-                  id="expiry"
-                  label="Expiry"
-                  placeholder="MM / YY"
-                  inputMode="numeric"
-                />
-                <TextField
-                  id="cvc"
-                  label="CVC"
-                  placeholder="123"
-                  inputMode="numeric"
-                />
-              </div>
+                    <p className="border-l border-white/10 pl-3 text-sm font-semibold text-[#D4AF37]">
+                      {currency.format(selectedTotal)}
+                    </p>
+                  </div>
 
-              <TextField
-                id="billing-address"
-                label="Billing Address"
-                placeholder="Street address"
-              />
+                  <div className="hidden grid-cols-[1fr_0.35fr_0.5fr_0.5fr] gap-4 border-b border-white/10 px-3 pb-3 text-xs uppercase tracking-[0.16em] text-[#797676] md:grid">
+                    <span>Item</span>
+                    <span>Qty</span>
+                    <span>Unit</span>
+                    <span className="text-right">Total</span>
+                  </div>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <TextField id="city" label="City" placeholder="Cape Town" />
-                <TextField
-                  id="postal-code"
-                  label="Postal Code"
-                  placeholder="8001"
-                  inputMode="numeric"
-                />
-              </div>
+                  <div className="space-y-3">
+                    {selectedInvoice.items.map((item) => (
+                      <div
+                        key={item.id}
+                        className="grid grid-cols-1 gap-3 border border-white/10 bg-[#0A0A0A]/50 p-4 md:grid-cols-[1fr_0.35fr_0.5fr_0.5fr] md:items-center"
+                      >
+                        <div>
+                          <p className="text-sm font-semibold text-white">
+                            {item.name}
+                          </p>
+                          <p className="mt-1 text-xs text-[#797676]">
+                            {item.description}
+                          </p>
+                        </div>
 
-              <label className="flex items-start gap-3 rounded-xl border border-white/10 bg-[#101010] p-4 text-sm text-[#A0A0A0]">
-                <input
-                  type="checkbox"
-                  className="mt-1 h-4 w-4 rounded border-white/20 bg-[#0A0A0A] accent-[#D4AF37]"
-                />
-                <span>
-                  Send the payment receipt to my account email once the payment
-                  is complete.
-                </span>
-              </label>
+                        <p className="text-sm text-[#A0A0A0]">
+                          <span className="md:hidden">Qty </span>
+                          {item.quantity}
+                        </p>
 
-              <button
-                type="submit"
-                className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#D4AF37] px-6 text-sm font-semibold text-black transition hover:bg-[#e0bd4a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A]"
-              >
-                <LockKeyhole size={17} />
-                Pay {currency.format(selectedInvoice.amount)}
-              </button>
-            </form>
-          </motion.section>
-        </div>
+                        <p className="text-sm text-[#A0A0A0]">
+                          {currency.format(item.unitPrice)}
+                        </p>
 
-        <motion.section
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, delay: 0.3 }}
-          className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md md:p-8"
-        >
-          <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-[#A0A0A0]">
-                Payment History
-              </p>
-              <h2 className="mt-2 text-xl font-semibold text-white">
-                Recent Payments
-              </h2>
-            </div>
+                        <p className="text-sm font-semibold text-white md:text-right">
+                          {currency.format(getLineTotal(item))}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </section>
 
-            <span className="w-fit border-l border-white/10 pl-3 text-xs uppercase tracking-[0.16em] text-[#797676]">
-              Receipts pending
-            </span>
-          </div>
-
-          <div className="space-y-3">
-            {historyRows.map((row) => (
-              <div
-                key={row}
-                className="grid grid-cols-1 gap-4 rounded-xl border border-white/10 bg-[#101010] p-4 md:grid-cols-[1.1fr_0.8fr_0.7fr_0.4fr]"
-              >
-                <div>
-                  <p className="text-xs uppercase tracking-[0.16em] text-[#5F5F5F]">
-                    {row}
+                <section className="rounded-xl border border-[#D4AF37]/20 bg-[#D4AF37]/5 p-5">
+                  <p className="text-xs uppercase tracking-[0.18em] text-[#D4AF37]">
+                    Note From Admin
                   </p>
-                  <div className="mt-3 h-3 w-40 animate-pulse rounded-sm bg-white/10" />
-                </div>
-                <div className="h-3 w-32 animate-pulse rounded-sm bg-white/10 md:mt-7" />
-                <div className="h-3 w-24 animate-pulse rounded-sm bg-white/10 md:mt-7" />
-                <div className="h-7 w-20 animate-pulse rounded-md bg-[#D4AF37]/10 md:mt-5" />
+                  <p className="mt-3 text-sm leading-7 text-[#A0A0A0]">
+                    {selectedInvoice.adminNote}
+                  </p>
+                </section>
+
+                {selectedInvoiceCancelled && (
+                  <section className="rounded-xl border border-red-400/25 bg-red-400/5 p-5">
+                    <p className="text-xs uppercase tracking-[0.18em] text-red-300">
+                      Order Cancelled
+                    </p>
+                    <h3 className="mt-2 text-lg font-semibold text-white">
+                      Payment window closed
+                    </h3>
+                    <p className="mt-3 text-sm leading-7 text-[#A0A0A0]">
+                      This order was cancelled because payment was not completed
+                      before the due date of {formatDate(selectedInvoice.dueDate)}.
+                    </p>
+                  </section>
+                )}
+
+                {!selectedInvoicePaid && !selectedInvoiceCancelled && (
+                  <section className="rounded-xl border border-white/10 bg-[#101010] p-5">
+                    <div className="mb-5 border-b border-white/10 pb-4">
+                      <p className="text-xs uppercase tracking-[0.18em] text-[#A0A0A0]">
+                        Payment Details
+                      </p>
+                      <h3 className="mt-2 text-lg font-semibold text-white">
+                        Card Checkout
+                      </h3>
+                    </div>
+
+                    <div className="space-y-5">
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <ReadOnlyField
+                          label="Invoice Amount"
+                          value={currency.format(selectedTotal)}
+                        />
+                        <ReadOnlyField
+                          label="Payment Reference"
+                          value="Generated on payment"
+                        />
+                      </div>
+
+                      <div>
+                        <label
+                          htmlFor="invoice"
+                          className="mb-2 block text-xs uppercase tracking-[0.18em] text-[#A0A0A0]"
+                        >
+                          Invoice
+                        </label>
+
+                        <div className="relative">
+                          <select
+                            id="invoice"
+                            value={selectedInvoiceId ?? ""}
+                            onChange={(event) =>
+                              handleSelectInvoice(event.target.value)
+                            }
+                            className="h-12 w-full appearance-none rounded-xl border border-white/10 bg-[#0A0A0A] px-4 pr-11 text-sm text-white outline-none transition focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20"
+                          >
+                            {invoiceList.map((invoice) => (
+                              <option key={invoice.id} value={invoice.id}>
+                                {invoice.reference} - {invoice.title}
+                              </option>
+                            ))}
+                          </select>
+                          <WalletCards
+                            size={18}
+                            className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#D4AF37]"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <TextField
+                          id="cardholder"
+                          label="Cardholder Name"
+                          placeholder="Name on card"
+                        />
+                        <TextField
+                          id="email"
+                          type="email"
+                          label="Email Address"
+                          placeholder={selectedInvoice.customerEmail}
+                        />
+                      </div>
+
+                      <TextField
+                        id="card-number"
+                        label="Card Number"
+                        placeholder="1234 1234 1234 1234"
+                        inputMode="numeric"
+                      />
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <TextField
+                          id="expiry"
+                          label="Expiry"
+                          placeholder="MM / YY"
+                          inputMode="numeric"
+                        />
+                        <TextField
+                          id="cvc"
+                          label="CVC"
+                          placeholder="123"
+                          inputMode="numeric"
+                        />
+                      </div>
+
+                      <label className="flex items-start gap-3 rounded-xl border border-white/10 bg-[#0A0A0A] p-4 text-sm text-[#A0A0A0]">
+                        <input
+                          type="checkbox"
+                          className="mt-1 h-4 w-4 rounded border-white/20 bg-[#0A0A0A] accent-[#D4AF37]"
+                        />
+                        <span>
+                          Send the payment receipt to my account email once
+                          payment is complete.
+                        </span>
+                      </label>
+
+                      {paymentError && (
+                        <div className="border border-red-400/20 bg-red-400/5 px-4 py-3 text-sm text-red-300">
+                          {paymentError}
+                        </div>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={handlePayInvoice}
+                        disabled={payingSelectedInvoice}
+                        className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#D4AF37] px-6 text-sm font-semibold text-black transition hover:bg-[#e0bd4a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A] disabled:cursor-not-allowed disabled:bg-[#6f5c1e] disabled:text-black/60"
+                      >
+                        <LockKeyhole size={17} />
+                        {payingSelectedInvoice
+                          ? "Completing Payment..."
+                          : `Pay ${currency.format(selectedTotal)}`}
+                      </button>
+                    </div>
+                  </section>
+                )}
               </div>
-            ))}
+            </motion.section>
           </div>
-        </motion.section>
+        )}
       </div>
+
+      {paymentMessage && (
+        <PaymentCompletedModal
+          invoiceReference={paymentMessage.invoiceReference}
+          orderNumber={paymentMessage.orderNumber}
+          onClose={() => setPaymentMessage(null)}
+        />
+      )}
     </main>
   );
 }
 
-function SummaryCard({ icon: Icon, label, value, caption }) {
+function LoadingState() {
   return (
-    <div className="group rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-[#D4AF37] hover:bg-white/10 hover:shadow-[0_0_30px_rgba(212,175,55,0.15)]">
-      <div className="mb-5 inline-flex rounded-xl bg-[#D4AF37]/10 p-3 text-[#D4AF37] transition-all duration-300 group-hover:bg-[#D4AF37] group-hover:text-black">
-        <Icon size={22} />
-      </div>
+    <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[0.9fr_1.35fr]">
+      <div className="h-96 animate-pulse rounded-2xl border border-white/10 bg-white/5" />
+      <div className="h-96 animate-pulse rounded-2xl border border-white/10 bg-white/5" />
+    </div>
+  );
+}
 
+function EmptyState({ title, message, tone = "default" }) {
+  const isError = tone === "error";
+
+  return (
+    <section
+      className={`mt-10 flex min-h-64 flex-col items-center justify-center border px-6 text-center ${
+        isError
+          ? "border-red-400/20 bg-red-400/5"
+          : "border-white/10 bg-white/5"
+      }`}
+    >
+      <Receipt
+        size={28}
+        className={isError ? "mb-4 text-red-300" : "mb-4 text-[#D4AF37]"}
+      />
+      <h2
+        className={
+          isError
+            ? "text-base font-semibold text-red-300"
+            : "text-lg font-semibold text-white"
+        }
+      >
+        {title}
+      </h2>
+      <p className="mt-2 max-w-xl text-sm leading-6 text-[#A0A0A0]">
+        {message}
+      </p>
+    </section>
+  );
+}
+
+function PaymentCompletedModal({ invoiceReference, orderNumber, onClose }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 px-4 backdrop-blur-sm">
+      <motion.section
+        initial={{ opacity: 0, y: 18, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.25 }}
+        className="w-full max-w-2xl rounded-2xl border border-emerald-400/30 bg-[#111917] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.45)] md:p-8"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="payment-completed-title"
+      >
+        <div className="flex flex-col gap-4 md:flex-row md:items-start">
+          <CheckCircle2 className="mt-1 shrink-0 text-emerald-400" size={24} />
+          <div className="min-w-0 flex-1">
+            <p className="text-xs uppercase tracking-[0.18em] text-emerald-400">
+              Payment Completed
+            </p>
+            <h3
+              id="payment-completed-title"
+              className="mt-2 font-serif text-2xl text-white"
+            >
+              Send Proof Of Payment
+            </h3>
+            <p className="mt-4 text-sm leading-7 text-[#A0A0A0]">
+              Your invoice has been marked as paid. Please send proof of payment
+              to the admin through your usual communication channel, such as
+              WhatsApp or email, and include order number{" "}
+              <span className="font-semibold text-white">{orderNumber}</span>.
+            </p>
+            <div className="mt-5 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+              <div className="border border-white/10 bg-[#0A0A0A]/50 px-4 py-3">
+                <p className="text-xs uppercase tracking-[0.16em] text-[#797676]">
+                  Order Number
+                </p>
+                <p className="mt-1 font-semibold text-white">{orderNumber}</p>
+              </div>
+              <div className="border border-white/10 bg-[#0A0A0A]/50 px-4 py-3">
+                <p className="text-xs uppercase tracking-[0.16em] text-[#797676]">
+                  Invoice
+                </p>
+                <p className="mt-1 font-semibold text-white">
+                  {invoiceReference}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <button
+                type="button"
+                onClick={onClose}
+                className="h-11 min-w-28 rounded-xl bg-[#D4AF37] px-6 text-sm font-semibold text-black transition hover:bg-[#e0bd4a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#111917]"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      </motion.section>
+    </div>
+  );
+}
+
+function SummaryCard({ label, value, caption }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-[#D4AF37] hover:bg-white/10 hover:shadow-[0_0_30px_rgba(212,175,55,0.15)]">
       <p className="text-xs uppercase tracking-[0.2em] text-[#A0A0A0]">
         {label}
       </p>
@@ -479,15 +1034,25 @@ function SummaryCard({ icon: Icon, label, value, caption }) {
 
 function TrustRow({ icon: Icon, title, detail }) {
   return (
-    <div className="flex gap-3">
-      <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#D4AF37]/10 text-[#D4AF37]">
-        <Icon size={15} />
-      </div>
-
+    <div className="flex gap-3 border-l border-white/10 pl-3">
+      <Icon size={16} className="mt-1 shrink-0 text-[#D4AF37]" />
       <div>
         <p className="text-sm font-medium text-white">{title}</p>
         <p className="mt-1 text-sm leading-6 text-[#797676]">{detail}</p>
       </div>
+    </div>
+  );
+}
+
+function InfoTile({ icon: Icon, label, value, caption }) {
+  return (
+    <div className="border border-white/10 bg-[#101010] p-4">
+      <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-[#797676]">
+        <Icon size={14} className="text-[#D4AF37]" />
+        {label}
+      </div>
+      <p className="text-sm font-semibold text-white">{value}</p>
+      <p className="mt-1 text-xs leading-5 text-[#797676]">{caption}</p>
     </div>
   );
 }
@@ -505,13 +1070,7 @@ function ReadOnlyField({ label, value }) {
   );
 }
 
-function TextField({
-  id,
-  label,
-  placeholder,
-  type = "text",
-  inputMode,
-}) {
+function TextField({ id, label, placeholder, type = "text", inputMode }) {
   return (
     <div>
       <label
@@ -526,7 +1085,7 @@ function TextField({
         type={type}
         inputMode={inputMode}
         placeholder={placeholder}
-        className="h-12 w-full rounded-xl border border-white/10 bg-[#101010] px-4 text-sm text-white outline-none transition placeholder:text-[#4F4F4F] focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20"
+        className="h-12 w-full rounded-xl border border-white/10 bg-[#0A0A0A] px-4 text-sm text-white outline-none transition placeholder:text-[#4F4F4F] focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20"
       />
     </div>
   );

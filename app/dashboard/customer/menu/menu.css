@@ -1,6 +1,8 @@
 .mgh-menu-page {
   min-height: 100vh;
   width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
   padding: 48px 60px;
   background: #000000;
   color: #ffffff;
@@ -159,6 +161,64 @@
 @media (max-width: 700px) {
   .mgh-menu-page {
     padding: 32px 22px;
+  }
+
+  .mgh-menu-page h1 {
+    font-size: 26px;
+  }
+
+  .mgh-menu-line {
+    margin: 8px 0 22px;
+  }
+
+  .mgh-menu-tabs {
+    margin-bottom: 24px;
+  }
+
+  .mgh-menu-tabs-inner {
+    gap: 22px;
+  }
+
+  .mgh-menu-tab {
+    font-size: 13.5px;
+    padding: 0 0 10px;
+  }
+
+  .mgh-item-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 14px;
+    margin-bottom: 32px;
+  }
+
+  .mgh-item-body {
+    padding: 12px 14px;
+  }
+
+  .mgh-item-body h3 {
+    font-size: 15px;
+  }
+
+  .mgh-item-body p {
+    font-size: 13px;
+  }
+
+  .mgh-modal {
+    padding: 24px 20px;
+  }
+
+  .mgh-modal h3 {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 420px) {
+  .mgh-menu-page {
+    padding: 24px 16px;
+  }
+
+  .mgh-item-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
   }
 }
 

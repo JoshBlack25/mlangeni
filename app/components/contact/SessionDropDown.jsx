@@ -34,11 +34,12 @@ export default function SessionDropDown({
 
     const fetchBookedSessions = async () => {
       setLoading(true);
-      const { data, error: supabaseError } = await supabase
-        .from("enquiries")
-        .select("session")
-        .eq("event_date", isoDate)
-        .eq("status", "confirmed");
+      // Via the RPC, not a table read — the public read policy this used to
+      // rely on was dropped in db/006 and stays dropped. See db/007.
+      const { data, error: supabaseError } = await supabase.rpc(
+        "get_booked_sessions",
+        { p_date: isoDate },
+      );
 
       if (supabaseError) {
         console.error("Error fetching sessions:", supabaseError);
