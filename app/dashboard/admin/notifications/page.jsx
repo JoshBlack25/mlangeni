@@ -8,10 +8,10 @@ import {
   CheckCheck,
   Clock3,
   Trash2,
-  CalendarDays,
-  CreditCard,
-  ClipboardCheck,
-  Info,
+  ShoppingBag,
+  Users,
+  Receipt,
+  ClipboardList,
   X,
   ExternalLink,
   Send,
@@ -24,10 +24,11 @@ import SendNotificationModal from "@/app/components/dashboard/shared/notificatio
 const filters = ["All", "Unread"];
 
 const notificationIcons = {
-  booking: ClipboardCheck,
-  payment: CreditCard,
-  event: CalendarDays,
-  information: Info,
+  general: Bell,
+  order: ShoppingBag,
+  consultation: Users,
+  invoice: Receipt,
+  enquiry: ClipboardList,
 };
 
 function formatNotificationTime(dateString) {
