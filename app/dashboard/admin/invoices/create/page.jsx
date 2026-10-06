@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useNotifications } from "@/app/components/dashboard/shared/notifications/hooks/useNotifications";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -122,6 +123,7 @@ function mapConsultation(data) {
 
   return {
     reference: getReference(data?.consultations_id),
+    customerUserId: data?.customer?.user_id ?? null,
     customer: {
       name: getCustomerName(data?.customer),
       email: data?.customer?.email || "Email pending",
@@ -152,6 +154,7 @@ export default function AdminCreateInvoicePage() {
 function AdminCreateInvoiceContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { sendNotification } = useNotifications();
   const consultationId = searchParams.get("consultationId");
   const [invoiceData, setInvoiceData] = useState(null);
   const [items, setItems] = useState([]);
@@ -196,6 +199,7 @@ function AdminCreateInvoiceContent() {
             meeting_date,
             note,
             customer:customer_id (
+              user_id,
               first_name,
               last_name,
               email,
@@ -345,6 +349,16 @@ function AdminCreateInvoiceContent() {
 
       if (invoiceError) {
         throw invoiceError;
+      }
+
+      if (invoiceData?.customerUserId) {
+        sendNotification({
+          recipientId: invoiceData.customerUserId,
+          category: "invoice",
+          title: "Invoice Ready",
+          message: `Your invoice for ${invoiceData.order?.eventType ?? "your event"} (${toMoney(total)}) is ready. Please review and complete payment by ${formatDate(dueDate)}.`,
+          linkUrl: "/dashboard/customer/payments",
+        }).catch((err) => console.error("Invoice notification failed:", err));
       }
 
       setDraftMessage("Invoice sent to the customer's payment page.");

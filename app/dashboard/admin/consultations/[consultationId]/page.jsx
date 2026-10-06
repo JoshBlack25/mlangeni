@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { useNotifications } from "@/app/components/dashboard/shared/notifications/hooks/useNotifications";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -205,6 +206,7 @@ async function markConsultationOpened(consultationId) {
 export default function AdminConsultationDetailsPage() {
   const params = useParams();
   const router = useRouter();
+  const { sendNotification } = useNotifications();
   const consultationId = params?.consultationId;
   const meetingDates = useMemo(() => buildMeetingDates(), []);
 
@@ -242,6 +244,7 @@ export default function AdminConsultationDetailsPage() {
             note,
             customer:customer_id (
               customer_id,
+              user_id,
               first_name,
               last_name,
               email,
@@ -380,6 +383,17 @@ export default function AdminConsultationDetailsPage() {
             }
           : current,
       );
+
+      if (customer?.user_id) {
+        sendNotification({
+          recipientId: customer.user_id,
+          category: "consultation",
+          title: "Meeting Scheduled",
+          message: `Your consultation for ${eventType} has been scheduled for ${formatDate(meetingDate)} at ${formatTime(meetingDate)}${meetingLocation ? ` at ${meetingLocation}` : ""}. Please check your orders for details.`,
+          linkUrl: "/dashboard/customer/orders",
+        }).catch((err) => console.error("Schedule meeting notification failed:", err));
+      }
+
       setActionConfirmation({
         eyebrow: "Meeting Scheduled",
         title: "Consultation moved to active meetings",
@@ -422,6 +436,16 @@ export default function AdminConsultationDetailsPage() {
         if (orderError) {
           throw orderError;
         }
+      }
+
+      if (customer?.user_id) {
+        sendNotification({
+          recipientId: customer.user_id,
+          category: "order",
+          title: "Booking Cancelled",
+          message: `Your ${eventType} booking has been cancelled by our team. Please contact us if you would like to make a new booking.`,
+          linkUrl: "/dashboard/customer/orders",
+        }).catch((err) => console.error("Cancel notification failed:", err));
       }
 
       setShowCancelDialog(false);

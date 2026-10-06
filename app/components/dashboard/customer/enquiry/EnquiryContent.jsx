@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CheckCircle2, Send, ChevronDown } from "lucide-react";
+import { CheckCircle2, Send, ChevronDown, ClipboardList, Calendar, Users, Clock } from "lucide-react";
 import { supabase } from "@/services/supabaseClient";
+import { useNotifications } from "@/app/components/dashboard/shared/notifications/hooks/useNotifications";
 import PendingEnquiries from "./PendingEnquiries";
 import {
   SESSION_OPTIONS,
@@ -10,12 +11,41 @@ import {
   isSessionUnavailable,
 } from "@/app/components/constants/sessions";
 
+const STATUS_STYLES = {
+  pending:   { dot: "bg-yellow-400", text: "text-yellow-400",  label: "Pending" },
+  confirmed: { dot: "bg-emerald-400", text: "text-emerald-400", label: "Confirmed" },
+  cancelled: { dot: "bg-red-400",    text: "text-red-400",    label: "Cancelled" },
+};
+
+function formatDate(dateString) {
+  return new Date(dateString + "T00:00:00").toLocaleDateString("en-ZA", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function formatCreated(dateString) {
+  return new Date(dateString).toLocaleDateString("en-ZA", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 const inputStyles =
   "w-full rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-[#797676] outline-none transition focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37]";
 
 export default function EnquiryContent() {
+  const { notifyAllAdmins } = useNotifications();
+  const [activeTab, setActiveTab] = useState("new");
+
   const [customer, setCustomer] = useState(null);
   const [loadError, setLoadError] = useState(null);
+
+  // My Enquiries tab state
+  const [myEnquiries, setMyEnquiries] = useState(null); // null = not yet loaded
+  const [enquiriesError, setEnquiriesError] = useState(null);
 
   const [eventDate, setEventDate] = useState("");
   const [session, setSession] = useState("");
@@ -63,6 +93,39 @@ export default function EnquiryContent() {
 
     loadCustomer();
   }, []);
+
+  // Load enquiries when the My Enquiries tab is opened, or after a new one is submitted
+  useEffect(() => {
+    if (activeTab !== "history") return;
+
+    let active = true;
+
+    async function loadEnquiries() {
+      setEnquiriesError(null);
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("enquiries")
+        .select("id, event_date, session, guests, message, status, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (!active) return;
+
+      if (error) {
+        setEnquiriesError("Couldn't load your enquiries. Please try again.");
+        return;
+      }
+
+      setMyEnquiries(data ?? []);
+    }
+
+    loadEnquiries();
+
+    return () => { active = false; };
+  }, [activeTab]);
 
   useEffect(() => {
     if (!eventDate) {
@@ -123,6 +186,19 @@ export default function EnquiryContent() {
       return;
     }
 
+    // Notify admins non-blockingly
+    const date = new Date(eventDate + "T00:00:00").toLocaleDateString("en-ZA", {
+      day: "numeric", month: "long", year: "numeric",
+    });
+    notifyAllAdmins({
+      category: "enquiry",
+      title: "New Enquiry Submitted",
+      message: `${customer.first_name ?? "A customer"} submitted an enquiry for ${date} (${session}, ${guests} guests). Review and update the status.`,
+      linkUrl: "/dashboard/admin/enquiries",
+    }).catch((err) => console.error("Admin enquiry notification failed:", err));
+
+    // Refresh the history list and switch to it so the customer sees their new enquiry
+    setMyEnquiries(null);
     setSubmitted(true);
   }
 
@@ -134,7 +210,37 @@ export default function EnquiryContent() {
           "linear-gradient(180deg, rgba(10,10,10,0.88) 0%, rgba(10,10,10,0.75) 40%, rgba(10,10,10,0.92) 100%), url('/images/gallery_images/dining_table.jpeg')",
       }}
     >
-      <div className="flex min-h-screen w-full items-center justify-center px-4 py-16">
+      <div className="min-h-screen w-full px-4 py-16">
+
+        {/* TAB SWITCHER */}
+        <div className="mx-auto mb-8 flex w-full max-w-5xl items-center gap-6 border-b border-white/10 pb-0">
+          {[
+            { id: "new",     label: "New Enquiry",  Icon: Send },
+            { id: "history", label: "My Enquiries", Icon: ClipboardList },
+          ].map(({ id, label, Icon }) => {
+            const active = activeTab === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setActiveTab(id)}
+                className={`relative flex items-center gap-2 pb-4 text-sm font-medium transition-colors duration-200 ${
+                  active ? "text-[#D4AF37]" : "text-white/40 hover:text-white/70"
+                }`}
+              >
+                <Icon size={15} />
+                {label}
+                {active && (
+                  <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-t-sm bg-[#D4AF37]" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* ── NEW ENQUIRY TAB ── */}
+        {activeTab === "new" && (
+        <div className="flex min-h-[60vh] w-full items-center justify-center">
         {loadError ? (
           <div className="flex w-full max-w-md flex-col items-center justify-center rounded-2xl border border-red-400/20 bg-red-400/5 p-10 text-center backdrop-blur-md">
             <p className="text-sm text-red-400">{loadError}</p>
@@ -146,6 +252,14 @@ export default function EnquiryContent() {
             <p className="mt-2 max-w-sm text-sm text-[#A0A0A0]">
               Thanks — our team will be in touch shortly to discuss your event.
             </p>
+            <button
+              type="button"
+              onClick={() => { setSubmitted(false); setActiveTab("history"); }}
+              className="mt-6 flex items-center gap-2 rounded-lg border border-white/10 px-5 py-2.5 text-sm text-white/60 transition hover:border-[#D4AF37] hover:text-[#D4AF37]"
+            >
+              <ClipboardList size={14} />
+              View my enquiries
+            </button>
           </div>
         ) : (
           <div className="flex w-full max-w-5xl flex-col gap-8">
@@ -361,6 +475,84 @@ export default function EnquiryContent() {
             </div>
           </div>
         )}
+        </div>
+        )} {/* end activeTab === "new" */}
+
+        {/* ── MY ENQUIRIES TAB ── */}
+        {activeTab === "history" && (
+          <div className="mx-auto w-full max-w-5xl">
+            <div className="mb-6">
+              <h2 className="font-serif text-2xl font-medium text-white">My Enquiries</h2>
+              <p className="mt-1 text-sm text-white/40">All enquiries you have submitted, and their current status.</p>
+            </div>
+
+            {enquiriesError && (
+              <p className="mb-4 text-sm text-red-400">{enquiriesError}</p>
+            )}
+
+            {myEnquiries === null ? (
+              <div className="flex flex-col gap-3">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="h-24 animate-pulse rounded-xl border border-white/10 bg-white/5" />
+                ))}
+              </div>
+            ) : myEnquiries.length === 0 ? (
+              <div className="rounded-2xl border border-white/10 bg-black/40 px-8 py-16 text-center backdrop-blur-md">
+                <ClipboardList size={32} className="mx-auto mb-4 text-white/20" />
+                <p className="text-sm text-white/40">You haven't submitted any enquiries yet.</p>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("new")}
+                  className="mt-4 text-sm text-[#D4AF37] underline-offset-2 hover:underline"
+                >
+                  Submit your first enquiry
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {myEnquiries.map((enq) => {
+                  const st = STATUS_STYLES[enq.status] ?? STATUS_STYLES.pending;
+                  return (
+                    <div
+                      key={enq.id}
+                      className="rounded-xl border border-white/10 bg-black/40 p-5 backdrop-blur-md"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div className="flex flex-col gap-2">
+                          <div className="flex flex-wrap items-center gap-3 text-sm text-white/70">
+                            <span className="flex items-center gap-1.5">
+                              <Calendar size={13} className="text-[#D4AF37]" />
+                              {formatDate(enq.event_date)}
+                            </span>
+                            <span className="text-white/20">·</span>
+                            <span className="capitalize">{enq.session}</span>
+                            <span className="text-white/20">·</span>
+                            <span className="flex items-center gap-1.5">
+                              <Users size={13} className="text-[#D4AF37]" />
+                              {enq.guests} guests
+                            </span>
+                          </div>
+                          {enq.message && (
+                            <p className="line-clamp-1 max-w-xl text-sm text-white/40">{enq.message}</p>
+                          )}
+                          <span className="flex items-center gap-1.5 text-xs text-white/25">
+                            <Clock size={11} />
+                            Submitted {formatCreated(enq.created_at)}
+                          </span>
+                        </div>
+                        <div className={`flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium ${st.text}`}>
+                          <span className={`h-1.5 w-1.5 rounded-full ${st.dot}`} />
+                          {st.label}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
       </div>
     </div>
   );

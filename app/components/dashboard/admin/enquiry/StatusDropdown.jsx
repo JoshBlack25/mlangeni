@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { ChevronDown, Check, X, Loader2 } from "lucide-react";
 
 const statusConfig = {
@@ -19,6 +20,9 @@ export default function StatusDropdown({ value, onChange, disabled }) {
   const [open, setOpen] = useState(false);
   const [pendingValue, setPendingValue] = useState(null); // value awaiting confirmation
   const [saving, setSaving] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
 
   const current = statusConfig[value] ?? statusConfig.pending;
 
@@ -79,10 +83,10 @@ export default function StatusDropdown({ value, onChange, disabled }) {
         </div>
       )}
 
-      {/* CONFIRM DIALOG — only for pending/cancelled → confirmed */}
-      {pendingValue && (
+      {/* CONFIRM DIALOG — portalled to body so framer-motion transforms don't clip it */}
+      {mounted && pendingValue && createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-5"
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 px-5"
           onClick={() => setPendingValue(null)}
         >
           <div
@@ -113,7 +117,8 @@ export default function StatusDropdown({ value, onChange, disabled }) {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

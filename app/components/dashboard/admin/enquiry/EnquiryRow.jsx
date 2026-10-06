@@ -204,9 +204,9 @@ export default function EnquiryRow({
               exit={{ opacity: 0, y: 25, scale: 0.98 }}
               transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
               onClick={(event) => event.stopPropagation()}
-              className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-[#2A2A2A] bg-[#0B0A09] shadow-2xl"
+              className="relative w-full max-w-lg rounded-2xl border border-[#2A2A2A] bg-[#0B0A09] shadow-2xl"
             >
-              <div className="absolute left-0 right-0 top-0 h-[2px] bg-[#D4AF37]" />
+              <div className="absolute left-0 right-0 top-0 h-[2px] rounded-t-2xl bg-[#D4AF37]" />
 
               <div className="flex items-start justify-between border-b border-[#1F1F1F] px-6 py-6">
                 <div>
