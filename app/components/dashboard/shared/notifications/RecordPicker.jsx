@@ -130,11 +130,19 @@ export default function RecordPicker({
               onChange(null);
               return;
             }
-            // Notifications never navigate — the modal is the only place
-            // they're read — so we no longer build a link, just the label.
+            const id = record[config.idField];
+            // Enquiry has no per-record customer view; use the enquiry list page.
+            // When basePath points at the admin dashboard, use the deep-link param.
+            const linkUrl =
+              category === "enquiry"
+                ? basePath.includes("/admin")
+                  ? `${basePath}/enquiries?enquiryId=${id}`
+                  : `${basePath}/enquiry`
+                : `${basePath}${config.linkPrefix}`;
             onChange({
-              id: record[config.idField],
+              id,
               label: config.formatLabel(record),
+              linkUrl,
             });
           }}
           className="w-full rounded-lg border border-[#1F1F1F] bg-[#0A0A0A] px-4 py-3 text-sm text-white focus:border-[#D4AF37] focus:outline-none"

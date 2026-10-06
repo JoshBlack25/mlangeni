@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { supabase } from "@/services/supabaseClient";
 import StatusDropdown from "./StatusDropdown";
+import { useNotifications } from "@/app/components/dashboard/shared/notifications/hooks/useNotifications";
 
 function formatDate(dateString) {
   return new Date(dateString + "T00:00:00").toLocaleDateString("en-ZA", {
@@ -38,6 +39,8 @@ export default function EnquiryRow({
   const [showDetails, setShowDetails] = useState(false);
   const rowRef = useRef(null);
   const hasAutoOpened = useRef(false);
+
+  const { sendNotification } = useNotifications();
 
   const isCustomer = Boolean(enquiry.user_id);
 
@@ -64,6 +67,36 @@ export default function EnquiryRow({
     }
 
     onStatusChange(enquiry.id, newStatus);
+
+    // Notify the customer automatically on confirm/cancel — guests have no
+    // account so there is nowhere to send an in-app notification.
+    if (enquiry.user_id && newStatus === "confirmed") {
+      const date = new Date(enquiry.event_date + "T00:00:00").toLocaleDateString(
+        "en-ZA",
+        { day: "numeric", month: "long", year: "numeric" },
+      );
+      sendNotification({
+        recipientId: enquiry.user_id,
+        category: "enquiry",
+        title: "Enquiry Confirmed",
+        message: `Your enquiry for ${date} (${enquiry.session}) has been confirmed. We look forward to hosting your event.`,
+        linkUrl: "/dashboard/customer/enquiry",
+      }).catch((err) => console.error("Auto-notification failed:", err));
+    }
+
+    if (enquiry.user_id && newStatus === "cancelled") {
+      const date = new Date(enquiry.event_date + "T00:00:00").toLocaleDateString(
+        "en-ZA",
+        { day: "numeric", month: "long", year: "numeric" },
+      );
+      sendNotification({
+        recipientId: enquiry.user_id,
+        category: "enquiry",
+        title: "Enquiry Cancelled",
+        message: `Your enquiry for ${date} (${enquiry.session}) has been cancelled. Please contact us if you would like to submit a new enquiry.`,
+        linkUrl: "/dashboard/customer/enquiry",
+      }).catch((err) => console.error("Auto-notification failed:", err));
+    }
   }
 
   const rowBorderClass = autoOpen ? "border-[#D4AF37]/40" : "border-[#1F1F1F]";
