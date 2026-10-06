@@ -91,7 +91,7 @@ export default function SendNotificationModal({
       category,
       title: title.trim(),
       message: message.trim(),
-      linkUrl: null,
+      linkUrl: record?.linkUrl ?? null,
     };
 
     const { error: sendError } =

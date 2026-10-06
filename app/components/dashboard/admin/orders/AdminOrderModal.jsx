@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { X } from "lucide-react"
 import {supabase} from "@/services/supabaseClient"
+import { useNotifications } from "@/app/components/dashboard/shared/notifications/hooks/useNotifications"
 
 const currency = new Intl.NumberFormat("en-ZA",{
     style: "currency",
@@ -10,6 +11,7 @@ const currency = new Intl.NumberFormat("en-ZA",{
 });
 
 export default function AdminOrderModal ({order, onClose, onConsultCreated}){
+    const { sendNotification } = useNotifications();
     const [showConsultForm, setShowConsultForm] = useState(false);
     const [meetingDate, setMeetingDate] = useState("");
     const [note, setNote] = useState("");
@@ -58,7 +60,30 @@ export default function AdminOrderModal ({order, onClose, onConsultCreated}){
         return;
     }
 
-    setShowConsultForm(form);
+    // Notify the customer that a consultation has been scheduled
+    if (order.customer_id) {
+      supabase
+        .from("customer")
+        .select("user_id")
+        .eq("customer_id", order.customer_id)
+        .single()
+        .then(({ data }) => {
+          if (!data?.user_id) return;
+          const formattedDate = new Date(meetingDate).toLocaleString("en-ZA", {
+            day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit",
+          });
+          return sendNotification({
+            recipientId: data.user_id,
+            category: "consultation",
+            title: "Consultation Scheduled",
+            message: `A consultation for your ${order.event_type?.event_name ?? "event"} booking has been scheduled for ${formattedDate}. Our team will be in touch to confirm.`,
+            linkUrl: "/dashboard/customer/orders",
+          });
+        })
+        .catch((err) => console.error("Consultation notification failed:", err));
+    }
+
+    setShowConsultForm(false);
     setMeetingDate("");
     setNote("");
     onConsultCreated?.();

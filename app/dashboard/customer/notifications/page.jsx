@@ -8,10 +8,10 @@ import {
   CheckCheck,
   Clock3,
   Trash2,
-  CalendarDays,
-  CreditCard,
-  ClipboardCheck,
-  Info,
+  ShoppingBag,
+  Users,
+  Receipt,
+  ClipboardList,
   X,
   ExternalLink,
   Send,
@@ -24,10 +24,11 @@ import SendNotificationModal from "@/app/components/dashboard/shared/notificatio
 const filters = ["All", "Unread"];
 
 const notificationIcons = {
-  booking: ClipboardCheck,
-  payment: CreditCard,
-  event: CalendarDays,
-  information: Info,
+  general: Bell,
+  order: ShoppingBag,
+  consultation: Users,
+  invoice: Receipt,
+  enquiry: ClipboardList,
 };
 
 function formatNotificationTime(dateString) {
@@ -127,10 +128,6 @@ export default function NotificationsPage() {
 
     if (!notification.is_read) {
       await markAsRead(notification.notification_id);
-    }
-
-    if (notification.link_url) {
-      router.push(notification.link_url);
     }
   }
 
@@ -504,13 +501,29 @@ export default function NotificationsPage() {
                   Delete
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => setSelectedNotification(null)}
-                  className="rounded-lg border border-[#2A2A2A] px-5 py-2.5 text-sm font-medium text-white transition hover:border-[#D4AF37] hover:text-[#D4AF37]"
-                >
-                  Close
-                </button>
+                <div className="flex items-center gap-3">
+                  {selectedNotification.link_url && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedNotification(null);
+                        router.push(selectedNotification.link_url);
+                      }}
+                      className="flex items-center gap-2 rounded-lg bg-[#D4AF37] px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-[#c4a132]"
+                    >
+                      <ExternalLink size={14} />
+                      View
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedNotification(null)}
+                    className="rounded-lg border border-[#2A2A2A] px-5 py-2.5 text-sm font-medium text-white transition hover:border-[#D4AF37] hover:text-[#D4AF37]"
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
             </motion.div>
           </motion.div>
