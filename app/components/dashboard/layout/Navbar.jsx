@@ -8,6 +8,7 @@ import { supabase } from "@/services/supabaseClient";
 import {
   LayoutDashboard,
   ClipboardList,
+  CalendarDays,
   Bell,
   CreditCard,
   ShoppingCart,
@@ -30,9 +31,9 @@ const links = [
     href: "/dashboard/customer/orders",
   },
   {
-    title: "Notifications",
-    icon: Bell,
-    href: "/dashboard/customer/notifications",
+    title: "Consultations",
+    icon: CalendarDays,
+    href: "/dashboard/customer/consultations",
   },
   {
     title: "Payments",
@@ -48,6 +49,11 @@ const links = [
     title: "Menu",
     icon: UtensilsCrossed,
     href: "/dashboard/customer/menu",
+  },
+  {
+    title: "Notifications",
+    icon: Bell,
+    href: "/dashboard/customer/notifications",
   },
   {
     title: "Enquire",

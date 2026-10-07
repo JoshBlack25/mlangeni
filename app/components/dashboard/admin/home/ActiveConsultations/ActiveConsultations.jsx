@@ -94,15 +94,18 @@ export default function ActiveConsultations() {
   }, []);
 
   return (
-    <div className="flex h-full flex-col rounded-2xl border border-[#1F1F1F] bg-white/5 p-6 backdrop-blur-md">
+    <Link
+      href="/dashboard/admin/active-meetings"
+      aria-label="View all active meetings"
+      className="flex h-full flex-col rounded-2xl border border-[#1F1F1F] bg-white/5 p-6 backdrop-blur-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#D4AF37]"
+    >
       <div className="mb-4 flex items-center justify-between">
         <h3 className="text-lg font-semibold text-white">Active Meetings</h3>
-        <Link
-          href="/dashboard/admin/active-meetings"
+        <span
           className="text-sm font-medium text-[#D4AF37] hover:underline"
         >
           View all
-        </Link>
+        </span>
       </div>
 
       {meetings === null ? (
@@ -121,9 +124,8 @@ export default function ActiveConsultations() {
       ) : (
         <div className="flex flex-1 flex-col gap-3 overflow-y-auto">
           {meetings.map((meeting) => (
-            <Link
+            <div
               key={meeting.id}
-              href={`/dashboard/admin/consultations/${meeting.id}`}
               className="grid grid-cols-1 gap-3 rounded-xl border border-[#1F1F1F] bg-[#0A0A0A]/40 p-4 transition hover:border-[#D4AF37] md:grid-cols-[1fr_auto] md:items-center"
             >
               <div>
@@ -141,10 +143,10 @@ export default function ActiveConsultations() {
                   {formatTime(meeting.meetingDate)}
                 </p>
               </div>
-            </Link>
+            </div>
           ))}
         </div>
       )}
-    </div>
+    </Link>
   );
 }

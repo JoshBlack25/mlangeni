@@ -20,6 +20,7 @@ import {
   UtensilsCrossed,
 } from "lucide-react";
 import { supabase } from "@/services/supabaseClient";
+import ConsultationChat from "@/app/components/dashboard/shared/consultations/ConsultationChat";
 
 const currency = new Intl.NumberFormat("en-ZA", {
   style: "currency",
@@ -389,8 +390,8 @@ export default function AdminConsultationDetailsPage() {
           recipientId: customer.user_id,
           category: "consultation",
           title: "Meeting Scheduled",
-          message: `Your consultation for ${eventType} has been scheduled for ${formatDate(meetingDate)} at ${formatTime(meetingDate)}${meetingLocation ? ` at ${meetingLocation}` : ""}. Please check your orders for details.`,
-          linkUrl: "/dashboard/customer/orders",
+          message: `Your consultation for ${eventType} has been scheduled for ${formatDate(meetingDate)} at ${formatTime(meetingDate)}${meetingLocation ? ` at ${meetingLocation}` : ""}. Please check your consultation for details.`,
+          linkUrl: `/dashboard/customer/consultations/${consultationId}`,
         }).catch((err) => console.error("Schedule meeting notification failed:", err));
       }
 
@@ -660,6 +661,15 @@ export default function AdminConsultationDetailsPage() {
                 </div>
               )}
             </motion.section>
+
+            <motion.div
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: 0.2 }}
+              className="mt-6"
+            >
+              <ConsultationChat key={consultationId} consultation={consultation} isAdmin />
+            </motion.div>
 
             <motion.section
               initial={{ opacity: 0, y: 18 }}
