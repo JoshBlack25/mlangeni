@@ -63,15 +63,18 @@ export default function ConsultationRequests() {
   }, []);
 
   return (
-    <div className="flex h-full flex-col rounded-2xl border border-[#1F1F1F] bg-white/5 p-5 backdrop-blur-md">
+    <Link
+      href="/dashboard/admin/consultations"
+      aria-label="View all consultation requests"
+      className="flex h-full flex-col rounded-2xl border border-[#1F1F1F] bg-white/5 p-5 backdrop-blur-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#D4AF37]"
+    >
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-base font-semibold text-white">Consultations</h3>
-        <Link
-          href="/dashboard/admin/consultations"
+        <span
           className="text-xs font-medium text-[#D4AF37] hover:underline"
         >
           View all
-        </Link>
+        </span>
       </div>
 
       {consultations === null ? (
@@ -97,9 +100,8 @@ export default function ConsultationRequests() {
               : "Guests pending";
 
             return (
-              <Link
+              <div
                 key={consultation.consultations_id}
-                href={`/dashboard/admin/consultations/${consultation.consultations_id}`}
                 className="rounded-lg border border-[#1F1F1F] bg-[#0A0A0A]/40 px-3 py-2.5 text-sm transition hover:border-[#D4AF37]"
               >
                 <div className="flex items-start justify-between gap-3">
@@ -125,11 +127,11 @@ export default function ConsultationRequests() {
                     View more
                   </span>
                 </div>
-              </Link>
+              </div>
             );
           })}
         </div>
       )}
-    </div>
+    </Link>
   );
 }

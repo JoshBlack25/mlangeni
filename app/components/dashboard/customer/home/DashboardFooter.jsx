@@ -12,7 +12,7 @@ const quickLinks = [
   { label: "My Dashboard", href: "/dashboard/customer" },
   { label: "My Bookings", href: "/dashboard/customer/orders" },
   { label: "Invoices", href: "/dashboard/customer/payments" },
-  { label: "Consultations", href: "/dashboard/customer/enquiry" },
+  { label: "Consultations", href: "/dashboard/customer/consultations" },
 ];
 
 const legalLinks = [

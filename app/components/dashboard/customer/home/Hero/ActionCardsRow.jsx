@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import {
   CalendarPlus,
+  CalendarDays,
   MessageCircleMore,
   Receipt,
   UtensilsCrossed,
@@ -19,6 +20,13 @@ const actions = [
     title: "New Booking",
     subtitle: "Start planning your next event.",
     icon: <CalendarPlus size={22} />,
+  },
+  {
+    id: "consultations",
+    href: "/dashboard/customer/consultations",
+    title: "Consultations",
+    subtitle: "Review your consultation requests.",
+    icon: <CalendarDays size={22} />,
   },
   {
     id: "payments",
@@ -76,7 +84,7 @@ export default function ActionCardsRow() {
   return (
     <div
       ref={containerRef}
-      className="flex flex-col gap-4 sm:flex-row"
+      className="flex flex-col gap-4 sm:flex-row sm:flex-wrap"
       onMouseLeave={() => setHoverId(null)}
     >
       {actions.map((action) => {
@@ -87,7 +95,7 @@ export default function ActionCardsRow() {
             key={action.id}
             onMouseEnter={() => setHoverId(action.id)}
             className={`
-              group relative overflow-hidden rounded-2xl border border-white/10
+              group relative shrink-0 overflow-hidden rounded-2xl border border-white/10
               bg-white/5 backdrop-blur-md transition-all duration-500
               ease-[cubic-bezier(0.22,1,0.36,1)]
               hover:border-[#D4AF37]
