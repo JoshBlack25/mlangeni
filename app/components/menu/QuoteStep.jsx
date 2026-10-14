@@ -25,11 +25,13 @@ import {
   getActiveBookingMessage,
   getActiveCustomerBooking,
 } from "@/app/utils/customerBookingRules";
+import { useNotifications } from "@/app/components/dashboard/shared/notifications/hooks/useNotifications";
 
 const EVENT_DETAILS_STEP = 4;
 
 export function QuoteStep() {
   const { state, dispatch } = useMenu();
+  const { notifyAllAdmins } = useNotifications();
 
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState("");
@@ -96,6 +98,15 @@ export function QuoteStep() {
 
       // The booking is saved. Show success now — the email is a courtesy that
       // must never gate or fail this.
+
+      // Notify admins non-blockingly — a notification failure must not obscure a successful booking.
+      notifyAllAdmins({
+        category: "order",
+        title: "New Booking Received",
+        message: `${state.contactName?.trim() || "A customer"} submitted a custom menu order (#${orderId}) for ${eventTypeName} with ${guests} guest${guests === 1 ? "" : "s"}.`,
+        linkUrl: "/dashboard/admin/orders",
+      }).catch((err) => console.error("Admin booking notification failed:", err));
+
       setSuccessSummary(
         `Quote request #${orderId} submitted for ${eventTypeName} with ${guests} guest${guests === 1 ? "" : "s"}.`,
       );

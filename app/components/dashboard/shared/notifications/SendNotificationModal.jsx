@@ -35,7 +35,7 @@ export default function SendNotificationModal({
   const [sent, setSent] = useState(false);
 
   const basePath =
-    mode === "admin" ? "/dashboard/admin" : "/dashboard/customer";
+    mode === "admin" ? "/dashboard/customer" : "/dashboard/admin";
 
   // Resolve the logged-in customer's own customer_id once, for their own record pickers
   useEffect(() => {
@@ -92,7 +92,7 @@ export default function SendNotificationModal({
       category,
       title: title.trim(),
       message: message.trim(),
-      linkUrl: record?.linkPath ?? null,
+      linkUrl: record?.linkUrl ?? null,
     };
 
     const { error: sendError } =

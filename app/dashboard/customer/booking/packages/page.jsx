@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 import { supabase } from "@/services/supabaseClient";
+import { useNotifications } from "@/app/components/dashboard/shared/notifications/hooks/useNotifications";
 import BookingSuccessModal from "@/app/components/dashboard/customer/BookingSuccessModal";
 import { PackageCalendar } from "@/app/components/PackageCalendar";
 import {
@@ -45,6 +46,7 @@ const carouselNavClass =
 
 export default function Packages() {
   const router = useRouter();
+  const { notifyAllAdmins } = useNotifications();
 
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [loadingData, setLoadingData] = useState(true);
@@ -272,6 +274,13 @@ export default function Packages() {
       setError(consultationError.message);
       return;
     }
+
+    notifyAllAdmins({
+      category: "order",
+      title: "New Package Booking",
+      message: `A customer submitted a package booking (${selectedMenu?.name ?? "package"}) for ${eventDate}. Review and schedule a consultation.`,
+      linkUrl: "/dashboard/admin/orders",
+    }).catch((err) => console.error("Admin package notification failed:", err));
 
     setSuccess(
       `Package request submitted using "${selectedMenu.name}". Total: R${total.toFixed(2)}`,

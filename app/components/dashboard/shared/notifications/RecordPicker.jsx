@@ -124,10 +124,19 @@ export default function RecordPicker({
               onChange(null);
               return;
             }
+            const id = record[config.idField];
+            // Enquiry has no per-record customer view; use the enquiry list page.
+            // When basePath points at the admin dashboard, use the deep-link param.
+            const linkUrl =
+              category === "enquiry"
+                ? basePath.includes("/admin")
+                  ? `${basePath}/enquiries?enquiryId=${id}`
+                  : `${basePath}/enquiry`
+                : `${basePath}${config.linkPrefix}`;
             onChange({
-              id: record[config.idField],
+              id,
               label: config.formatLabel(record),
-              linkPath: `${basePath}${config.linkPrefix}/${record[config.idField]}`,
+              linkUrl,
             });
           }}
         >

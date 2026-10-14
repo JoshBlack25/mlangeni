@@ -93,6 +93,7 @@ export default function AdminConsultationsPage() {
           .select(
             `
             consultations_id,
+            customer_id,
             admin_id,
             status,
             created_at,
