@@ -148,7 +148,7 @@ export function QuoteStep() {
           // inbox — delivered, but not to this customer.
           if (!result.ok || result.customer !== "sent") {
             setEmailNote(
-              "We couldn't email you a copy of this request, but it's safely in our system — you can view it any time under your orders.",
+              "We couldn't email you a copy of this request, but it's safely in our system. You can view it any time under your orders.",
             );
           }
         })
@@ -215,7 +215,7 @@ export function QuoteStep() {
           <Metric
             icon={CalendarDays}
             label="Date"
-            value={formatDateLong(state.eventDate) || "—"}
+            value={formatDateLong(state.eventDate) || "Not set"}
           />
           <Metric
             icon={Clock}
@@ -247,7 +247,7 @@ export function QuoteStep() {
 
         {state.notes?.trim() && (
           <div className="mt-4 rounded-xl border border-mgh-line-soft bg-mgh-surface-2 p-4">
-            <p className="text-[10px] uppercase tracking-widest text-mgh-faint">
+            <p className="text-[10px] uppercase tracking-widest text-mgh-dim">
               Notes for the kitchen
             </p>
             <p className="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-mgh-muted">
@@ -265,7 +265,7 @@ export function QuoteStep() {
               <h3 className="text-xs font-semibold uppercase tracking-widest text-mgh-gold">
                 {group.label}
               </h3>
-              <span className="text-[10px] uppercase tracking-wider text-mgh-faint">
+              <span className="text-[10px] uppercase tracking-wider text-mgh-dim">
                 {group.rows.length} {group.rows.length === 1 ? "item" : "items"}
               </span>
             </div>
@@ -279,7 +279,7 @@ export function QuoteStep() {
                   <span className="min-w-0 flex-1 truncate text-sm font-medium text-mgh-text">
                     {row.name}
                   </span>
-                  <span className="shrink-0 text-xs tabular-nums text-mgh-faint">
+                  <span className="shrink-0 text-xs tabular-nums text-mgh-dim">
                     {formatZAR(row.unitPrice)} × {row.quantity}
                   </span>
                   <span className="w-24 shrink-0 text-right text-sm font-semibold tabular-nums text-mgh-gold">
@@ -353,7 +353,7 @@ export function QuoteStep() {
         <span>
           <strong className="text-mgh-text">Note:</strong> This is a request,
           not a confirmed booking. The estimate above covers food and beverage
-          only — our catering team will contact you to confirm pricing for
+          only. Our catering team will contact you to confirm pricing for
           staff, transport and any special arrangements.
         </span>
       </div>
@@ -397,7 +397,7 @@ export function QuoteStep() {
 function Metric({ icon: Icon, label, value }) {
   return (
     <div>
-      <dt className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-mgh-faint">
+      <dt className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-mgh-dim">
         <Icon size={11} aria-hidden="true" />
         {label}
       </dt>
@@ -409,10 +409,10 @@ function Metric({ icon: Icon, label, value }) {
 function ContactItem({ label, value }) {
   return (
     <div className="min-w-0">
-      <dt className="text-[10px] uppercase tracking-widest text-mgh-faint">
+      <dt className="text-[10px] uppercase tracking-widest text-mgh-dim">
         {label}
       </dt>
-      <dd className="mt-1 truncate text-mgh-muted">{value || "—"}</dd>
+      <dd className="mt-1 truncate text-mgh-muted">{value || "Not set"}</dd>
     </div>
   );
 }

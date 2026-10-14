@@ -1,17 +1,21 @@
 "use client"
 
 import { useState } from "react"
-import { X } from "lucide-react"
+import {
+  Button,
+  Dialog,
+  DialogTitle,
+  Field,
+  Input,
+  StatusBadge,
+  Textarea,
+  formatCurrency,
+  formatDate,
+} from "@/app/components/dashboard/ui"
 import {supabase} from "@/services/supabaseClient"
-import { useNotifications } from "@/app/components/dashboard/shared/notifications/hooks/useNotifications"
-
-const currency = new Intl.NumberFormat("en-ZA",{
-    style: "currency",
-    currency: "ZAR",
-});
+import { Blank } from "@/app/components/dashboard/ui";
 
 export default function AdminOrderModal ({order, onClose, onConsultCreated}){
-    const { sendNotification } = useNotifications();
     const [showConsultForm, setShowConsultForm] = useState(false);
     const [meetingDate, setMeetingDate] = useState("");
     const [note, setNote] = useState("");
@@ -60,29 +64,6 @@ export default function AdminOrderModal ({order, onClose, onConsultCreated}){
         return;
     }
 
-    // Notify the customer that a consultation has been scheduled
-    if (order.customer_id) {
-      supabase
-        .from("customer")
-        .select("user_id")
-        .eq("customer_id", order.customer_id)
-        .single()
-        .then(({ data }) => {
-          if (!data?.user_id) return;
-          const formattedDate = new Date(meetingDate).toLocaleString("en-ZA", {
-            day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit",
-          });
-          return sendNotification({
-            recipientId: data.user_id,
-            category: "consultation",
-            title: "Consultation Scheduled",
-            message: `A consultation for your ${order.event_type?.event_name ?? "event"} booking has been scheduled for ${formattedDate}. Our team will be in touch to confirm.`,
-            linkUrl: "/dashboard/customer/orders",
-          });
-        })
-        .catch((err) => console.error("Consultation notification failed:", err));
-    }
-
     setShowConsultForm(false);
     setMeetingDate("");
     setNote("");
@@ -90,87 +71,122 @@ export default function AdminOrderModal ({order, onClose, onConsultCreated}){
 
 
     }
+  const customerName = [order.customer?.first_name, order.customer?.last_name]
+    .filter(Boolean)
+    .join(" ");
+
+  const facts = [
+    {
+      label: "Customer",
+      value: (
+        <>
+          {customerName || <Blank />}
+          {order.customer?.email && (
+            <span className="block text-mgh-muted">{order.customer.email}</span>
+          )}
+        </>
+      ),
+    },
+    { label: "Date", value: formatDate(order.event_date) },
+    {
+      label: "Time",
+      value: (
+        <span className="tabular-nums">
+          {order.start_time} - {order.end_time}
+        </span>
+      ),
+    },
+    { label: "Location", value: order.event_location || <Blank /> },
+    { label: "Status", value: <StatusBadge status={order.status} /> },
+    {
+      label: "Total",
+      value: (
+        <span className="tabular-nums">
+          {formatCurrency(Number(order.total_price || 0))}
+        </span>
+      ),
+    },
+  ];
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
-      <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#0A0A0A] p-6 text-white">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#D4AF37]">
+    <Dialog
+      open
+      onOpenChange={(o) => {
+        if (!o) onClose();
+      }}
+      size="md"
+      dismissible={!saving}
+      describe={false}
+    >
+        <div className="pr-10">
+            <p className="text-caption tabular-nums text-mgh-dim">
               Order #{order.order_id}
             </p>
-            <h2 className="mt-1 text-xl font-semibold">
-              {order.event_type?.event_name ?? "Event booking"}
-            </h2>
-          </div>
-          <button onClick={onClose} className="text-[#A0A0A0] hover:text-white">
-            <X size={20} />
-          </button>
+            <DialogTitle asChild>
+              <h2 className="mt-1 font-serif text-title font-medium text-mgh-text">
+                {order.event_type?.event_name ?? "Event booking"}
+              </h2>
+            </DialogTitle>
         </div>
 
-        <div className="mt-4 space-y-2 text-sm text-[#A0A0A0]">
-          <p>
-            <span className="text-white">Customer:</span>{" "}
-            {order.customer?.first_name} {order.customer?.last_name} (
-            {order.customer?.email})
-          </p>
-          <p>
-            <span className="text-white">Date:</span> {order.event_date}
-          </p>
-          <p>
-            <span className="text-white">Time:</span> {order.start_time} –{" "}
-            {order.end_time}
-          </p>
-          <p>
-            <span className="text-white">Location:</span> {order.event_location}
-          </p>
-          <p>
-            <span className="text-white">Status:</span> {order.status}
-          </p>
-          <p>
-            <span className="text-white">Total:</span>{" "}
-            {currency.format(Number(order.total_price || 0))}
-          </p>
-        </div>
+        <dl className="mt-5 divide-y divide-mgh-line-soft border-y border-mgh-line-soft text-sm">
+          {facts.map((fact) => (
+            <div
+              key={fact.label}
+              className="grid grid-cols-[6.5rem_1fr] items-baseline gap-3 py-2.5"
+            >
+              <dt className="text-label font-semibold uppercase text-mgh-dim">
+                {fact.label}
+              </dt>
+              <dd className="min-w-0 break-words text-mgh-text">{fact.value}</dd>
+            </div>
+          ))}
+        </dl>
 
         {!showConsultForm ? (
-          <button
+          <Button
+            variant="primary"
             onClick={() => setShowConsultForm(true)}
-            className="mt-6 w-full rounded-lg bg-[#D4AF37] py-2 text-sm font-semibold text-black hover:bg-[#c8a022]"
+            className="mt-6 w-full sm:w-auto sm:self-end"
           >
             Consult
-          </button>
+          </Button>
         ) : (
-          <form onSubmit={handleConsult} className="mt-6 space-y-3">
-            <div>
-              <label className="text-sm text-[#A0A0A0]">Meeting date & time</label>
-              <input
+          <form onSubmit={handleConsult} className="mt-6 flex flex-col gap-4">
+            <Field label="Meeting date & time">
+              <Input
                 type="datetime-local"
                 value={meetingDate}
                 onChange={(e) => setMeetingDate(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white"
               />
-            </div>
-            <div>
-              <label className="text-sm text-[#A0A0A0]">Note</label>
-              <textarea
+            </Field>
+            <Field label="Note">
+              <Textarea
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 rows={3}
-                className="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white"
               />
+            </Field>
+            {error && (
+              <p role="alert" className="text-sm text-mgh-danger">
+                {error}
+              </p>
+            )}
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button
+                variant="quiet"
+                onClick={() => setShowConsultForm(false)}
+                disabled={saving}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" variant="primary" loading={saving}>
+                {saving ? "Scheduling..." : "Schedule Consultation"}
+              </Button>
             </div>
-            {error && <p className="text-sm text-red-400">{error}</p>}
-            <button
-              type="submit"
-              disabled={saving}
-              className="w-full rounded-lg bg-[#D4AF37] py-2 text-sm font-semibold text-black hover:bg-[#c8a022] disabled:opacity-50"
-            >
-              {saving ? "Scheduling..." : "Schedule Consultation"}
-            </button>
           </form>
         )}
-      </div>
-    </div>
+    </Dialog>
   );
 
 }

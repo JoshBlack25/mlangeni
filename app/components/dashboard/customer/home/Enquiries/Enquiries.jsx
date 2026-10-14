@@ -2,14 +2,18 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import {
-  MessageCircleMore,
-  ArrowUpRight,
-  Clock,
-  CalendarCheck,
-  XCircle,
-} from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { supabase } from "@/services/supabaseClient";
+import {
+  Panel,
+  Button,
+  StatusBadge,
+  EngravedDate,
+  SkeletonRows,
+  focusRing,
+  statusLabel,
+} from "@/app/components/dashboard/ui";
+import { cn } from "@/lib/utils";
 
 function getRelativeTime(dateStr) {
   const diffMs = Date.now() - new Date(dateStr).getTime();
@@ -38,19 +42,6 @@ function sessionLabel(session) {
   return session.replace("_", " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function statusLabel(status) {
-  return status.charAt(0).toUpperCase() + status.slice(1);
-}
-
-function statusStyles(status) {
-  if (status === "confirmed") {
-    return "border-[#D4AF37]/40 bg-[#D4AF37]/10 text-[#D4AF37]";
-  }
-  if (status === "cancelled") {
-    return "border-white/10 bg-white/5 text-[#797676]";
-  }
-  return "border-white/20 bg-white/10 text-[#A0A0A0]"; // pending
-}
 
 export default function Enquiries() {
   const [enquiries, setEnquiries] = useState(null);
@@ -96,140 +87,106 @@ export default function Enquiries() {
     fetchEnquiries();
   }, []);
 
+  const header = (
+    <div className="mb-2 flex items-center justify-between gap-4">
+      <h2 className="font-serif text-xl font-medium text-mgh-text">Enquiries</h2>
+      {pendingCount > 0 && (
+        <span className="text-caption tabular-nums text-mgh-muted">
+          {pendingCount} pending
+        </span>
+      )}
+    </div>
+  );
+
   if (error) {
     return (
-      <div className="flex h-full flex-col items-center justify-center rounded-2xl border border-red-400/20 bg-red-400/5 p-6 text-center backdrop-blur-md">
-        <p className="text-sm text-red-400">
+      <Panel className="h-full">
+        {header}
+        <p role="alert" className="mt-3 text-sm text-mgh-danger">
           Couldn&apos;t load your enquiries
         </p>
-        <p className="mt-1 text-xs text-[#797676]">{error}</p>
-      </div>
+        <p className="mt-1 text-caption text-mgh-dim">{error}</p>
+      </Panel>
     );
   }
 
   if (enquiries === null) {
     return (
-      <div className="flex h-full items-center justify-center rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md">
-        <p className="text-sm text-[#797676]">Loading enquiries…</p>
-      </div>
+      <Panel className="h-full">
+        {header}
+        <SkeletonRows rows={2} label="Loading enquiries…" />
+      </Panel>
     );
   }
 
   if (enquiries.length === 0) {
     return (
-      <div className="flex h-full flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/5 p-6 text-center backdrop-blur-md">
-        <MessageCircleMore className="mb-4 text-[#D4AF37]" size={26} />
-        <h3 className="text-base font-semibold text-white">No enquiries yet</h3>
-        <p className="mt-2 max-w-[16rem] text-sm text-[#A0A0A0]">
+      <Panel className="h-full">
+        {header}
+        <p className="mt-3 font-serif text-lg text-mgh-text">No enquiries yet</p>
+        <p className="mt-1 text-sm leading-relaxed text-mgh-muted">
           Send us an enquiry and it will show up here.
         </p>
-        <Link
-          href="/dashboard/customer/enquiry"
-          className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[#D4AF37] px-4 py-2 text-sm font-semibold text-black transition hover:bg-[#e0bd4a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A]"
-        >
+        <Button href="/dashboard/customer/enquiry" variant="secondary" className="mt-5">
           Send an enquiry
-        </Link>
-      </div>
+        </Button>
+      </Panel>
     );
   }
 
   const [latest, secondary] = enquiries;
+  const latestTitle =
+    latest.status === "confirmed"
+      ? "Enquiry confirmed"
+      : latest.status === "cancelled"
+        ? "Enquiry cancelled"
+        : "Enquiry submitted";
+  const latestDetail =
+    latest.status === "cancelled"
+      ? (latest.message?.slice(0, 60) ?? "")
+      : `${formatEventDate(latest.event_date)} · ${sessionLabel(latest.session)} · ${latest.guests} guests`;
 
   return (
-    <Link
-      href="/dashboard/customer/enquiry"
-      className="group flex h-full flex-col rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md transition-all duration-300 hover:border-[#D4AF37] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A]"
-    >
-      {/* HEADER */}
-      <div className="flex items-center justify-between px-6 pt-6">
-        <p className="text-xs uppercase tracking-[0.2em] text-[#A0A0A0]">
-          Enquiries
-        </p>
-
-        {pendingCount > 0 && (
-          <span className="rounded-full border border-[#D4AF37]/40 bg-[#D4AF37]/10 px-2.5 py-0.5 text-[11px] font-medium text-[#D4AF37]">
-            {pendingCount} pending
-          </span>
+    <Panel className="flex h-full flex-col">
+      {header}
+      <ul className="divide-y divide-mgh-line-soft">
+        <li className="flex items-start gap-4 py-3">
+          <EngravedDate date={latest.event_date} size="sm" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm text-mgh-text">{latestTitle}</p>
+            <p className="mt-0.5 line-clamp-2 text-sm text-mgh-muted">{latestDetail}</p>
+            <p className="mt-1 text-caption text-mgh-dim">{getRelativeTime(latest.updated_at)}</p>
+          </div>
+          <StatusBadge status={latest.status} label={statusLabel(latest.status)} />
+        </li>
+        {secondary && (
+          <li className="flex items-center gap-4 py-3">
+            <EngravedDate date={secondary.event_date} size="sm" />
+            <p className="min-w-0 flex-1 truncate text-sm text-mgh-muted">
+              {formatEventDate(secondary.event_date)} · {sessionLabel(secondary.session)}
+            </p>
+            <StatusBadge status={secondary.status} label={statusLabel(secondary.status)} />
+          </li>
         )}
+      </ul>
+      <div className="mt-auto pt-4">
+        <SectionLink href="/dashboard/customer/enquiry">View all enquiries</SectionLink>
       </div>
-
-      {/* LATEST ENQUIRY PREVIEW */}
-      <div className="px-6 pt-4">
-        {latest.status === "pending" && (
-          <PreviewRow
-            icon={<Clock size={16} />}
-            iconBg="bg-white/10 text-[#A0A0A0]"
-            title="Enquiry submitted"
-            subtitle={`${formatEventDate(latest.event_date)} · ${sessionLabel(latest.session)} · ${latest.guests} guests`}
-            timestamp={getRelativeTime(latest.updated_at)}
-          />
-        )}
-
-        {latest.status === "confirmed" && (
-          <PreviewRow
-            icon={<CalendarCheck size={16} />}
-            iconBg="bg-[#D4AF37]/10 text-[#D4AF37]"
-            title="Enquiry confirmed"
-            subtitle={`${formatEventDate(latest.event_date)} · ${sessionLabel(latest.session)} · ${latest.guests} guests`}
-            timestamp={getRelativeTime(latest.updated_at)}
-          />
-        )}
-
-        {latest.status === "cancelled" && (
-          <PreviewRow
-            icon={<XCircle size={16} />}
-            iconBg="bg-white/5 text-[#797676]"
-            title="Enquiry cancelled"
-            subtitle={latest.message?.slice(0, 60) ?? ""}
-            timestamp={getRelativeTime(latest.updated_at)}
-          />
-        )}
-      </div>
-
-      {/* SECONDARY ENQUIRY */}
-      {secondary && (
-        <div className="mt-4 flex items-center justify-between gap-3 border-t border-white/5 px-6 py-3">
-          <p className="truncate text-sm text-white">
-            {formatEventDate(secondary.event_date)} ·{" "}
-            {sessionLabel(secondary.session)}
-          </p>
-          <span
-            className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium ${statusStyles(
-              secondary.status,
-            )}`}
-          >
-            {statusLabel(secondary.status)}
-          </span>
-        </div>
-      )}
-
-      {/* FOOTER */}
-      <div className="mt-auto flex items-center justify-between border-t border-white/10 px-6 py-3 text-sm font-medium text-[#D4AF37] transition-all duration-300 group-hover:gap-1">
-        View all enquiries
-        <ArrowUpRight
-          size={16}
-          className="transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-        />
-      </div>
-    </Link>
+    </Panel>
   );
 }
 
-function PreviewRow({ icon, iconBg, title, subtitle, timestamp }) {
+function SectionLink({ href, children }) {
   return (
-    <div className="flex items-start gap-3">
-      <div
-        className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${iconBg}`}
-      >
-        {icon}
-      </div>
-      <div className="min-w-0">
-        <p className="text-sm font-medium text-white">{title}</p>
-        <p className="mt-0.5 line-clamp-2 text-sm leading-snug text-[#A0A0A0]">
-          {subtitle}
-        </p>
-        <p className="mt-1 text-xs text-[#797676]">{timestamp}</p>
-      </div>
-    </div>
+    <Link
+      href={href}
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-sm text-sm text-mgh-muted transition-colors hover:text-mgh-text",
+        focusRing,
+      )}
+    >
+      {children}
+      <ArrowRight size={14} aria-hidden="true" />
+    </Link>
   );
 }

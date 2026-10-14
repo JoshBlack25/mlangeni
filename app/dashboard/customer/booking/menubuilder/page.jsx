@@ -7,8 +7,14 @@ import { MenuProvider, useMenu } from "@/app/components/menu/MenuContext";
 import { ProgressBar } from "@/app/components/menu/ProgressBar";
 import { CartSidebar } from "@/app/components/menu/CartSidebar";
 import { StepRouter } from "@/app/components/menu/StepRouter";
-import Link from "next/link";
-import { AlertCircle, AlertTriangle, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
+import {
+  Button,
+  PageHeader,
+  Panel,
+  PanelHeader,
+  Skeleton,
+} from "@/app/components/dashboard/ui";
 import {
   getActiveBookingMessage,
   getActiveCustomerBooking,
@@ -111,101 +117,84 @@ function MenuBuilder() {
   }, [loadAll]);
 
   return (
-    <main className="bg-mgh-bg px-6 py-10 text-mgh-text md:px-10 lg:px-14">
-      <section className="mx-auto max-w-[1500px]">
-        <header className="mb-10">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-mgh-gold">
-            Bespoke Catering
+    <div className="text-mgh-text">
+      <PageHeader
+        title="Interactive Menu Builder"
+        lead="Compose your event menu course by course, then send it to our culinary directors for a tailored quote."
+      />
+
+      {menuLoading && <MenuSkeleton />}
+
+      {!menuLoading && menuError && (
+        <Panel className="max-w-2xl">
+          <p role="alert" className="text-body text-mgh-danger">
+            {menuError}
           </p>
-          <h1 className="mt-2 font-serif text-4xl font-medium tracking-tight text-mgh-text md:text-5xl">
-            Interactive Menu Builder
-          </h1>
-          <div className="mt-4 h-px w-24 bg-gradient-to-r from-mgh-gold to-transparent" />
-          <p className="mt-4 max-w-2xl text-sm text-mgh-muted md:text-base">
-            Compose your event menu course by course, then send it to our
-            culinary directors for a tailored quote.
-          </p>
-        </header>
+          <Button
+            variant="primary"
+            onClick={loadAll}
+            className="mt-6 w-full sm:w-auto"
+          >
+            <RefreshCw size={16} aria-hidden="true" />
+            Retry Loading
+          </Button>
+        </Panel>
+      )}
 
-        {menuLoading && <MenuSkeleton />}
+      {!menuLoading && !menuError && activeBooking && (
+        <Panel className="max-w-2xl">
+          <PanelHeader
+            title="Active Booking In Progress"
+            description={getActiveBookingMessage(activeBooking)}
+            className="mb-6"
+          />
+          <Button
+            variant="primary"
+            href="/dashboard/customer/orders"
+            className="w-full sm:w-auto"
+          >
+            View My Bookings
+          </Button>
+        </Panel>
+      )}
 
-        {!menuLoading && menuError && (
-          <div className="my-10 rounded-2xl border border-mgh-danger/30 bg-mgh-danger/10 p-8 text-center">
-            <AlertTriangle
-              size={24}
-              className="mx-auto text-mgh-danger"
-              aria-hidden="true"
-            />
-            <p className="mt-4 text-sm text-mgh-danger">{menuError}</p>
-            <button
-              type="button"
-              onClick={loadAll}
-              className="mt-6 rounded-xl border border-mgh-gold bg-mgh-gold px-6 py-2.5 text-xs font-semibold uppercase tracking-wider text-mgh-gold-ink transition-all hover:bg-transparent hover:text-mgh-gold focus:outline-none focus:ring-2 focus:ring-mgh-gold/40"
-            >
-              Retry Loading
-            </button>
-          </div>
-        )}
+      {!menuLoading && !menuError && !activeBooking && state.menu && (
+        <>
+          <ProgressBar />
 
-        {!menuLoading && !menuError && activeBooking && (
-          <div className="my-10 rounded-2xl border border-mgh-line bg-mgh-surface p-8 text-center">
-            <AlertCircle
-              size={28}
-              className="mx-auto text-mgh-gold"
-              aria-hidden="true"
-            />
-            <h2 className="mt-5 font-serif text-3xl font-medium text-mgh-text">
-              Active Booking In Progress
-            </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-mgh-muted md:text-base">
-              {getActiveBookingMessage(activeBooking)}
-            </p>
-            <Link
-              href="/dashboard/customer/orders"
-              className="mt-7 inline-flex h-11 items-center justify-center rounded-xl border border-mgh-gold/40 px-5 text-sm font-semibold text-mgh-gold transition hover:border-mgh-gold hover:bg-mgh-gold hover:text-mgh-gold-ink"
-            >
-              View My Bookings
-            </Link>
-          </div>
-        )}
-
-        {!menuLoading && !menuError && !activeBooking && state.menu && (
-          <>
-            <ProgressBar />
-
-            <div className="flex flex-col gap-10 lg:flex-row">
-              <div className="min-w-0 flex-1">
-                <StepRouter />
-              </div>
-              <CartSidebar />
+          <div className="flex flex-col gap-8 md:gap-10 lg:flex-row">
+            <div className="min-w-0 flex-1">
+              <StepRouter />
             </div>
-          </>
-        )}
-      </section>
-    </main>
+            <CartSidebar />
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 
 /** Card-shaped placeholders, so the layout doesn't jump when the menu lands. */
 function MenuSkeleton() {
   return (
-    <div aria-busy="true" aria-live="polite">
-      <div className="mb-10 h-10 animate-pulse rounded-full bg-mgh-surface" />
+    <div role="status" aria-busy="true">
+      <span className="sr-only">Loading menu…</span>
+      <Skeleton className="mb-10 h-10 rounded-full" />
 
-      <div className="flex flex-col gap-10 lg:flex-row">
+      <div className="flex flex-col gap-8 md:gap-10 lg:flex-row">
         <div className="flex-1">
-          <div className="mb-8 h-9 w-72 animate-pulse rounded-lg bg-mgh-surface" />
+          <Skeleton className="mb-8 h-9 w-72 max-w-full" />
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
             {[0, 1, 2, 3, 4, 5].map((i) => (
               <div
                 key={i}
-                className="overflow-hidden rounded-xl border border-mgh-line bg-mgh-surface"
+                className="overflow-hidden rounded-card border border-mgh-line bg-mgh-surface"
               >
-                <div className="aspect-[4/3] animate-pulse bg-mgh-surface-3" />
+                <Skeleton className="aspect-[4/3] rounded-none" />
                 <div className="space-y-3 p-5">
-                  <div className="h-4 w-3/4 animate-pulse rounded bg-mgh-surface-3" />
-                  <div className="h-3 w-full animate-pulse rounded bg-mgh-surface-3" />
-                  <div className="h-9 w-full animate-pulse rounded-lg bg-mgh-surface-3" />
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-3 w-full" />
+                  <Skeleton className="h-9 w-full" />
                 </div>
               </div>
             ))}
@@ -213,14 +202,9 @@ function MenuSkeleton() {
         </div>
 
         <aside className="w-full lg:w-[360px]">
-          <div className="h-80 animate-pulse rounded-2xl border border-mgh-line bg-mgh-surface" />
+          <Skeleton className="h-80 rounded-card" />
         </aside>
       </div>
-
-      <p className="mt-8 flex items-center justify-center gap-2 text-xs uppercase tracking-widest text-mgh-faint">
-        <RefreshCw size={13} className="animate-spin" aria-hidden="true" />
-        Loading menu…
-      </p>
     </div>
   );
 }

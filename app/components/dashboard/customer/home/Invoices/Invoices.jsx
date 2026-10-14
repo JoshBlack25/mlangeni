@@ -3,15 +3,20 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Receipt, ArrowUpRight, CheckCircle2 } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { supabase } from "@/services/supabaseClient";
-import { isDummyInvoicePaid } from "@/app/utils/dummyInvoicePayments";
 import { getRuntimeInvoiceStatus } from "@/app/utils/invoiceDueDates";
-
-const currency = new Intl.NumberFormat("en-ZA", {
-  style: "currency",
-  currency: "ZAR",
-});
+import {
+  Panel,
+  Button,
+  StatusBadge,
+  Skeleton,
+  formatCurrency,
+  focusRing,
+  EmptyState,
+  Money,
+} from "@/app/components/dashboard/ui";
+import { cn } from "@/lib/utils";
 
 function statusLabel(status) {
   if (status === "sent") return "Due";
@@ -19,14 +24,10 @@ function statusLabel(status) {
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
-function statusStyles(status) {
-  if (status === "overdue") {
-    return "border-red-400/40 bg-red-400/10 text-red-400";
-  }
-  if (status === "sent") {
-    return "border-[#D4AF37]/40 bg-[#D4AF37]/10 text-[#D4AF37]";
-  }
-  return "border-white/20 bg-white/10 text-[#A0A0A0]"; // paid, cancelled
+function statusTone(status) {
+  if (status === "overdue") return "danger";
+  if (status === "sent") return "warn";
+  return "quiet"; // paid, cancelled
 }
 
 function getInvoiceTitle(inv) {
@@ -103,11 +104,10 @@ export default function Invoices() {
 
         if (mounted) {
           setInvoices(
-            (data ?? []).map((invoice) =>
-              isDummyInvoicePaid(invoice.invoices_id)
-                ? { ...invoice, status: "paid" }
-                : { ...invoice, status: getRuntimeInvoiceStatus(invoice) },
-            ),
+            (data ?? []).map((invoice) => ({
+              ...invoice,
+              status: getRuntimeInvoiceStatus(invoice),
+            })),
           );
         }
       } catch (err) {
@@ -125,32 +125,43 @@ export default function Invoices() {
     };
   }, [router]);
 
+  const heading = (
+    <h2 className="text-label font-semibold uppercase text-mgh-dim">Invoices</h2>
+  );
+
   if (error) {
     return (
-      <div className="flex h-full flex-col items-center justify-center rounded-2xl border border-red-400/20 bg-red-400/5 p-6 text-center backdrop-blur-md">
-        <p className="text-sm text-red-400">Couldn&apos;t load your invoices</p>
-        <p className="mt-1 text-xs text-[#797676]">{error}</p>
-      </div>
+      <Panel className="h-full">
+        {heading}
+        <p role="alert" className="mt-4 text-sm text-mgh-danger">
+          Couldn&apos;t load your invoices
+        </p>
+        <p className="mt-1 text-caption text-mgh-dim">{error}</p>
+      </Panel>
     );
   }
 
   if (invoices === null) {
     return (
-      <div className="flex h-full items-center justify-center rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md">
-        <p className="text-sm text-[#797676]">Loading invoices...</p>
-      </div>
+      <Panel className="h-full" aria-busy="true">
+        {heading}
+        <span className="sr-only" role="status">
+          Loading invoices…
+        </span>
+        <Skeleton className="mt-4 h-8 w-36" />
+        <Skeleton className="mt-3 h-4 w-28" />
+      </Panel>
     );
   }
 
   if (invoices.length === 0) {
     return (
-      <div className="flex h-full flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/5 p-6 text-center backdrop-blur-md">
-        <Receipt className="mb-4 text-[#D4AF37]" size={26} />
-        <h3 className="text-base font-semibold text-white">No invoices yet</h3>
-        <p className="mt-2 max-w-[16rem] text-sm text-[#A0A0A0]">
+      <Panel className="h-full">
+        {heading}
+        <EmptyState align="start" className="pb-0 pt-5" title="No invoices yet">
           Invoices for your bookings will show up here once they&apos;re issued.
-        </p>
-      </div>
+        </EmptyState>
+      </Panel>
     );
   }
 
@@ -163,93 +174,76 @@ export default function Invoices() {
   const allSettled = unpaid.length === 0;
 
   return (
-    <div className="flex h-full flex-col rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md transition-all duration-300 hover:border-[#D4AF37]">
-      {/* HEADER */}
-      <div className="flex items-center justify-between px-6 pt-6">
-        <p className="text-xs uppercase tracking-[0.2em] text-[#A0A0A0]">
-          Invoices
-        </p>
-
+    <Panel className="flex h-full flex-col">
+      <div className="flex items-center justify-between gap-3">
+        {heading}
         {!allSettled && (
-          <span className="rounded-full border border-[#D4AF37]/40 bg-[#D4AF37]/10 px-2.5 py-0.5 text-[11px] font-medium text-[#D4AF37]">
+          <span className="text-caption tabular-nums text-mgh-muted">
             {unpaid.length} due
           </span>
         )}
       </div>
 
-      {/* HEADLINE */}
-      <div className="px-6 pt-3">
-        {allSettled ? (
-          <div className="flex items-center gap-2">
-            <CheckCircle2 size={20} className="text-[#D4AF37]" />
-            <p className="text-lg font-semibold text-white">
-              You&apos;re all caught up
-            </p>
-          </div>
-        ) : (
-          <>
-            <p className="text-3xl font-bold text-white">
-              {currency.format(totalDue)}
-            </p>
-            <p className="mt-1 text-sm text-[#A0A0A0]">
-              outstanding - {unpaid.length} invoice
-              {unpaid.length === 1 ? "" : "s"}
-            </p>
-          </>
-        )}
-      </div>
-
-      {/* RECENT UNPAID LIST */}
-      {!allSettled && (
-        <div className="mt-4 flex-1">
-          {recentUnpaid.map((inv) => (
-            <div
-              key={inv.invoices_id}
-              className="flex items-center justify-between gap-3 border-t border-white/5 px-6 py-3"
-            >
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-white">
-                  {getInvoiceTitle(inv)}
-                </p>
-                <p className="text-xs text-[#797676]">
-                  INV-{inv.invoices_id.slice(0, 8).toUpperCase()}
-                </p>
-              </div>
-
-              <div className="shrink-0 text-right">
-                <p className="text-sm font-semibold text-white">
-                  {currency.format(Number(inv.total_amount))}
-                </p>
-                <span
-                  className={`mt-1 inline-block rounded-full border px-2 py-0.5 text-[10px] font-medium ${statusStyles(
-                    inv.status,
-                  )}`}
-                >
-                  {statusLabel(inv.status)}
-                </span>
-              </div>
-            </div>
-          ))}
+      {allSettled ? (
+        <p className="mt-4 font-serif text-xl text-mgh-text">
+          You&apos;re all caught up
+        </p>
+      ) : (
+        <div className="mt-4">
+          <p className="font-serif text-[2.5rem] font-medium leading-none text-mgh-gold">
+            <Money value={totalDue} />
+          </p>
+          <p className="mt-2 text-sm text-mgh-muted">
+            outstanding across {unpaid.length} invoice
+            {unpaid.length === 1 ? "" : "s"}
+          </p>
         </div>
       )}
 
-      {/* FOOTER CTA */}
-      {allSettled ? (
-        <Link
-          href="/dashboard/customer/payments"
-          className="mt-auto flex items-center justify-between border-t border-white/10 px-6 py-3 text-sm font-medium text-[#D4AF37] transition-all duration-300 hover:gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-inset"
-        >
-          View all invoices
-          <ArrowUpRight size={16} />
-        </Link>
-      ) : (
-        <Link
-          href="/dashboard/customer/payments"
-          className="mt-auto flex items-center justify-center gap-2 rounded-b-2xl bg-[#D4AF37] px-6 py-3 text-sm font-semibold text-black transition hover:bg-[#e0bd4a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A]"
-        >
-          Pay Now
-        </Link>
+      {!allSettled && (
+        <ul className="mt-5 divide-y divide-mgh-line-soft border-t border-mgh-line">
+          {recentUnpaid.map((inv) => (
+            <li key={inv.invoices_id} className="flex items-center justify-between gap-3 py-3">
+              <div className="min-w-0">
+                <p className="truncate text-sm text-mgh-text">{getInvoiceTitle(inv)}</p>
+                <p className="text-caption tabular-nums text-mgh-dim">
+                  INV-{inv.invoices_id.slice(0, 8).toUpperCase()}
+                </p>
+              </div>
+              <div className="shrink-0 text-right">
+                <p className="text-sm tabular-nums lining-nums text-mgh-text">
+                  {formatCurrency(Number(inv.total_amount))}
+                </p>
+                <StatusBadge
+                  className="mt-1"
+                  status={inv.status}
+                  label={statusLabel(inv.status)}
+                  tone={statusTone(inv.status)}
+                />
+              </div>
+            </li>
+          ))}
+        </ul>
       )}
-    </div>
+
+      <div className="mt-auto pt-5">
+        {allSettled ? (
+          <Link
+            href="/dashboard/customer/payments"
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-sm text-sm text-mgh-muted transition-colors hover:text-mgh-text",
+              focusRing,
+            )}
+          >
+            View all invoices
+            <ArrowRight size={14} aria-hidden="true" />
+          </Link>
+        ) : (
+          <Button href="/dashboard/customer/payments" variant="primary" className="w-full">
+            Pay Now
+          </Button>
+        )}
+      </div>
+    </Panel>
   );
 }

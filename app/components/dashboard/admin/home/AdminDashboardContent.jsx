@@ -7,32 +7,24 @@ import ConsultationRequests from "./NewOrders/NewOrders";
 import RecentEnquiries from "./RecentEnquiries/RecentEnquiries";
 import UpcomingConfirmedEvents from "./UpcomingConfirmedEvents/UpcomingConfirmedEvents";
 
+/**
+ * Admin "Today": the date, what needs action, the month's figures, then the
+ * pipeline (requests, meetings, enquiries) beside the events coming up.
+ */
 export default function AdminDashboardContent() {
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6">
       <AdminHero />
 
       <AdminStats />
 
-      {/* Bento grid: Active Meetings | Consultation Requests + Recent Enquiries | Upcoming Confirmed Events */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-4 lg:auto-rows-[minmax(240px,auto)]">
-        <div className="lg:col-span-2 lg:row-span-2">
-          <ActiveConsultations />
-        </div>
-
-        <div className="flex flex-col gap-6 lg:col-span-1 lg:row-span-2">
-          <div className="flex-1">
-            <ConsultationRequests />
-          </div>
-          <div className="flex-1">
-            <RecentEnquiries />
-          </div>
-        </div>
-
-        <div className="lg:col-span-1 lg:row-span-2">
-          <UpcomingConfirmedEvents />
-        </div>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <ConsultationRequests />
+        <ActiveConsultations />
+        <UpcomingConfirmedEvents />
       </div>
+
+      <RecentEnquiries />
     </div>
   );
 }

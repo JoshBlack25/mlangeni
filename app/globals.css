@@ -1,6 +1,9 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+/* Global rather than imported from PhoneInputField: a client component's CSS
+   import is preloaded on every route and triggers an unused-preload warning. */
+@import "react-phone-number-input/style.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -29,6 +32,10 @@
 
   /* text */
   --mgh-text: #ffffff;
+  /* Warm off-white for the guest-facing surfaces (public site, login and the
+     customer dashboard). A tint of the white above, not a new hue; it reads
+     like linen by candlelight where pure white reads like a screen. */
+  --mgh-ivory: #f2ebdf;
   --mgh-text-muted: #a0a0a0;
   --mgh-text-dim: #888888;
   --mgh-text-faint: #666666;
@@ -60,6 +67,7 @@
   --color-mgh-gold-hover: var(--mgh-gold-hover);
   --color-mgh-gold-ink: var(--mgh-gold-ink);
   --color-mgh-text: var(--mgh-text);
+  --color-mgh-ivory: var(--mgh-ivory);
   --color-mgh-muted: var(--mgh-text-muted);
   --color-mgh-dim: var(--mgh-text-dim);
   --color-mgh-faint: var(--mgh-text-faint);
@@ -67,6 +75,113 @@
   --color-mgh-danger: var(--mgh-danger);
   --color-mgh-warn: var(--mgh-warn);
   --color-mgh-ok: var(--mgh-ok);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Dashboard system: non-colour tokens. Colour stays on the
+   --mgh-* palette above; these only set scale, shape and motion.
+   Utilities: text-display, text-title, text-figure, text-body,
+   text-body-dense, text-label, text-caption, rounded-control,
+   rounded-card, rounded-sheet, shadow-modal, max-w-customer,
+   max-w-admin, ease-mgh.
+   ────────────────────────────────────────────────────────────── */
+@theme {
+  --text-display: 2.5rem;
+  --text-display--line-height: 1.1;
+  --text-display--letter-spacing: -0.015em;
+  --text-display-sm: 2rem;
+  --text-display-sm--line-height: 1.15;
+  --text-display-sm--letter-spacing: -0.01em;
+  --text-title: 1.5rem;
+  --text-title--line-height: 1.25;
+  --text-figure: 2rem;
+  --text-figure--line-height: 1.1;
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.6;
+  --text-body-dense: 0.875rem;
+  --text-body-dense--line-height: 1.45;
+  --text-label: 0.6875rem;
+  --text-label--line-height: 1.2;
+  --text-label--letter-spacing: 0.14em;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1.4;
+
+  --radius-control: 8px;
+  --radius-card: 12px;
+  --radius-sheet: 16px;
+
+  --shadow-modal: 0 24px 48px -16px rgb(0 0 0 / 0.75),
+    0 8px 16px -8px rgb(0 0 0 / 0.6);
+
+  --container-customer: 70rem;
+  --container-admin: 90rem;
+
+  --ease-mgh: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Guest-facing surfaces set their text in ivory. Scoped with :has() so that
+   portaled dialogs and sheets (rendered under <body>) pick it up too, while
+   the admin workspace keeps plain white. */
+:root:has(.mgh-warm) {
+  --mgh-text: var(--mgh-ivory);
+}
+
+/* Public site: in-page links land below the fixed nav, and glide there
+   unless the visitor has asked for less motion. */
+:root:has(.mgh-site) {
+  scroll-padding-top: 5rem;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root:has(.mgh-site) {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Sections focused after an in-page jump (for screen readers) need no ring. */
+.mgh-site [tabindex="-1"]:focus {
+  outline: none;
+}
+
+.mgh-site ::selection {
+  background: rgb(212 175 55 / 0.3);
+  color: var(--mgh-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mgh-site *,
+  .mgh-site *::before,
+  .mgh-site *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Browser surfaces inside the dashboards carry the palette too. */
+.mgh-dashboard ::selection {
+  background: rgb(212 175 55 / 0.3);
+  color: var(--mgh-text);
+}
+
+.mgh-dashboard input,
+.mgh-dashboard textarea {
+  caret-color: var(--mgh-gold);
+}
+
+.mgh-dashboard * {
+  scrollbar-color: var(--mgh-line-strong) transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mgh-dashboard *,
+  .mgh-dashboard *::before,
+  .mgh-dashboard *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 @theme inline {
@@ -536,6 +651,7 @@
   line-height: 1;
 }
 
+.mgh-auth-box h1,
 .mgh-auth-box h2 {
   margin: 0 0 36px;
   color: #ffffff;
@@ -751,6 +867,7 @@
     max-width: 500px;
   }
 
+  .mgh-auth-box h1,
   .mgh-auth-box h2 {
     font-size: 34px;
   }
@@ -863,277 +980,46 @@
   }
 }
 
-.mgh-menu {
-  min-height: 100vh;
-  width: 100%;
-  background-image:
-    linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.55)),
-    url("/images/auth-bg.png");
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
-  display: flex;
-  justify-content: center;
-  padding: 70px 24px 80px;
-}
-
-.mgh-menu-page {
-  width: 100%;
-  max-width: 960px;
-  padding: 48px 60px;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(6px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  color: #ffffff;
-  /* font-family: Georgia, "Times New Roman", serif; */
-  text-align: center;
-}
-
-.mgh-menu-page h1 {
-  color: #ffffff;
-  font-size: 34px;
-  font-weight: 400;
-  margin: 0 0 8px;
-}
-
-.mgh-menu-page h2 {
-  color: #c8a022;
-  font-size: 22px;
-  font-weight: 400;
-  margin: 34px 0 16px;
-}
-
-/* .mgh-menu-line {
-  width: 125px;
-  height: 2px;
-  background: #c8a022;
-  margin: 10px 0 30px;
-} */
-
-.mgh-menu-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
-}
-
-.mgh-menu-card {
-  height: 300px;
-  display: flex;
-  flex-direction: column;
-  border: 1.2px solid rgba(255, 255, 255, 0.88);
-  border-radius: 6px;
-  background: rgba(0, 0, 0, 0.16);
-  padding: 22px 24px;
-  cursor: pointer;
-  transition: border-color 0.15s ease;
-}
-
-.mgh-menu-card:hover {
-  border-color: #c8a022;
-}
-
-.mgh-menu-card.selected {
-  border-color: #c8a022;
-  background: rgba(200, 160, 34, 0.08);
-}
-
-.mgh-menu-card h3 {
-  margin: 0 0 6px;
-  color: #ffffff;
-  font-size: 21px;
-  font-weight: 400;
-}
-
-.mgh-menu-card p {
-  margin: 0 0 14px;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 15.5px;
-  line-height: 1.3;
-}
-
-.mgh-menu-card ul {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 14px;
-  flex: 1;
-  overflow-y: auto;
-}
-
-.mgh-menu-card li {
-  color: rgba(255, 255, 255, 0.88);
-  font-size: 15.5px;
-  padding: 3px 0;
-}
-
-.mgh-menu-card strong {
-  color: #c8a022;
-  font-size: 17px;
-  font-weight: 400;
-  margin-top: auto;
-}
-
-.mgh-menu-form {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  max-width: 420px;
-  margin: 0 auto;
-  text-align: left;
-}
-
-.mgh-menu-input-box {
-  height: 54px;
-  border: 1.2px solid rgba(255, 255, 255, 0.88);
-  border-radius: 5px;
-  background: rgba(0, 0, 0, 0.16);
-  display: flex;
-  align-items: center;
-  padding: 0 18px;
-}
-
-.mgh-menu-input-box select,
-.mgh-menu-input-box input {
-  flex: 1;
-  height: 100%;
-  width: 100%;
-  border: none;
-  outline: none;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.92);
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 18px;
-}
-
-.mgh-menu-input-box select option {
-  background: #000000;
-  color: #ffffff;
-}
-
-.mgh-menu-label {
-  color: rgba(255, 255, 255, 0.85);
-  font-size: 15px;
-  margin-bottom: 2px;
-}
-
-.mgh-menu-submit-btn {
-  width: 100%;
-  height: 54px;
-  border: none;
-  border-radius: 5px;
-  background: linear-gradient(90deg, #b69025, #dfbd36, #b68d21);
-  color: #050505;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 19px;
-  cursor: pointer;
-  margin-top: 8px;
-}
-
-.mgh-menu-submit-btn:disabled {
-  background: rgba(255, 255, 255, 0.2);
-  color: rgba(255, 255, 255, 0.5);
-  cursor: not-allowed;
-}
-
-.mgh-menu-error {
-  color: #e05c4a;
-  font-size: 16px;
-  margin-top: 14px;
-}
-
-.mgh-menu-success {
-  color: #7fce8c;
-  font-size: 16px;
-  margin-top: 14px;
-}
-
-@media (max-width: 700px) {
-  .mgh-menu-page {
-    padding: 32px 22px;
-  }
-}
-
-.mgh-spinner-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 300px;
-  gap: 18px;
-}
-
-.mgh-spinner {
-  width: 48px;
-  height: 48px;
-  border: 3px solid rgba(255, 255, 255, 0.15);
-  border-top-color: #c8a022;
-  border-radius: 50%;
-  animation: mgh-spin 0.8s linear infinite;
-}
-
-.mgh-spinner-wrap p {
-  color: rgba(255, 255, 255, 0.65);
-  font-size: 16px;
-}
-
-@keyframes mgh-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
+/* Matches the dashboard kit's Input (app/components/dashboard/ui/Field.jsx). */
 .mgh-date-btn{
-  width: 212px;
-  height: 54px;
-  border: 1.2px solid rgba(255, 255, 255, 0.88);
-  border-radius: 5px;
-  background: rgba(0, 0, 0, 0.16);
-  color: rgba(255, 255, 255, 0.92) !important;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 18px;
+  width: 100%;
+  height: 40px;
+  border: 1px solid var(--mgh-line);
+  border-radius: var(--radius-control);
+  background: var(--mgh-surface-2);
+  color: var(--mgh-text) !important;
+  font-family: inherit;
+  font-size: 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 18px;
+  padding: 0 12px;
   cursor: pointer;
 }
 
+.mgh-date-btn:focus-visible {
+  outline: none;
+  border-color: var(--mgh-gold);
+  box-shadow: 0 0 0 3px rgb(212 175 55 / 0.2);
+}
+
 .mgh-date-popover{
-  background: #0a0a0a;
-  border: 1.2px solid rgba(255, 255, 255, 0.3);
-  color: #c8a022;
+  background: var(--mgh-bg);
+  border: 1px solid var(--mgh-line-strong);
+  color: var(--mgh-gold);
 }
 
 .mgh-date-popover [data-today="true"] {
   background: transparent !important;
-  color: #c8a022 !important;
-  border: 1px solid #c8a022;
+  color: var(--mgh-gold) !important;
+  border: 1px solid var(--mgh-gold);
 }
 
 .mgh-date-popover [data-today="true"]:hover,
 .mgh-date-popover button:hover {
-  background: rgba(200, 160, 34, 0.2) !important;
-  color: #ffffff !important;
+  background: rgb(212 175 55 / 0.2) !important;
+  color: var(--mgh-text) !important;
 }
-
-.mgh-menu-carousel {
-  max-width: 520px;
-  margin: 0 auto;
-}
-
-.mgh-menu-carousel [data-slot="carousel-previous"],
-.mgh-menu-carousel [data-slot="carousel-next"] {
-  background: rgba(0, 0, 0, 0.6) !important;
-  border: 1.2px solid rgba(255, 255, 255, 0.5) !important;
-  color: #ffffff !important;
-}
-
-.mgh-menu-carousel [data-slot="carousel-previous"]:hover,
-.mgh-menu-carousel [data-slot="carousel-next"]:hover {
-  background: rgba(200, 160, 34, 0.3) !important;
-  border-color: #c8a022 !important;
-}
-
 
 /*Source - https://stackoverflow.com/a/64184578*/
 input[type="time"]::-webkit-calendar-picker-indicator{
@@ -1200,4 +1086,137 @@ input[type="time"]::-webkit-calendar-picker-indicator{
 
 .mgh-menu-calendar .mgh-day-full::after {
   display: none;
+}
+
+/* Skeletons: a slow band of light passing over the placeholder, like a
+   candle moving past a table. Static under reduced motion. */
+@keyframes mgh-shimmer {
+  from {
+    background-position: 150% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}
+
+.mgh-shimmer {
+  background-color: var(--mgh-surface-3);
+  background-image: linear-gradient(
+    100deg,
+    transparent 30%,
+    rgb(255 255 255 / 0.045) 50%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  animation: mgh-shimmer 1.8s var(--mgh-ease) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mgh-shimmer {
+    animation: none;
+  }
+}
+
+/* Dashboard loader: a gold hairline travelling under the wordmark. */
+@keyframes mgh-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
+
+.mgh-sweep {
+  animation: mgh-sweep 1.4s var(--mgh-ease) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mgh-sweep {
+    animation: none;
+    transform: translateX(100%);
+  }
+}
+
+/* Enquiry form: native date and phone controls in the house colours. */
+.mgh-enquiry input[type="date"] {
+  color-scheme: dark;
+}
+
+.mgh-enquiry input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) opacity(0.7);
+  cursor: pointer;
+}
+
+.mgh-enquiry input[type="number"]::-webkit-inner-spin-button,
+.mgh-enquiry input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.mgh-enquiry .mgh-phone .PhoneInputCountry {
+  margin-right: 10px;
+}
+
+.mgh-enquiry .mgh-phone .PhoneInputCountrySelect {
+  background: var(--mgh-bg);
+  color: var(--mgh-text);
+}
+
+.mgh-enquiry .mgh-phone .PhoneInputCountrySelectArrow {
+  color: var(--mgh-gold);
+  opacity: 1;
+}
+
+.mgh-enquiry .mgh-phone .PhoneInputInput {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--mgh-text);
+  font-size: 15px;
+  padding: 0.25rem 0;
+  width: 100%;
+}
+
+.mgh-enquiry .mgh-phone .PhoneInputInput::placeholder {
+  color: var(--mgh-text-dim);
+}
+
+.mgh-enquiry .mgh-phone .PhoneInputCountry:focus-within {
+  outline: 2px solid var(--mgh-gold);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Awards strip: one set slides out while its twin slides in. */
+@keyframes mgh-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.mgh-marquee {
+  animation: mgh-marquee 70s linear infinite;
+}
+
+.mgh-marquee-viewport:hover .mgh-marquee,
+.mgh-marquee[data-paused] {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mgh-marquee {
+    animation: none;
+  }
+
+  .mgh-marquee-viewport {
+    overflow-x: auto;
+  }
+
+  .mgh-marquee-toggle {
+    display: none;
+  }
 }

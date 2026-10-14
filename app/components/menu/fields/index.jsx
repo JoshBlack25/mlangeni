@@ -27,7 +27,7 @@ export function Field({ id, label, required, hint, error, children }) {
       {children}
 
       {hint && !error && (
-        <p id={`${id}-hint`} className="mt-1.5 text-xs text-mgh-faint">
+        <p id={`${id}-hint`} className="mt-1.5 text-xs text-mgh-dim">
           {hint}
         </p>
       )}
@@ -152,7 +152,7 @@ export function ReadOnlyField({ id, label, value, hint }) {
         id={id}
         className="w-full truncate rounded-xl border border-dashed border-mgh-line bg-mgh-surface-3 px-4 py-3 text-sm text-mgh-dim"
       >
-        {value || "—"}
+        {value || "Not set"}
       </div>
     </Field>
   );

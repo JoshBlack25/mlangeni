@@ -12,7 +12,7 @@ export function FoodImage({ src, alt, className }) {
 
   if (errored || !src) {
     return (
-      <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-mgh-surface-3 text-xs text-mgh-faint">
+      <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-mgh-surface-3 text-xs text-mgh-dim">
         <ImageOff size={20} aria-hidden="true" />
         No image available
       </div>

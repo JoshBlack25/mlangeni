@@ -1,40 +1,43 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import Image from "next/image";
+import Link from "next/link";
 import { motion } from "framer-motion";
-import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 
-const HOVER_ACTIVATION_DELAY = 2000;
+// A short settle before hover takes over, so the page doesn't lurch the
+// moment the cursor happens to be resting over one half on load.
+const HOVER_ACTIVATION_DELAY = 400;
+
+const SIDES = {
+  left: {
+    title: "Mlangeni Events",
+    body: "Creating the world's most memorable events with precision, style and imagination.",
+    cta: { label: "Start Planning", href: "#contact" },
+    image: "/images/events-thumbnail.png",
+    position: "object-[50%_30%]",
+  },
+  right: {
+    title: "Hospitality Collection",
+    body: "Delivering unique dining experiences and venue management at world famous locations.",
+    cta: { label: "View Menus", href: "/dashboard/customer/menu" },
+    image: "/images/gallery_images/gallery-hero.png",
+    position: "object-center",
+  },
+};
 
 export default function Hero() {
-  const router = useRouter();
   const [active, setActive] = useState(null);
-  const [loaded, setLoaded] = useState(false);
   const [canInteract, setCanInteract] = useState(false);
-
-  const handleToggle = (side) => {
-    setActive((prev) => (prev === side ? null : side));
-  };
+  const [isMobile, setIsMobile] = useState(false);
+  const [isLandscapeTablet, setIsLandscapeTablet] = useState(false);
+  const heroRef = useRef(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setCanInteract(true), HOVER_ACTIVATION_DELAY);
     return () => clearTimeout(timer);
   }, []);
-
-  const baseTransition = "transition-all duration-750 ease-in";
-
-  let logoTransform = "translate-x-0 translate-y-0";
-  if (active === "left") {
-    logoTransform =
-      "translate-y-[24.5vh] md:translate-y-0 md:translate-x-[17.5vw]";
-  } else if (active === "right") {
-    logoTransform =
-      "-translate-y-[17.5vh] md:translate-y-0 md:-translate-x-[17.5vw]";
-  }
-
-  const [isMobile, setIsMobile] = useState(false);
-  const [isLandscapeTablet, setIsLandscapeTablet] = useState(false);
-  const heroRef = useRef(null);
 
   useEffect(() => {
     const mqMobile = window.matchMedia("(max-width: 768px)");
@@ -77,207 +80,173 @@ export default function Hero() {
   // Use tap behavior on mobile OR landscape tablet
   const isTapDevice = isMobile || isLandscapeTablet;
 
+  const handlers = (side) => ({
+    onPointerEnter: (e) => {
+      if (canInteract && e.pointerType === "mouse" && !isLandscapeTablet) setActive(side);
+    },
+    onPointerLeave: (e) => {
+      if (canInteract && e.pointerType === "mouse" && !isLandscapeTablet) setActive(null);
+    },
+    onClick: (e) => {
+      if (!canInteract || e.target.closest("a")) return;
+      setActive((prev) => (isTapDevice ? (prev === side ? null : side) : side));
+    },
+    // Keyboard users open a half by tabbing into it.
+    onFocus: () => setActive(side),
+  });
+
+  // The crest steps aside for whichever half is open.
+  let crestShift = "translate-x-0 translate-y-0";
+  if (active === "left") crestShift = "translate-y-[24vh] md:translate-y-0 md:translate-x-[17.5vw]";
+  else if (active === "right") crestShift = "-translate-y-[17vh] md:translate-y-0 md:-translate-x-[17.5vw]";
+
   return (
     <section
       ref={heroRef}
-      id="hero"
-      className="relative h-screen w-full flex flex-col md:flex-row overflow-hidden bg-black"
+      aria-labelledby="hero-title"
+      className="relative flex min-h-[100dvh] w-full flex-col overflow-hidden bg-mgh-bg md:flex-row"
     >
-      {/* LEFT SECTION */}
-      <div
-        onPointerEnter={(e) => {
-          if (canInteract && e.pointerType === "mouse" && !isLandscapeTablet) {
-            setActive("left");
-          }
-        }}
-        onPointerLeave={(e) => {
-          if (canInteract && e.pointerType === "mouse" && !isLandscapeTablet) {
-            setActive(null);
-          }
-        }}
-        onClick={() => {
-          if (!canInteract) return;
-          setActive((prev) =>
-            isTapDevice ? (prev === "left" ? null : "left") : "left",
-          );
-        }}
-        className={`relative overflow-hidden min-h-0 cursor-pointer ${baseTransition}
-        ${
-          active === "left"
-            ? "md:flex-[1.35] flex-[2.6]"
-            : active === "right"
-              ? "md:flex-[0.65] flex-[0.8]"
-              : "md:flex-1 flex-1"
-        }
-        ${active === "right" ? "brightness-90 md:blur-[1px]" : ""}`}
-      >
-        <div className="relative w-full h-full">
-          <img
-            src="/images/events-thumbnail.png"
-            alt="Mlangeni Events"
-            className="absolute inset-0 w-full h-full object-cover brightness-60"
-          />
-        </div>
+      <h1 id="hero-title" className="sr-only">
+        Mlangeni Grand Hospitality: Mlangeni Events and the Hospitality Collection
+      </h1>
 
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center md:text-left px-4 md:px-0 flex flex-col gap-4">
-            <h1
-              className={`
-                text-3xl sm:text-3xl md:text-4xl font-light font-[Playfair_Display] tracking-wide text-white
-                transition-all duration-500 ease-in-out
-                drop-shadow-[0_0_18px_rgba(255,255,255,0.9)]
-                ${
-                  active === "left"
-                    ? "mt-4"
-                    : isLandscapeTablet
-                      ? "mt-8" /* tighter top margin in landscape tablet */
-                      : "mt-20 md:mt-50"
-                }
-              `}
-            >
-              Mlangeni Events
-            </h1>
-            <div
-              className={`transition-all duration-500 ease-out ${
-                active === "left"
-                  ? "opacity-100 translate-y-0"
-                  : "opacity-0 translate-y-6"
-              }`}
-            >
-              <p className="text-xs sm:text-sm md:text-base leading-relaxed text-white/80 mb-0 max-w-md mx-auto md:mx-0 drop-shadow-[0_0_18px_rgba(255,255,255,0.9)]">
-                Creating the world's most memorable events with precision, style
-                and imagination.
-              </p>
-              <motion.button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  router.push("/login");
-                }}
-                className="relative inline-flex items-center justify-center px-0 py-3 text-xs tracking-[0.25em] uppercase text-[#D4AF37] transition-all duration-400 overflow-hidden cursor-pointer"
-                initial="rest"
-                animate="rest"
-                whileHover="hover"
-              >
-                <span className="relative z-10">Start Planning</span>
-                <motion.span
-                  className="absolute left-0 bottom-1 h-px bg-amber-200 drop-shadow-[0_0_10px_rgba(251,191,36,0.9)]"
-                  variants={{
-                    rest: { width: "0%" },
-                    hover: { width: "75%" },
-                  }}
-                  transition={{ duration: 0.6, ease: [0.77, 0, 0.175, 1] }}
-                />
-              </motion.button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* RIGHT SECTION */}
-      <div
-        onPointerEnter={(e) => {
-          if (canInteract && e.pointerType === "mouse" && !isLandscapeTablet) {
-            setActive("right");
-          }
-        }}
-        onPointerLeave={(e) => {
-          if (canInteract && e.pointerType === "mouse" && !isLandscapeTablet) {
-            setActive(null);
-          }
-        }}
-        onClick={() => {
-          if (!canInteract) return;
-          setActive((prev) =>
-            isTapDevice ? (prev === "right" ? null : "right") : "right",
-          );
-        }}
-        className={`relative overflow-hidden min-h-0 cursor-pointer ${baseTransition}
-        ${
-          active === "right"
-            ? "md:flex-[1.35] flex-[1.6]"
-            : active === "left"
-              ? "md:flex-[0.65] flex-[0.9]"
-              : "md:flex-1 flex-1"
-        }
-        ${active === "left" ? "brightness-60 md:blur-[1px]" : ""}`}
-      >
-        <div className="relative w-full h-full">
-          <img
-            src="/images/hospitality-thumbnail.png"
-            alt="Hospitality Collection"
-            className="absolute inset-0 w-full h-full object-cover brightness-60"
-          />
-        </div>
-
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center md:text-left px-4 md:px-0 flex flex-col gap-6">
-            <h1
-              className={`
-                text-3xl sm:text-3xl md:text-4xl font-light font-[Playfair_Display] tracking-wide text-white
-                transition-all duration-500 ease-in-out
-                drop-shadow-[0_0_18px_rgba(255,255,255,0.9)]
-                ${
-                  active === "right"
-                    ? "mt-4"
-                    : isLandscapeTablet
-                      ? "mt-8" /* tighter top margin in landscape tablet */
-                      : "mt-20 md:mt-50"
-                }
-              `}
-            >
-              Hospitality Collection
-            </h1>
-            <div
-              className={`transition-all duration-500 ease-out ${
-                active === "right"
-                  ? "opacity-100 translate-y-0"
-                  : "opacity-0 translate-y-6"
-              }`}
-            >
-              <p className="text-xs sm:text-sm md:text-base leading-relaxed text-white/80 mb-0 max-w-md mx-auto md:mx-0">
-                Delivering unique dining experiences and venue management at
-                world famous locations.
-              </p>
-              <motion.button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  router.push("/blank");
-                }}
-                className="relative inline-flex items-center justify-center px-0 py-3 text-xs tracking-[0.25em] uppercase text-[#D4AF37] transition-all duration-400 overflow-hidden cursor-pointer"
-                initial="rest"
-                animate="rest"
-                whileHover="hover"
-              >
-                <span className="relative z-10">View Menus</span>
-                <motion.span
-                  className="absolute left-0 bottom-1 h-px bg-amber-200"
-                  variants={{ rest: { width: "0%" }, hover: { width: "75%" } }}
-                  transition={{ duration: 0.6, ease: [0.77, 0, 0.175, 1] }}
-                />
-              </motion.button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* CENTER LOGO */}
-      <div className="pointer-events-none absolute inset-0 flex items-center justify-center z-20">
-        <motion.img
-          src="/logos/logo2.png"
-          alt="Center Logo"
-          className={`
-            opacity-90 brightness-150 ${baseTransition} ${logoTransform}
-            ${isLandscapeTablet ? "w-20" : "w-24 md:w-40"}
-          `}
-          initial={{ opacity: 1, scale: 2, y: 20 }}
-          animate={{
-            opacity: 1,
-            scale: isLandscapeTablet ? 1.6 : 2.2,
-            y: 0,
-          }}
-          transition={{ duration: 0.5, ease: [0.77, 0, 0.175, 1] }}
+      {["left", "right"].map((side) => (
+        <HeroHalf
+          key={side}
+          side={side}
+          content={SIDES[side]}
+          active={active}
+          isLandscapeTablet={isLandscapeTablet}
+          {...handlers(side)}
         />
+      ))}
+
+      {/* CENTRE CREST */}
+      <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.94 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
+          className={cn("transition-transform duration-700 ease-mgh", crestShift)}
+        >
+          <Image
+            src="/logos/logo2.png"
+            alt=""
+            width={1303}
+            height={777}
+            preload
+            sizes="(min-width: 768px) 300px, 200px"
+            className={cn(
+              "h-auto drop-shadow-[0_2px_24px_rgb(10_10_10/0.6)]",
+              isLandscapeTablet ? "w-36" : "w-44 md:w-64 lg:w-72",
+            )}
+          />
+        </motion.div>
       </div>
     </section>
+  );
+}
+
+function HeroHalf({ side, content, active, isLandscapeTablet, ...handlers }) {
+  const isOpen = active === side;
+  const isOther = active && active !== side;
+
+  return (
+    <div
+      {...handlers}
+      className={cn(
+        "relative min-h-0 cursor-pointer overflow-hidden transition-[flex-grow] duration-700 ease-mgh",
+        isOpen
+          ? side === "left"
+            ? "flex-[2.6] md:flex-[1.35]"
+            : "flex-[1.6] md:flex-[1.35]"
+          : isOther
+            ? side === "left"
+              ? "flex-[0.8] md:flex-[0.65]"
+              : "flex-[0.9] md:flex-[0.65]"
+            : "flex-1",
+      )}
+    >
+      <Image
+        src={content.image}
+        alt=""
+        fill
+        preload
+        sizes="(min-width: 768px) 68vw, 100vw"
+        className={cn(
+          "object-cover transition-transform duration-[1400ms] ease-mgh",
+          content.position,
+          isOpen ? "scale-[1.03]" : "scale-100",
+        )}
+      />
+
+      {/* Candlelight, not a spotlight: the photograph dims as it falls away
+          from the words, and the closed half rests in shadow. */}
+      <div aria-hidden="true" className="absolute inset-0 bg-mgh-bg/30" />
+      <div
+        aria-hidden="true"
+        className={cn(
+          "absolute inset-0 bg-linear-to-t from-mgh-bg via-mgh-bg/45 to-transparent",
+          // Stacked on phones, the top half reads from its top edge so the
+          // crest in the middle never sits on its words.
+          side === "left" && "max-md:bg-linear-to-b",
+        )}
+      />
+      <div
+        aria-hidden="true"
+        className={cn(
+          "absolute inset-0 bg-mgh-bg transition-opacity duration-700 ease-mgh",
+          isOther ? "opacity-55" : "opacity-0",
+        )}
+      />
+
+      <div
+        className={cn(
+          "absolute inset-x-0 bottom-0 flex flex-col px-6 pb-10 sm:px-10 md:px-12 md:pb-16 lg:px-16 lg:pb-20",
+          side === "left" && "max-md:bottom-auto max-md:top-0 max-md:pb-0 max-md:pt-24",
+          side === "right" && "md:items-end md:text-right",
+        )}
+      >
+        <h2
+          className={cn(
+            "font-serif font-normal leading-[1.05] tracking-[-0.01em] text-mgh-text",
+            isLandscapeTablet ? "text-3xl" : "text-[2.25rem] sm:text-5xl lg:text-6xl",
+          )}
+        >
+          {content.title}
+        </h2>
+
+        <div
+          className={cn(
+            "grid transition-[grid-template-rows,opacity] duration-500 ease-mgh",
+            isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+          )}
+        >
+          <div className="overflow-hidden">
+            <p
+              className={cn(
+                "mt-4 max-w-[34ch] text-pretty text-[15px] leading-relaxed text-mgh-text/80 md:text-base",
+                side === "right" && "md:ml-auto",
+              )}
+            >
+              {content.body}
+            </p>
+            <Link
+              href={content.cta.href}
+              className={cn(
+                "group/cta mt-5 inline-flex items-center gap-3 rounded-control py-2 text-[0.72rem] font-medium uppercase tracking-[0.28em] text-mgh-gold",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mgh-gold focus-visible:ring-offset-4 focus-visible:ring-offset-mgh-bg",
+              )}
+            >
+              {content.cta.label}
+              <span
+                aria-hidden="true"
+                className="h-px w-8 bg-mgh-gold transition-[width] duration-500 ease-mgh group-hover/cta:w-14"
+              />
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

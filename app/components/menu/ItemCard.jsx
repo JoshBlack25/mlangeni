@@ -3,8 +3,8 @@
 import { motion } from "framer-motion";
 import { Check, Info, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { focusRing } from "@/app/components/dashboard/ui";
 import { FoodImage } from "./FoodImage";
-import { TAG_COLORS } from "./constants";
 import { formatZAR } from "./pricing";
 
 /**
@@ -29,16 +29,16 @@ export function ItemCard({
       exit={{ opacity: 0, scale: 0.96 }}
       transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
-        "group relative flex flex-col justify-between overflow-hidden rounded-xl border bg-mgh-surface",
-        "transition-all duration-300 hover:-translate-y-1",
+        "group relative flex flex-col justify-between overflow-hidden rounded-card border bg-mgh-surface",
+        "transition-[border-color,box-shadow] duration-[var(--mgh-dur)] ease-mgh",
         selected
-          ? "border-mgh-gold shadow-[0_0_0_1px_rgba(212,175,55,0.35),0_18px_40px_-24px_rgba(212,175,55,0.5)]"
-          : "border-mgh-line hover:border-mgh-line-strong hover:shadow-[0_18px_40px_-28px_rgba(0,0,0,0.9)]",
+          ? "border-mgh-gold ring-1 ring-mgh-gold/35"
+          : "border-mgh-line hover:border-mgh-line-strong",
       )}
     >
       {selected && (
         <span
-          className="absolute right-0 top-0 z-10 flex h-7 w-7 items-center justify-center rounded-bl-xl bg-mgh-gold text-mgh-gold-ink"
+          className="absolute right-0 top-0 z-10 flex h-7 w-7 items-center justify-center rounded-bl-card bg-mgh-gold text-mgh-gold-ink"
           aria-hidden="true"
         >
           <Check size={14} strokeWidth={3} />
@@ -50,9 +50,9 @@ export function ItemCard({
           <FoodImage
             src={item.image_url}
             alt={item.name}
-            className="object-cover transition-transform duration-700 group-hover:scale-105"
+            className="object-cover transition-transform duration-[900ms] ease-mgh group-hover:scale-[1.03]"
           />
-          <div className="absolute inset-0 bg-black/25 transition-colors duration-300 group-hover:bg-black/45" />
+          <div className="absolute inset-0 bg-linear-to-t from-mgh-bg/45 to-transparent" />
 
           {item.tags?.length > 0 && (
             <div className="absolute left-3 top-3 flex flex-wrap gap-1">
@@ -60,8 +60,8 @@ export function ItemCard({
                 <span
                   key={tag}
                   className={cn(
-                    "rounded-lg border px-2 py-0.5 text-[10px] uppercase tracking-wider backdrop-blur-sm",
-                    TAG_COLORS[tag] || "border-white/20 bg-black/60 text-white",
+                    "rounded-control border border-mgh-line-strong bg-mgh-bg/75 px-2 py-0.5",
+                    "text-[10px] font-semibold uppercase tracking-[0.12em] text-mgh-text backdrop-blur-sm",
                   )}
                 >
                   {tag}
@@ -75,7 +75,10 @@ export function ItemCard({
               type="button"
               onClick={() => onInfo(item)}
               aria-label={`More about ${item.name}`}
-              className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-lg border border-white/20 bg-black/60 text-white backdrop-blur-sm transition-colors hover:border-mgh-gold hover:text-mgh-gold focus:outline-none focus:ring-2 focus:ring-mgh-gold/50"
+              className={cn(
+                "absolute right-3 top-3 flex size-9 items-center justify-center rounded-control border border-mgh-line-strong bg-mgh-bg/75 text-mgh-text backdrop-blur-sm transition-colors hover:border-mgh-muted",
+                focusRing,
+              )}
             >
               <Info size={15} aria-hidden="true" />
             </button>
@@ -84,10 +87,10 @@ export function ItemCard({
 
         <div className="p-5">
           <div className="flex items-start justify-between gap-3">
-            <h3 className="text-base font-medium leading-snug text-mgh-text">
+            <h3 className="font-serif text-[1.125rem] font-medium leading-snug text-mgh-text">
               {item.name}
             </h3>
-            <span className="shrink-0 text-sm font-semibold tabular-nums text-mgh-gold">
+            <span className="shrink-0 pt-0.5 text-sm tabular-nums lining-nums text-mgh-muted">
               {formatZAR(item.price)}
             </span>
           </div>
@@ -104,12 +107,12 @@ export function ItemCard({
           aria-pressed={selected}
           onClick={() => onToggle(item, selected)}
           className={cn(
-            "flex w-full items-center justify-center gap-2 rounded-lg border py-2.5",
-            "text-xs font-semibold uppercase tracking-wider transition-all duration-300",
-            "focus:outline-none focus:ring-2 focus:ring-mgh-gold/40",
+            "flex h-10 w-full items-center justify-center gap-2 rounded-control border text-sm font-medium",
+            "transition-[background-color,border-color,color,transform] duration-[var(--mgh-dur-fast)] ease-mgh active:scale-[0.98]",
+            focusRing,
             selected
-              ? "border-mgh-gold bg-mgh-gold text-mgh-gold-ink hover:bg-transparent hover:text-mgh-gold"
-              : "border-mgh-line-strong bg-mgh-surface-2 text-mgh-text hover:border-mgh-gold hover:text-mgh-gold",
+              ? "border-mgh-gold bg-mgh-gold text-mgh-gold-ink hover:bg-mgh-gold-hover"
+              : "border-mgh-line-strong text-mgh-text hover:border-mgh-muted hover:bg-mgh-surface-2",
           )}
         >
           {selected ? (

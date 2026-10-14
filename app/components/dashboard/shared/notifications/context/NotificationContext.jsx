@@ -154,8 +154,11 @@ export function NotificationProvider({ children }) {
           },
         );
 
-        channel.subscribe((status) => {
-          console.log("Notification channel:", status);
+        channel.subscribe((status, err) => {
+          // Only failures are worth a console line; SUBSCRIBED/CLOSED are routine.
+          if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+            console.warn("Notification channel:", status, err ?? "");
+          }
         });
 
         channelRef.current = channel;

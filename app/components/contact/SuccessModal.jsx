@@ -1,111 +1,53 @@
 "use client";
 
-import { useState } from "react";
+import { Dialog as DialogPrimitive } from "radix-ui";
+import { Check, MessageCircle } from "lucide-react";
 
+const focusRing =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mgh-gold focus-visible:ring-offset-2 focus-visible:ring-offset-mgh-surface";
+
+/**
+ * Shown after an enquiry is saved: a thank-you card, as it might arrive on
+ * the table. A real dialog (focus moves in, Escape closes, the page behind
+ * is inert), and it only states what actually happened.
+ */
 export default function SuccessModal({ isOpen, onClose, name }) {
-  const [refId] = useState(
-    () => `HC-${Math.floor(1000 + Math.random() * 9000)}-${new Date().getFullYear()}`
-  );
-
-  if (!isOpen) return null;
-
   const firstName = name.split(" ")[0];
 
   return (
-    <>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&display=swap');`}</style>
-
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4">
-        <div
-          className="relative w-full max-w-md border border-[#2A2A2A] bg-[#0F0F0F] overflow-hidden"
-          style={{ fontFamily: "'Playfair Display', serif" }}
+    <DialogPrimitive.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="fixed inset-0 z-[70] bg-mgh-bg/80 backdrop-blur-sm data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0" />
+        <DialogPrimitive.Content
+          className="mgh-warm fixed left-1/2 top-1/2 z-[70] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-sheet border border-mgh-line-strong bg-mgh-surface text-mgh-text shadow-modal focus:outline-none data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-[0.98] data-[state=closed]:animate-out data-[state=closed]:fade-out-0 duration-300"
         >
-          {/* Watermark logo */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none overflow-hidden">
-            <img
-              src="/assests/logos/logoPNG.png"
-              alt=""
-              className="w-72 opacity-[0.04] object-contain"
-            />
-          </div>
+          <div className="flex flex-col items-center px-7 pb-8 pt-10 text-center sm:px-10">
+            <span className="grid size-14 place-items-center rounded-full border border-mgh-gold text-mgh-gold">
+              <Check size={22} aria-hidden="true" />
+            </span>
 
-          {/* Decorative top line */}
-          <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent" />
+            <DialogPrimitive.Title className="mt-6 font-serif text-[1.75rem] font-normal leading-tight text-mgh-text">
+              Enquiry Submitted!
+            </DialogPrimitive.Title>
+            <DialogPrimitive.Description className="mt-3 text-pretty text-[15px] leading-relaxed text-mgh-muted">
+              Thank you, {firstName}! We have received your enquiry and will be
+              in touch shortly. A confirmation has been sent to your email.
+            </DialogPrimitive.Description>
 
-          {/* Main content */}
-          <div className="relative z-10 flex flex-col items-center px-10 pt-10 pb-8 gap-5">
-
-            {/* Check icon */}
-            <div className="w-14 h-14 rounded-full border border-[#D4AF37] flex items-center justify-center">
-              <svg className="w-6 h-6 text-[#D4AF37]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-
-            {/* Title */}
-            <div className="text-center">
-              <h2 className="text-xl font-bold text-white mb-3">Enquiry Submitted!</h2>
-              <p className="text-sm text-[#888] leading-relaxed">
-                Thank you, {firstName}! We have received your enquiry and will be in
-                touch shortly. A confirmation has been sent to your email.
-              </p>
-            </div>
-
-            {/* WhatsApp notice */}
-            <div className="w-full bg-[#1A2A1A] border border-[#2A3D2A] rounded-sm px-5 py-4 flex gap-3 items-start">
-              <svg className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
-                <path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.553 4.116 1.522 5.847L.057 23.714a.5.5 0 00.63.63l5.866-1.463A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.806 9.806 0 01-5.028-1.381l-.36-.214-3.732.931.949-3.731-.234-.374A9.818 9.818 0 012.182 12C2.182 6.57 6.57 2.182 12 2.182S21.818 6.57 21.818 12 17.43 21.818 12 21.818z"/>
-              </svg>
-              <p className="text-xs text-[#AAA] leading-relaxed">
-                A WhatsApp message has also been opened in a new tab for us to follow up with you directly.
-              </p>
-            </div>
-
-            {/* Divider */}
-            <div className="w-full h-px bg-[#1E1E1E]" />
-
-            {/* Done button */}
-            <button
-              onClick={onClose}
-              className="w-full bg-[#D4AF37] hover:bg-[#C09B2A] text-[#0A0A0A] text-xs font-bold tracking-[0.25em] uppercase py-4 transition-colors duration-200"
-            >
-              Done
-            </button>
-
-            {/* Ref ID */}
-            <p className="text-[10px] tracking-[0.2em] uppercase text-[#444]">
-              Ref ID: {refId}
+            <p className="mt-6 flex w-full items-start gap-3 rounded-control border border-mgh-line bg-mgh-surface-2 px-4 py-3.5 text-left text-sm leading-relaxed text-mgh-muted">
+              <MessageCircle size={16} aria-hidden="true" className="mt-0.5 shrink-0 text-mgh-ok" />
+              A WhatsApp message has also been opened in a new tab for us to
+              follow up with you directly.
             </p>
 
+            <DialogPrimitive.Close
+              className={`mt-8 h-12 w-full rounded-control bg-mgh-gold text-[0.75rem] font-semibold uppercase tracking-[0.22em] text-mgh-gold-ink transition-[background-color,transform] duration-200 hover:bg-mgh-gold-hover active:scale-[0.98] ${focusRing}`}
+            >
+              Done
+            </DialogPrimitive.Close>
           </div>
-
-          {/* Footer bar */}
-          <div className="relative z-10 border-t border-[#1E1E1E] bg-[#0A0A0A] px-8 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-[#1A1A1A] border border-[#2A2A2A] flex items-center justify-center overflow-hidden">
-                <img
-                  src="/assests/logos/logo2.png"
-                  alt="Concierge"
-                  className="w-full h-full object-cover opacity-70"
-                />
-              </div>
-              <div>
-                <p className="text-[9px] tracking-[0.2em] uppercase text-[#555]">Assigned Concierge</p>
-                <p className="text-xs text-[#AAA] font-bold">Julian Saint-James</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-[9px] tracking-[0.2em] uppercase text-[#555]">Priority Response</p>
-              <p className="text-xs text-[#AAA] font-bold">Under 24 Hours</p>
-            </div>
-          </div>
-
-          {/* Decorative bottom line */}
-          <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent" />
-
-        </div>
-      </div>
-    </>
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   );
 }

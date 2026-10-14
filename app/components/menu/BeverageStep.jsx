@@ -116,7 +116,7 @@ export function BeverageStep() {
               Select your drinks
             </h3>
             {availableItems.length > 0 && (
-              <span className="text-xs uppercase tracking-wider text-mgh-faint">
+              <span className="text-xs uppercase tracking-wider text-mgh-dim">
                 {selected.length} of {availableItems.length} selected
               </span>
             )}
@@ -132,7 +132,7 @@ export function BeverageStep() {
               <p className="mt-4 text-sm text-mgh-muted">
                 No drinks are listed in this category right now.
               </p>
-              <p className="mt-1.5 text-xs text-mgh-faint">
+              <p className="mt-1.5 text-xs text-mgh-dim">
                 Try another preference, or continue and mention your drinks in
                 the notes.
               </p>
@@ -226,7 +226,7 @@ function ChoiceGroup({ legend, options, value, onChange, columns, emphasis }) {
               </span>
               <span className="mt-1 block text-xs text-mgh-dim">{opt.sub}</span>
               {typeof opt.count === "number" && (
-                <span className="mt-2.5 block text-[10px] uppercase tracking-wider text-mgh-faint">
+                <span className="mt-2.5 block text-[10px] uppercase tracking-wider text-mgh-dim">
                   {opt.count} {opt.count === 1 ? "drink" : "drinks"} available
                 </span>
               )}

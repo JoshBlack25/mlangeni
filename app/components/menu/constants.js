@@ -114,13 +114,6 @@ export function rowDisplayName(row, idColumn) {
   return col ? row[col] : row[idColumn];
 }
 
-export const TAG_COLORS = {
-  alcoholic: "border-red-900/40 bg-red-950/30 text-red-400",
-  "non-alcoholic": "border-emerald-900/40 bg-emerald-950/30 text-emerald-400",
-  vegetarian: "border-emerald-900/40 bg-emerald-950/30 text-emerald-400",
-  vegan: "border-teal-900/40 bg-teal-950/30 text-teal-400",
-  "gluten-free": "border-amber-900/40 bg-amber-950/30 text-amber-400",
-};
 
 /** Pull the joined category name off a `menu_item` row from Supabase. */
 export function readCategoryName(row) {

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { EngravedDate } from "@/app/components/dashboard/ui";
+import HomeSection, { rowLink } from "../HomeSection";
 import { supabase } from "@/services/supabaseClient";
 
 function formatDate(dateString) {
@@ -63,75 +65,42 @@ export default function ConsultationRequests() {
   }, []);
 
   return (
-    <Link
+    <HomeSection
+      title="Consultations"
       href="/dashboard/admin/consultations"
-      aria-label="View all consultation requests"
-      className="flex h-full flex-col rounded-2xl border border-[#1F1F1F] bg-white/5 p-5 backdrop-blur-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#D4AF37]"
+      items={consultations}
+      loadingLabel="Loading consultation requests…"
+      emptyText="No consultation requests."
     >
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-base font-semibold text-white">Consultations</h3>
-        <span
-          className="text-xs font-medium text-[#D4AF37] hover:underline"
-        >
-          View all
-        </span>
-      </div>
+      <ul className="divide-y divide-mgh-line-soft">
+        {consultations?.map((consultation) => {
+          const order = consultation.order;
+          const eventType = order?.event_type?.event_name ?? "Event pending";
+          const guestCount = order?.number_of_guest
+            ? `${order.number_of_guest} guests`
+            : "Guests pending";
 
-      {consultations === null ? (
-        <div className="flex flex-1 flex-col gap-2">
-          {[...Array(2)].map((_, i) => (
-            <div
-              key={i}
-              className="h-14 animate-pulse rounded-lg border border-[#1F1F1F] bg-white/5"
-            />
-          ))}
-        </div>
-      ) : consultations.length === 0 ? (
-        <p className="flex flex-1 items-center justify-center text-sm text-[#A0A0A0]">
-          No consultation requests.
-        </p>
-      ) : (
-        <div className="flex flex-1 flex-col gap-2 overflow-y-auto">
-          {consultations.map((consultation) => {
-            const order = consultation.order;
-            const eventType = order?.event_type?.event_name ?? "Event pending";
-            const guestCount = order?.number_of_guest
-              ? `${order.number_of_guest} guests`
-              : "Guests pending";
-
-            return (
-              <div
-                key={consultation.consultations_id}
-                className="rounded-lg border border-[#1F1F1F] bg-[#0A0A0A]/40 px-3 py-2.5 text-sm transition hover:border-[#D4AF37]"
+          return (
+            <li key={consultation.consultations_id}>
+              <Link
+                href={`/dashboard/admin/consultations/${consultation.consultations_id}`}
+                className={rowLink}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate font-medium text-white">
-                      {getCustomerName(consultation.customer)}
-                    </p>
-                    <p className="mt-1 truncate text-xs text-[#797676]">
-                      {eventType} - {guestCount}
-                    </p>
-                  </div>
-
-                  <span className="shrink-0 text-xs text-[#A0A0A0]">
-                    {formatDate(order?.event_date)}
+                <EngravedDate date={order?.event_date} size="sm" />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-mgh-text">
+                    {getCustomerName(consultation.customer)}
                   </span>
-                </div>
-
-                <div className="mt-2 flex items-center justify-between gap-3 border-t border-white/10 pt-2">
-                  <p className="truncate text-xs text-[#797676]">
-                    {order?.event_location || "Location pending"}
-                  </p>
-                  <span className="shrink-0 text-xs font-medium text-[#D4AF37]">
-                    View more
+                  <span className="block truncate text-caption text-mgh-dim">
+                    {eventType} - {guestCount} · {order?.event_location || "Location pending"}
                   </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </Link>
+                </span>
+                <span className="sr-only">{formatDate(order?.event_date)}</span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </HomeSection>
   );
 }

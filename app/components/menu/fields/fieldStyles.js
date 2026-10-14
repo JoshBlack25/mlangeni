@@ -7,9 +7,9 @@ import { cn } from "@/lib/utils";
  */
 export function controlClass({ invalid = false, className } = {}) {
   return cn(
-    "w-full rounded-xl border bg-mgh-surface-2 px-4 py-3 text-sm text-mgh-text",
-    "placeholder:text-mgh-faint transition-colors duration-150",
-    "focus:border-mgh-gold focus:outline-none focus:ring-2 focus:ring-mgh-gold/40",
+    "w-full rounded-control border bg-mgh-surface-2 px-3.5 py-2.5 text-sm text-mgh-text",
+    "placeholder:text-mgh-dim transition-[border-color,box-shadow] duration-[var(--mgh-dur-fast)] ease-mgh",
+    "focus-visible:border-mgh-gold focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-mgh-gold/20",
     "disabled:cursor-not-allowed disabled:opacity-50",
     invalid
       ? "border-mgh-danger/70 focus:border-mgh-danger focus:ring-mgh-danger/30"

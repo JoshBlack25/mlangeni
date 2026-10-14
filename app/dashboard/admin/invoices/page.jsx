@@ -1,18 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { motion } from "framer-motion";
-import {
-  ArrowLeft,
-  CalendarDays,
-  CheckCircle2,
-  Clock3,
-  Receipt,
-  Search,
-  Send,
-} from "lucide-react";
+import { ArrowLeft, CheckCircle2, Search } from "lucide-react";
 import { supabase } from "@/services/supabaseClient";
+import {
+  Button,
+  ConfirmDialog,
+  EmptyState,
+  Figure,
+  FigureRow,
+  Input,
+  PageHeader,
+  Panel,
+  PanelHeader,
+  SkeletonRows,
+  StatusBadge,
+} from "@/app/components/dashboard/ui";
 import {
   approveDummyInvoicePayment,
   getDummyPaidInvoice,
@@ -68,13 +71,6 @@ function statusLabel(status) {
     .join(" ");
 }
 
-function statusStyles(status) {
-  if (status === "paid") return "text-emerald-400";
-  if (status === "overdue") return "text-red-400";
-
-  return "text-[#D4AF37]";
-}
-
 function getLatestPayment(payments) {
   return [...(payments ?? [])].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
@@ -124,6 +120,8 @@ function mapInvoice(invoice) {
       ? "Payment missed"
       : eventConfirmed
       ? "Payment approved"
+      : latestPayment?.status === "succeeded"
+      ? "Paid via PayFast"
       : customerMarkedPaid
       ? "Customer marked paid"
       : latestPayment
@@ -161,6 +159,7 @@ export default function AdminInvoicesPage() {
   const [actionError, setActionError] = useState(null);
   const [actionMessage, setActionMessage] = useState(null);
   const [approvingInvoiceId, setApprovingInvoiceId] = useState(null);
+  const [pendingApproval, setPendingApproval] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const invoiceList = invoices ?? [];
@@ -305,11 +304,21 @@ export default function AdminInvoicesPage() {
     }
   }
 
-  async function handleApprovePayment(invoice) {
+  // Approval confirms the booking as an event, so it asks first.
+  function handleApprovePayment(invoice) {
     if (invoice.status !== "paid" || invoice.eventConfirmed || !invoice.orderId) {
       return;
     }
+    setPendingApproval(invoice);
+  }
 
+  function confirmPendingApproval() {
+    const invoice = pendingApproval;
+    setPendingApproval(null);
+    if (invoice) approvePayment(invoice);
+  }
+
+  async function approvePayment(invoice) {
     try {
       setActionError(null);
       setActionMessage(null);
@@ -376,283 +385,341 @@ export default function AdminInvoicesPage() {
     }
   }
 
+  const loadingFigures = invoices === null;
+
   return (
-    <main className="min-h-screen bg-[#0A0A0A] px-6 py-10 text-white md:px-10 lg:px-14">
-      <div className="mx-auto max-w-[1400px]">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between"
-        >
-          <div>
-            <Link
-              href="/dashboard/admin"
-              className="mb-5 inline-flex items-center gap-2 text-sm font-medium text-[#A0A0A0] transition hover:text-[#D4AF37]"
-            >
-              <ArrowLeft size={16} />
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        density="dense"
+        title="Sent Invoices"
+        lead="Track invoices sent after client meetings and prepare to approve payments once customers indicate that they have paid."
+        actions={
+          <>
+            <p className="text-sm tabular-nums text-mgh-muted">
+              {invoices === null ? "..." : invoiceList.length} invoices in review
+            </p>
+            <Button variant="quiet" size="sm" href="/dashboard/admin">
+              <ArrowLeft size={16} aria-hidden="true" />
               Back to dashboard
-            </Link>
+            </Button>
+          </>
+        }
+      />
 
-            <div className="mb-4 flex items-center gap-2 text-sm uppercase tracking-[0.25em] text-[#D4AF37]">
-              <Receipt size={17} />
-              <span>Invoices</span>
-            </div>
+      <FigureRow>
+        <Figure
+          label="Sent Invoices"
+          value={invoiceList.length}
+          hint="Moved from active meetings"
+          loading={loadingFigures}
+        />
+        <Figure
+          label="Awaiting Payment"
+          value={awaitingPaymentCount}
+          hint="Visible to customers"
+          loading={loadingFigures}
+        />
+        <Figure
+          label="Payment Signals"
+          value={paymentSignalCount}
+          hint="Ready for admin approval"
+          loading={loadingFigures}
+        />
+        <Figure
+          label="Confirmed Events"
+          value={confirmedEventCount}
+          hint="Approved booked events"
+          loading={loadingFigures}
+        />
+      </FigureRow>
 
-            <h1 className="font-serif text-4xl font-medium tracking-tight text-white md:text-5xl">
-              Sent Invoices
-            </h1>
+      <Panel density="dense">
+        <PanelHeader
+          density="dense"
+          title="Customer Payment Review"
+          description="Approve paid invoices to confirm bookings"
+        />
 
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-[#A0A0A0] md:text-base">
-              Track invoices sent after client meetings and prepare to approve
-              payments once customers indicate that they have paid.
-            </p>
+        <div className="mb-4 flex flex-col gap-1.5 sm:max-w-md">
+          <label
+            htmlFor="admin-invoice-search"
+            className="text-[13px] font-medium text-mgh-muted"
+          >
+            Search invoices
+          </label>
+          <div className="relative">
+            <Search
+              size={16}
+              aria-hidden="true"
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-mgh-dim"
+            />
+            <Input
+              id="admin-invoice-search"
+              type="search"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Search by client, invoice, event, date, or status"
+              className="pl-9"
+            />
           </div>
+        </div>
 
-          <div className="border-l-2 border-[#D4AF37] bg-white/[0.03] px-4 py-3 text-sm text-[#D4AF37]">
-            {invoices === null ? "..." : invoiceList.length} invoices in review
-          </div>
-        </motion.div>
+        {error && (
+          <p role="alert" className="mb-4 rounded-control border border-mgh-danger/30 bg-mgh-danger/10 px-3 py-2.5 text-sm text-mgh-danger">
+            {error}
+          </p>
+        )}
 
-        <motion.section
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, delay: 0.1 }}
-          className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4"
-        >
-          <OverviewCard
-            label="Sent Invoices"
-            value={invoices === null ? "..." : invoiceList.length}
-            caption="Moved from active meetings"
+        {actionError && (
+          <p role="alert" className="mb-4 rounded-control border border-mgh-danger/30 bg-mgh-danger/10 px-3 py-2.5 text-sm text-mgh-danger">
+            {actionError}
+          </p>
+        )}
+
+        {actionMessage && (
+          <p role="status" className="mb-4 rounded-control border border-mgh-ok/30 bg-mgh-ok/10 px-3 py-2.5 text-sm text-mgh-ok">
+            {actionMessage}
+          </p>
+        )}
+
+        {invoices === null ? (
+          <SkeletonRows rows={4} label="Loading invoices..." />
+        ) : filteredInvoices.length === 0 ? (
+          <EmptyState
+            title={
+              normalizedSearch
+                ? "No invoices match your search."
+                : "No invoices have been sent yet."
+            }
           />
-          <OverviewCard
-            label="Awaiting Payment"
-            value={invoices === null ? "..." : awaitingPaymentCount}
-            caption="Visible to customers"
-          />
-          <OverviewCard
-            label="Payment Signals"
-            value={invoices === null ? "..." : paymentSignalCount}
-            caption="Ready for admin approval"
-          />
-          <OverviewCard
-            label="Confirmed Events"
-            value={invoices === null ? "..." : confirmedEventCount}
-            caption="Approved booked events"
-          />
-        </motion.section>
+        ) : (
+          <>
+            <table className="hidden w-full border-collapse text-left text-body-dense md:table">
+              <caption className="sr-only">Sent invoices</caption>
+              <thead>
+                <tr className="border-b border-mgh-line">
+                  {[
+                    ["Invoice", ""],
+                    ["Event", ""],
+                    ["Due", ""],
+                    ["Payment", ""],
+                    ["Booking", ""],
+                    ["Amount", "text-right"],
+                    ["Actions", "text-right"],
+                  ].map(([label, align]) => (
+                    <th
+                      key={label}
+                      scope="col"
+                      className={`h-10 px-3 text-label font-semibold uppercase text-mgh-dim first:pl-0 last:pr-0 ${align}`}
+                    >
+                      {label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredInvoices.map((invoice) => (
+                  <InvoiceRow
+                    key={invoice.id}
+                    invoice={invoice}
+                    approving={approvingInvoiceId === invoice.id}
+                    onApprove={handleApprovePayment}
+                  />
+                ))}
+              </tbody>
+            </table>
 
-        <motion.section
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, delay: 0.18 }}
-          className="mt-8 rounded-2xl border border-[#1F1F1F] bg-white/5 p-5 backdrop-blur-md md:p-6"
-        >
-          <div className="mb-5 flex flex-col gap-3 border-b border-white/10 pb-5 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-[#A0A0A0]">
-                Invoice List
-              </p>
-              <h2 className="mt-2 text-xl font-semibold text-white">
-                Customer Payment Review
-              </h2>
-            </div>
-
-            <p className="border-l border-white/10 pl-3 text-xs uppercase tracking-[0.16em] text-[#797676]">
-              Approve paid invoices to confirm bookings
-            </p>
-          </div>
-
-          <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <label
-              htmlFor="admin-invoice-search"
-              className="text-xs uppercase tracking-[0.18em] text-[#A0A0A0]"
-            >
-              Search invoices
-            </label>
-            <div className="relative w-full md:max-w-md">
-              <Search
-                size={16}
-                className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#D4AF37]"
-              />
-              <input
-                id="admin-invoice-search"
-                type="search"
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Search by client, invoice, event, date, or status"
-                className="h-12 w-full rounded-lg border border-white/10 bg-[#0A0A0A]/50 pl-11 pr-4 text-sm text-white outline-none transition placeholder:text-[#4F4F4F] focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20"
-              />
-            </div>
-          </div>
-
-          {error && (
-            <div className="mb-5 border border-red-400/20 bg-red-400/5 px-4 py-4 text-sm text-red-300">
-              {error}
-            </div>
-          )}
-
-          {actionError && (
-            <div className="mb-5 border border-red-400/20 bg-red-400/5 px-4 py-4 text-sm text-red-300">
-              {actionError}
-            </div>
-          )}
-
-          {actionMessage && (
-            <div className="mb-5 border border-emerald-400/20 bg-emerald-400/5 px-4 py-4 text-sm text-emerald-300">
-              {actionMessage}
-            </div>
-          )}
-
-          <div className="hidden grid-cols-[1fr_0.8fr_0.8fr_0.75fr_0.95fr] gap-4 border-b border-white/10 px-4 pb-3 text-xs uppercase tracking-[0.18em] text-[#797676] xl:grid">
-            <span>Client</span>
-            <span>Invoice</span>
-            <span>Event</span>
-            <span>Payment</span>
-            <span className="text-right">Actions</span>
-          </div>
-
-          <div className="mt-3 space-y-3">
-            {invoices === null ? (
-              [...Array(4)].map((_, index) => (
-                <div
-                  key={index}
-                  className="h-24 animate-pulse rounded-xl border border-[#1F1F1F] bg-[#0A0A0A]/40"
-                />
-              ))
-            ) : filteredInvoices.length === 0 ? (
-              <div className="border border-white/10 bg-[#0A0A0A]/40 px-4 py-8 text-center text-sm text-[#A0A0A0]">
-                {normalizedSearch
-                  ? "No invoices match your search."
-                  : "No invoices have been sent yet."}
-              </div>
-            ) : (
-              filteredInvoices.map((invoice, index) => (
-                <InvoiceRow
+            <ul className="divide-y divide-mgh-line-soft border-y border-mgh-line-soft md:hidden">
+              {filteredInvoices.map((invoice) => (
+                <InvoiceCard
                   key={invoice.id}
                   invoice={invoice}
-                  index={index}
                   approving={approvingInvoiceId === invoice.id}
                   onApprove={handleApprovePayment}
                 />
-              ))
-            )}
-          </div>
-        </motion.section>
-      </div>
-    </main>
+              ))}
+            </ul>
+          </>
+        )}
+      </Panel>
+
+      <ConfirmDialog
+        open={Boolean(pendingApproval)}
+        onOpenChange={(open) => {
+          if (!open) setPendingApproval(null);
+        }}
+        title="Approve this payment?"
+        description={
+          pendingApproval
+            ? `${pendingApproval.reference} will be approved and the booking confirmed as an event.`
+            : undefined
+        }
+        confirmLabel="Approve payment"
+        onConfirm={confirmPendingApproval}
+      />
+    </div>
   );
 }
 
-function InvoiceRow({ invoice, index, approving, onApprove }) {
-  const approvalLocked =
+function isApprovalLocked(invoice) {
+  return (
     invoice.status !== "paid" ||
     invoice.eventConfirmed ||
     invoice.cancellationReason ||
-    !invoice.orderId;
-
-  return (
-    <motion.article
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, delay: 0.22 + index * 0.04 }}
-      className="grid grid-cols-1 gap-4 rounded-xl border border-[#1F1F1F] bg-[#0A0A0A]/40 p-4 transition-all duration-300 hover:border-[#D4AF37]/70 hover:bg-white/[0.04] xl:grid-cols-[1fr_0.8fr_0.8fr_0.75fr_0.95fr] xl:items-center"
-    >
-      <div>
-        <p className="text-sm font-semibold text-white md:text-base">
-          {invoice.customerName}
-        </p>
-        <p className="mt-1 text-xs text-[#797676]">{invoice.customerEmail}</p>
-      </div>
-
-      <div>
-        <p className="text-sm font-semibold text-white">
-          {currency.format(invoice.amount)}
-        </p>
-        <p className="mt-1 text-xs text-[#797676]">{invoice.reference}</p>
-        <p className="mt-1 flex items-center gap-2 text-xs text-[#797676]">
-          <CalendarDays size={13} className="text-[#D4AF37]" />
-          Due {formatDate(invoice.dueDate)}
-        </p>
-      </div>
-
-      <div>
-        <p className="text-sm text-[#A0A0A0]">{invoice.eventType}</p>
-        <p className="mt-1 text-xs text-[#797676]">
-          {formatDate(invoice.eventDate)} | {invoice.guests} guests
-        </p>
-      </div>
-
-      <div className="border-l border-white/10 pl-3">
-        <p className={`text-sm font-medium ${statusStyles(invoice.status)}`}>
-          {statusLabel(invoice.status)}
-        </p>
-        <p
-          className={`mt-1 text-xs ${
-            invoice.cancellationReason ? "text-red-300" : "text-[#797676]"
-          }`}
-        >
-          {invoice.cancellationReason ||
-            (invoice.paymentSignal === "Payment missed"
-              ? "Cancelled - failure to pay before due date"
-              : invoice.paymentSignal)}
-        </p>
-        <p className="mt-1 text-xs text-[#797676]">
-          Event{" "}
-          {invoice.cancellationReason
-            ? "cancelled"
-            : invoice.eventConfirmed
-              ? "confirmed"
-              : "not confirmed"}
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 xl:justify-items-end">
-        <button
-          type="button"
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-white/10 px-3 text-xs font-medium text-[#A0A0A0] transition hover:border-[#D4AF37]/50 hover:text-[#D4AF37]"
-        >
-          <Clock3 size={14} />
-          Review
-        </button>
-        <button
-          type="button"
-          onClick={() => onApprove(invoice)}
-          disabled={approvalLocked || approving}
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[#D4AF37]/40 px-3 text-xs font-medium text-[#D4AF37] transition hover:border-[#D4AF37] hover:bg-[#D4AF37] hover:text-black disabled:cursor-not-allowed disabled:border-white/10 disabled:text-[#5F5F5F] disabled:hover:bg-transparent"
-        >
-          <CheckCircle2 size={14} />
-          {approving
-            ? "Approving..."
-            : invoice.eventConfirmed
-              ? "Approved"
-              : "Approve"}
-        </button>
-        <button
-          type="button"
-          disabled
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#D4AF37] px-3 text-xs font-semibold text-black transition hover:bg-[#e0bd4a] disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-[#5F5F5F]"
-        >
-          <Send size={14} />
-          {invoice.cancellationReason
-            ? "Cancelled"
-            : invoice.eventConfirmed
-              ? "Confirmed"
-              : "Pending"}
-        </button>
-      </div>
-    </motion.article>
+    !invoice.orderId
   );
 }
 
-function OverviewCard({ label, value, caption }) {
+function PaymentStatus({ invoice }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-[#D4AF37] hover:bg-white/10 hover:shadow-[0_0_30px_rgba(212,175,55,0.15)]">
-      <p className="text-xs uppercase tracking-[0.2em] text-[#A0A0A0]">
-        {label}
-      </p>
-      <p className="mt-3 text-2xl font-bold text-white">{value}</p>
-      <p className="mt-2 text-sm text-[#797676]">{caption}</p>
+    <div className="flex min-w-0 flex-col gap-1">
+      <StatusBadge status={invoice.status} label={statusLabel(invoice.status)} />
+      <span
+        className={`text-caption ${
+          invoice.cancellationReason ? "text-mgh-danger" : "text-mgh-dim"
+        }`}
+      >
+        {invoice.cancellationReason ||
+          (invoice.paymentSignal === "Payment missed"
+            ? "Cancelled - failure to pay before due date"
+            : invoice.paymentSignal)}
+      </span>
     </div>
+  );
+}
+
+function BookingStatus({ invoice }) {
+  return invoice.cancellationReason ? (
+    <StatusBadge status="cancelled" label="Cancelled" />
+  ) : invoice.eventConfirmed ? (
+    <StatusBadge status="confirmed" label="Confirmed" />
+  ) : (
+    <StatusBadge status="pending" label="Pending" />
+  );
+}
+
+function ApproveButton({ invoice, approving, onApprove, className }) {
+  return (
+    <Button
+      variant="primary"
+      size="sm"
+      onClick={() => onApprove(invoice)}
+      disabled={isApprovalLocked(invoice) || approving}
+      className={className}
+    >
+      <CheckCircle2 size={16} aria-hidden="true" />
+      {approving
+        ? "Approving..."
+        : invoice.eventConfirmed
+          ? "Approved"
+          : "Approve"}
+    </Button>
+  );
+}
+
+function InvoiceRow({ invoice, approving, onApprove }) {
+  return (
+    <tr className="border-b border-mgh-line-soft align-top transition-colors duration-[var(--mgh-dur-fast)] hover:bg-mgh-surface-2">
+      <td className="px-3 py-2.5 first:pl-0">
+        <p className="font-medium text-mgh-text">{invoice.customerName}</p>
+        <p className="text-caption tabular-nums text-mgh-dim">
+          {invoice.reference} · {invoice.customerEmail}
+        </p>
+      </td>
+      <td className="px-3 py-2.5">
+        <p className="text-mgh-text">{invoice.eventType}</p>
+        <p className="text-caption tabular-nums text-mgh-dim">
+          {formatDate(invoice.eventDate)} | {invoice.guests} guests
+        </p>
+      </td>
+      <td className="whitespace-nowrap px-3 py-2.5 tabular-nums">
+        <p className="text-mgh-text">Due {formatDate(invoice.dueDate)}</p>
+        <p className="text-caption text-mgh-dim">
+          Issued {formatDate(invoice.issuedDate)}
+        </p>
+      </td>
+      <td className="px-3 py-2.5">
+        <PaymentStatus invoice={invoice} />
+      </td>
+      <td className="px-3 py-2.5">
+        <BookingStatus invoice={invoice} />
+      </td>
+      <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums text-mgh-text">
+        {currency.format(invoice.amount)}
+      </td>
+      <td className="px-3 py-2 text-right last:pr-0">
+        <ApproveButton
+          invoice={invoice}
+          approving={approving}
+          onApprove={onApprove}
+        />
+      </td>
+    </tr>
+  );
+}
+
+function InvoiceCard({ invoice, approving, onApprove }) {
+  return (
+    <li className="py-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[15px] font-medium text-mgh-text">
+            {invoice.customerName}
+          </p>
+          <p className="truncate text-caption tabular-nums text-mgh-dim">
+            {invoice.reference} · {invoice.customerEmail}
+          </p>
+        </div>
+        <p className="shrink-0 text-sm tabular-nums text-mgh-text">
+          {currency.format(invoice.amount)}
+        </p>
+      </div>
+
+      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2.5">
+        <div className="min-w-0">
+          <dt className="text-[10px] font-semibold uppercase tracking-[0.14em] text-mgh-dim">
+            Event
+          </dt>
+          <dd className="text-sm text-mgh-text">{invoice.eventType}</dd>
+          <dd className="text-caption tabular-nums text-mgh-dim">
+            {formatDate(invoice.eventDate)} | {invoice.guests} guests
+          </dd>
+        </div>
+        <div className="min-w-0">
+          <dt className="text-[10px] font-semibold uppercase tracking-[0.14em] text-mgh-dim">
+            Due
+          </dt>
+          <dd className="text-sm tabular-nums text-mgh-text">
+            {formatDate(invoice.dueDate)}
+          </dd>
+          <dd className="text-caption tabular-nums text-mgh-dim">
+            Issued {formatDate(invoice.issuedDate)}
+          </dd>
+        </div>
+        <div className="min-w-0">
+          <dt className="text-[10px] font-semibold uppercase tracking-[0.14em] text-mgh-dim">
+            Payment
+          </dt>
+          <dd className="mt-0.5">
+            <PaymentStatus invoice={invoice} />
+          </dd>
+        </div>
+        <div className="min-w-0">
+          <dt className="text-[10px] font-semibold uppercase tracking-[0.14em] text-mgh-dim">
+            Booking
+          </dt>
+          <dd className="mt-0.5">
+            <BookingStatus invoice={invoice} />
+          </dd>
+        </div>
+      </dl>
+
+      <ApproveButton
+        invoice={invoice}
+        approving={approving}
+        onApprove={onApprove}
+        className="mt-4 h-10 w-full"
+      />
+    </li>
   );
 }

@@ -1,12 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Clock3 } from "lucide-react";
 import { supabase } from "@/services/supabaseClient";
 import {
   SESSION_OPTIONS,
   normalizeSession,
 } from "@/app/components/constants/sessions";
+import {
+  Panel,
+  PanelHeader,
+  EngravedDate,
+  StatusBadge,
+} from "@/app/components/dashboard/ui";
 
 /**
  * The customer's outstanding requests, shown on the enquiry page.
@@ -24,14 +29,6 @@ import {
  */
 
 const MAX_SHOWN = 4;
-
-function formatDate(dateString) {
-  return new Date(dateString + "T00:00:00").toLocaleDateString("en-ZA", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
 
 function sessionLabel(session) {
   const normalized = normalizeSession(session);
@@ -90,62 +87,50 @@ export default function PendingEnquiries() {
   const overflow = enquiries.length - shown.length;
 
   return (
-    <div className="w-full rounded-2xl border border-white/10 bg-black/40 p-6 text-left shadow-2xl backdrop-blur-md">
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="text-sm font-bold tracking-wide text-white">
-          Awaiting Review
-        </h3>
-
-        {enquiries.length > 0 && (
-          <span className="rounded-full border border-[#D4AF37]/40 bg-[#D4AF37]/10 px-2.5 py-0.5 text-[11px] font-medium text-[#D4AF37]">
-            {enquiries.length}
-          </span>
-        )}
-      </div>
+    <Panel>
+      <PanelHeader
+        title="Awaiting Review"
+        action={
+          enquiries.length > 0 ? (
+            <span className="font-serif text-xl tabular-nums text-mgh-text">
+              <span className="sr-only">Count: </span>
+              {enquiries.length}
+            </span>
+          ) : undefined
+        }
+        className="mb-3"
+      />
 
       {error ? (
-        <p className="mt-3 text-[11px] text-red-400">{error}</p>
+        <p role="alert" className="text-sm text-mgh-danger">
+          {error}
+        </p>
       ) : enquiries.length === 0 ? (
-        <p className="mt-3 text-[11px] italic text-white/30">
+        <p className="text-sm leading-relaxed text-mgh-muted">
           Nothing awaiting review. Anything you send appears here until our team
           confirms it.
         </p>
       ) : (
         <>
-          <ul className="mt-4 flex flex-col">
-            {shown.map((enquiry, i) => (
-              <li
-                key={enquiry.id}
-                className={`py-3 ${
-                  i < shown.length - 1 ? "border-b border-white/10" : ""
-                }`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-xs font-medium text-white">
-                      {formatDate(enquiry.event_date)}
-                    </p>
-                    <p className="mt-1 text-[10px] uppercase tracking-[0.15em] text-white/40">
-                      {sessionLabel(enquiry.session)} · {enquiry.guests} guests
-                    </p>
-                  </div>
-
-                  <span className="flex shrink-0 items-center gap-1 text-[10px] font-bold uppercase tracking-[0.15em] text-[#D4AF37]">
-                    <Clock3 size={11} />
-                    Pending
-                  </span>
+          <ul className="divide-y divide-mgh-line-soft">
+            {shown.map((enquiry) => (
+              <li key={enquiry.id} className="flex items-center gap-4 py-4">
+                <EngravedDate date={enquiry.event_date} size="sm" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm tabular-nums text-mgh-text">
+                    {sessionLabel(enquiry.session)} · {enquiry.guests} guests
+                  </p>
+                  <StatusBadge status="pending" className="mt-1.5" />
                 </div>
               </li>
             ))}
           </ul>
 
           {overflow > 0 && (
-            <p className="mt-3 text-[10px] uppercase tracking-[0.15em] text-white/30">
-              +{overflow} more
-            </p>
+            <p className="mt-3 text-caption text-mgh-muted">+{overflow} more</p>
           )}
         </>
       )}
-    </div>
+    </Panel>
   );
 }

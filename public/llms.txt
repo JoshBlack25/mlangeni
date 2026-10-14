@@ -1,0 +1,34 @@
+# Mlangeni Grand Hospitality
+
+> Premium private-event catering and hospitality based in Cape Town, South Africa. Weddings, corporate functions and celebrations, planned with the client from first enquiry to the final course.
+
+Mlangeni Grand Hospitality has two arms:
+
+- **Mlangeni Events**: plans and caters private and corporate events.
+- **Hospitality Collection**: unique dining experiences and venue management.
+
+Clients enquire through the website, book a consultation, choose a package or build a custom menu, then receive a quote and invoice. Reviews come from past clients and are moderated before they are published.
+
+## Pages
+
+- [Home](/): about the company, a gallery of past events, live date availability, client testimonials and the enquiry form.
+- [Enquire](/#contact): the enquiry form for a date, session (morning, afternoon or evening) and number of guests.
+- [Gallery](/#gallery): photographs of past events and dishes.
+- [About](/#about): the company's approach to events and hospitality.
+
+## Contact
+
+- Email: hello@mlangeni.co.za
+- Privacy and information requests: mlangenicatering@gmail.com
+- Location: Cape Town, South Africa
+
+## Legal
+
+- [Privacy Policy](/privacy-policy): what personal information is collected, why, and who it is shared with.
+- [Terms & Conditions](/terms): enquiries, bookings, invoices, payment and cancellations.
+- [POPIA Compliance](/popia): how the business meets the Protection of Personal Information Act, and how to exercise your rights.
+- [PAIA Manual](/paia-manual): records held and how to request access under the Promotion of Access to Information Act.
+
+## Optional
+
+- [Client sign-in](/login): for existing clients to manage bookings, orders, invoices and reviews.

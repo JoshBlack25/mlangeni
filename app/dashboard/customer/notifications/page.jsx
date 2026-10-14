@@ -2,66 +2,23 @@
 
 import { useMemo, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Bell,
-  Check,
-  CheckCheck,
-  Clock3,
-  Trash2,
-  ShoppingBag,
-  Users,
-  Receipt,
-  ClipboardList,
-  X,
-  ExternalLink,
-  Send,
-} from "lucide-react";
+import { Check, CheckCheck, Send, Trash2 } from "lucide-react";
 import { supabase } from "@/services/supabaseClient";
-import { useRouter } from "next/navigation";
 import { useNotifications } from "@/app/components/dashboard/shared/notifications/hooks/useNotifications";
 import SendNotificationModal from "@/app/components/dashboard/shared/notifications/SendNotificationModal";
+import {
+  Button,
+  Dialog,
+  EmptyState,
+  PageHeader,
+  Panel,
+  SkeletonRows,
+  Tabs,
+} from "@/app/components/dashboard/ui";
+import NotificationRow from "@/app/components/dashboard/shared/notifications/NotificationRow";
+import { EASE } from "@/app/components/dashboard/shared/motion";
 
 const filters = ["All", "Unread"];
-
-const notificationIcons = {
-  general: Bell,
-  order: ShoppingBag,
-  consultation: Users,
-  invoice: Receipt,
-  enquiry: ClipboardList,
-};
-
-function formatNotificationTime(dateString) {
-  const date = new Date(dateString);
-  const now = new Date();
-
-  const difference = Math.floor((now - date) / 1000);
-
-  if (difference < 60) {
-    return "Just now";
-  }
-
-  if (difference < 3600) {
-    const minutes = Math.floor(difference / 60);
-    return `${minutes}m ago`;
-  }
-
-  if (difference < 86400) {
-    const hours = Math.floor(difference / 3600);
-    return `${hours}h ago`;
-  }
-
-  if (difference < 604800) {
-    const days = Math.floor(difference / 86400);
-    return `${days}d ago`;
-  }
-
-  return date.toLocaleDateString("en-ZA", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
 
 function formatFullDate(dateString) {
   return new Date(dateString).toLocaleString("en-ZA", {
@@ -75,7 +32,6 @@ function formatFullDate(dateString) {
 }
 
 export default function NotificationsPage() {
-  const router = useRouter();
   const [activeFilter, setActiveFilter] = useState("All");
   const [selectedNotification, setSelectedNotification] = useState(null);
   const [showSendModal, setShowSendModal] = useState(false);
@@ -137,398 +93,154 @@ export default function NotificationsPage() {
    * ============================================================
    */
 
+  const tabItems = filters.map((filter) => ({
+    value: filter,
+    label: filter,
+    count: filter === "Unread" && unreadCount > 0 ? unreadCount : undefined,
+  }));
+
   return (
-    <main className="min-h-screen bg-[#0A0A0A] px-6 py-10 text-white md:px-10 lg:px-14">
-      <div className="mx-auto max-w-[1200px]">
-        {/* HEADER */}
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between"
-        >
-          <div>
-            <div className="mb-4 flex items-center gap-2 text-sm uppercase tracking-[0.25em] text-[#D4AF37]">
-              <Bell size={17} />
-              <span>Updates</span>
-            </div>
-
-            <h1 className="font-serif text-4xl font-medium tracking-tight text-white md:text-5xl">
-              Notifications
-            </h1>
-
-            <p className="mt-4 max-w-xl text-sm leading-7 text-[#A0A0A0] md:text-base">
-              Stay up to date with your bookings, payments, events and important
-              updates from Mlangeni Grand Hospitality.
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.2, ease: EASE }}
+    >
+      <PageHeader
+        title="Notifications"
+        lead="Stay up to date with your bookings, payments, events and important updates from Mlangeni Group Holdings."
+        actions={
+          <>
+            <p className="text-sm text-mgh-muted">
+              <span className="tabular-nums">{unreadCount}</span> unread
             </p>
-          </div>
-
-          {/* UNREAD COUNT + SEND BUTTON */}
-
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 items-center gap-2 rounded-full border border-[#D4AF37]/20 bg-[#D4AF37]/5 px-4 text-sm text-[#D4AF37]">
-              <Bell size={15} />
-
-              <span>
-                {unreadCount}{" "}
-                {unreadCount === 1
-                  ? "unread notification"
-                  : "unread notifications"}
-              </span>
-            </div>
-
-            <button
-              type="button"
+            <Button
+              variant="primary"
               onClick={() => setShowSendModal(true)}
-              className="flex h-11 items-center gap-2 rounded-full bg-[#D4AF37] px-4 text-sm font-semibold text-black transition hover:bg-[#c4a132]"
+              className="w-full sm:w-auto"
             >
-              <Send size={15} />
+              <Send size={16} aria-hidden="true" />
               Send Notification
-            </button>
-          </div>
-        </motion.div>
+            </Button>
+          </>
+        }
+      />
 
+      <Panel>
         {/* FILTERS */}
-
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.15 }}
-          className="mt-10 flex flex-col gap-5 border-b border-[#252525] pb-5 sm:flex-row sm:items-center sm:justify-between"
-        >
-          <div className="flex items-center gap-6">
-            {filters.map((filter) => {
-              const active = activeFilter === filter;
-
-              return (
-                <button
-                  key={filter}
-                  type="button"
-                  onClick={() => setActiveFilter(filter)}
-                  className={`relative pb-3 text-sm font-medium transition-colors duration-300 ${
-                    active
-                      ? "text-[#D4AF37]"
-                      : "text-[#777777] hover:text-white"
-                  }`}
-                >
-                  {filter}
-
-                  {filter === "Unread" && unreadCount > 0 && (
-                    <span className="ml-2 inline-flex min-w-5 items-center justify-center rounded-full bg-[#D4AF37]/10 px-1.5 py-0.5 text-[10px] text-[#D4AF37]">
-                      {unreadCount}
-                    </span>
-                  )}
-
-                  {active && (
-                    <motion.span
-                      layoutId="notification-filter"
-                      className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#D4AF37]"
-                      transition={{
-                        type: "spring",
-                        stiffness: 400,
-                        damping: 30,
-                      }}
-                    />
-                  )}
-                </button>
-              );
-            })}
-          </div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:border-b sm:border-mgh-line">
+          <Tabs
+            items={tabItems}
+            value={activeFilter}
+            onChange={setActiveFilter}
+            label="Filter notifications"
+            className="sm:border-b-0"
+          />
 
           {unreadCount > 0 && (
-            <button
-              type="button"
+            <Button
+              variant="quiet"
+              size="sm"
               onClick={markAllAsRead}
-              className="flex items-center gap-2 text-sm text-[#858585] transition-colors hover:text-[#D4AF37]"
+              className="self-start sm:mb-2 sm:self-auto"
             >
-              <CheckCheck size={16} />
+              <CheckCheck size={16} aria-hidden="true" />
               Mark all as read
-            </button>
+            </Button>
           )}
-        </motion.div>
+        </div>
 
         {/* ERROR */}
-
         {error && (
-          <div className="mt-6 border border-red-500/20 bg-red-500/5 px-5 py-4 text-sm text-red-300">
+          <p
+            role="alert"
+            className="mt-6 rounded-control border border-mgh-danger/30 bg-mgh-danger/5 px-4 py-3 text-sm text-mgh-danger"
+          >
             {error}
-          </div>
+          </p>
         )}
 
         {/* LOADING */}
-
         {loading && (
-          <div className="py-20 text-center">
-            <p className="text-sm text-[#777777]">
-              Loading your notifications...
-            </p>
-          </div>
+          <SkeletonRows rows={4} label="Loading your notifications..." className="mt-2" />
         )}
 
         {/* NOTIFICATIONS */}
-
-        {!loading && (
-          <div className="mt-6">
-            <AnimatePresence mode="popLayout">
-              {filteredNotifications.map((notification, index) => {
-                const Icon = notificationIcons[notification.type] || Bell;
-
-                return (
-                  <motion.article
-                    key={notification.notification_id}
-                    layout
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.98 }}
-                    transition={{
-                      duration: 0.3,
-                      delay: index * 0.04,
-                    }}
-                    onClick={() => openNotification(notification)}
-                    className={`group relative mb-3 cursor-pointer border transition-all duration-300 ${
-                      notification.is_read
-                        ? "border-[#202020] bg-[#101010] hover:border-[#333333]"
-                        : "border-[#D4AF37]/20 bg-[#D4AF37]/[0.035] hover:border-[#D4AF37]/40"
-                    }`}
-                  >
-                    {/* UNREAD INDICATOR */}
-
-                    {!notification.is_read && (
-                      <span className="absolute bottom-0 left-0 top-0 w-[2px] bg-[#D4AF37]" />
-                    )}
-
-                    <div className="flex gap-4 p-5 md:p-6">
-                      {/* ICON */}
-
-                      <div
-                        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${
-                          notification.is_read
-                            ? "bg-white/5 text-[#777777]"
-                            : "bg-[#D4AF37]/10 text-[#D4AF37]"
-                        }`}
-                      >
-                        <Icon size={19} strokeWidth={1.7} />
-                      </div>
-
-                      {/* CONTENT */}
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-4">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h2
-                                className={`text-sm font-semibold md:text-base ${
-                                  notification.is_read
-                                    ? "text-[#D0D0D0]"
-                                    : "text-white"
-                                }`}
-                              >
-                                {notification.title}
-                              </h2>
-
-                              {!notification.is_read && (
-                                <span className="h-1.5 w-1.5 rounded-full bg-[#D4AF37]" />
-                              )}
-                            </div>
-
-                            <div className="mt-1 flex items-center gap-1.5 text-xs text-[#5F5F5F]">
-                              <Clock3 size={12} />
-
-                              {formatNotificationTime(notification.created_at)}
-                            </div>
-                          </div>
-
-                          <ExternalLink
-                            size={15}
-                            className="shrink-0 text-[#444444] transition-colors group-hover:text-[#D4AF37]"
-                          />
-                        </div>
-
-                        <p className="mt-4 line-clamp-2 max-w-3xl text-sm leading-6 text-[#858585]">
-                          {notification.message}
-                        </p>
-
-                        <div className="mt-5 flex items-center gap-2 text-xs text-[#D4AF37]">
-                          <span>View notification</span>
-                          <ExternalLink size={12} />
-                        </div>
-                      </div>
-                    </div>
-                  </motion.article>
-                );
-              })}
+        {!loading && filteredNotifications.length > 0 && (
+          <ul className="divide-y divide-mgh-line-soft">
+            <AnimatePresence initial={false}>
+              {filteredNotifications.map((notification) => (
+                <NotificationRow
+                  key={notification.notification_id}
+                  notification={notification}
+                  onOpen={() => openNotification(notification)}
+                />
+              ))}
             </AnimatePresence>
-          </div>
+          </ul>
         )}
 
         {/* EMPTY STATE */}
-
         {!loading && filteredNotifications.length === 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="mt-6 border border-[#202020] bg-[#101010] px-6 py-20 text-center"
-          >
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-[#D4AF37]/20 bg-[#D4AF37]/5 text-[#D4AF37]">
-              <Bell size={23} strokeWidth={1.5} />
-            </div>
-
-            <h2 className="mt-5 font-serif text-2xl text-white">
-              {activeFilter === "Unread"
+          <EmptyState
+            title={
+              activeFilter === "Unread"
                 ? "You're all caught up"
-                : "No notifications yet"}
-            </h2>
-
-            <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-[#666666]">
-              {activeFilter === "Unread"
-                ? "You have no unread notifications at the moment."
-                : "Important updates about your bookings and events will appear here."}
-            </p>
-          </motion.div>
+                : "No notifications yet"
+            }
+          >
+            {activeFilter === "Unread"
+              ? "You have no unread notifications at the moment."
+              : "Important updates about your bookings and events will appear here."}
+          </EmptyState>
         )}
-      </div>
+      </Panel>
 
       {/* ========================================================
           NOTIFICATION MODAL
           ======================================================== */}
 
-      <AnimatePresence>
-        {selectedNotification && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-5 backdrop-blur-sm"
-            onClick={() => setSelectedNotification(null)}
-          >
-            <motion.div
-              initial={{
-                opacity: 0,
-                y: 25,
-                scale: 0.98,
+      {selectedNotification && (
+        <Dialog
+          open
+          onOpenChange={(o) => {
+            if (!o) setSelectedNotification(null);
+          }}
+          size="lg"
+          title={selectedNotification.title}
+          description={formatFullDate(selectedNotification.created_at)}
+        >
+          <p className="whitespace-pre-line text-body leading-relaxed text-mgh-muted">
+            {selectedNotification.message}
+          </p>
+
+          <p className="mt-6 flex items-center gap-2 text-caption text-mgh-dim">
+            <Check size={14} aria-hidden="true" />
+            {selectedNotification.is_read ? "Read" : "Unread"}
+          </p>
+
+          <div className="mt-6 flex flex-col-reverse gap-2 border-t border-mgh-line pt-5 sm:flex-row sm:items-center sm:justify-between">
+            <Button
+              variant="danger"
+              onClick={async () => {
+                await deleteNotification(
+                  selectedNotification.notification_id,
+                );
+                setSelectedNotification(null);
               }}
-              animate={{
-                opacity: 1,
-                y: 0,
-                scale: 1,
-              }}
-              exit={{
-                opacity: 0,
-                y: 25,
-                scale: 0.98,
-              }}
-              transition={{
-                duration: 0.3,
-                ease: [0.22, 1, 0.36, 1],
-              }}
-              onClick={(event) => event.stopPropagation()}
-              className="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-[#2A2A2A] bg-[#0B0A09] shadow-2xl"
             >
-              {/* GOLD ACCENT */}
+              <Trash2 size={16} aria-hidden="true" />
+              Delete
+            </Button>
 
-              <div className="absolute left-0 right-0 top-0 h-[2px] bg-[#D4AF37]" />
-
-              {/* HEADER */}
-
-              <div className="flex items-start justify-between border-b border-[#1F1F1F] px-6 py-6 md:px-8">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#D4AF37]/10 text-[#D4AF37]">
-                    <Bell size={21} />
-                  </div>
-
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.2em] text-[#D4AF37]">
-                      Notification
-                    </p>
-
-                    <h2 className="mt-1 font-serif text-2xl text-white">
-                      {selectedNotification.title}
-                    </h2>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setSelectedNotification(null)}
-                  aria-label="Close notification"
-                  className="rounded-lg p-2 text-[#666666] transition hover:bg-white/5 hover:text-white"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              {/* BODY */}
-
-              <div className="px-6 py-7 md:px-8 md:py-8">
-                <div className="flex items-center gap-2 text-xs text-[#666666]">
-                  <Clock3 size={13} />
-
-                  <span>{formatFullDate(selectedNotification.created_at)}</span>
-                </div>
-
-                <div className="mt-7">
-                  <p className="text-base leading-8 text-[#B0B0B0]">
-                    {selectedNotification.message}
-                  </p>
-                </div>
-
-                {/* READ STATUS */}
-
-                <div className="mt-8 flex items-center gap-2 border-t border-[#1F1F1F] pt-6 text-xs">
-                  <Check size={14} className="text-[#D4AF37]" />
-
-                  <span className="text-[#666666]">
-                    {selectedNotification.is_read ? "Read" : "Unread"}
-                  </span>
-                </div>
-              </div>
-
-              {/* FOOTER */}
-
-              <div className="flex items-center justify-between border-t border-[#1F1F1F] px-6 py-5 md:px-8">
-                <button
-                  type="button"
-                  onClick={async () => {
-                    await deleteNotification(
-                      selectedNotification.notification_id,
-                    );
-                    setSelectedNotification(null);
-                  }}
-                  className="flex items-center gap-2 text-sm text-[#666666] transition hover:text-red-400"
-                >
-                  <Trash2 size={15} />
-                  Delete
-                </button>
-
-                <div className="flex items-center gap-3">
-                  {selectedNotification.link_url && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedNotification(null);
-                        router.push(selectedNotification.link_url);
-                      }}
-                      className="flex items-center gap-2 rounded-lg bg-[#D4AF37] px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-[#c4a132]"
-                    >
-                      <ExternalLink size={14} />
-                      View
-                    </button>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={() => setSelectedNotification(null)}
-                    className="rounded-lg border border-[#2A2A2A] px-5 py-2.5 text-sm font-medium text-white transition hover:border-[#D4AF37] hover:text-[#D4AF37]"
-                  >
-                    Close
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            <Button
+              variant="secondary"
+              onClick={() => setSelectedNotification(null)}
+            >
+              Close
+            </Button>
+          </div>
+        </Dialog>
+      )}
 
       {/* ========================================================
           SEND NOTIFICATION MODAL
@@ -541,6 +253,6 @@ export default function NotificationsPage() {
           onClose={() => setShowSendModal(false)}
         />
       )}
-    </main>
+    </motion.div>
   );
 }

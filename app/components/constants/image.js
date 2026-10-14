@@ -14,6 +14,13 @@ const IMAGES = {
     "/images/gallery_images/food_5.png",
   food_7:
     "/images/gallery_images/food_7.jpg",
+  food_1:
+    "/images/gallery_images/food_1.jpg",
+  food_6:
+    "/images/gallery_images/food_6.jpg",
+  // The showreel poster: the old 512px thumbnail blurred at full width.
+  candlelitTable:
+    "/images/auth-bg.png",
   showreel:
     "/images/gallery_images/showreel_thumbnail.png",
 

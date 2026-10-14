@@ -1,17 +1,19 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { supabase } from "@/services/supabaseClient";
-import AnimatedNumber from "@/app/components/dashboard/shared/AnimatedNumber";
-
-const sections = ["attention", "overview"];
+import { cn } from "@/lib/utils";
+import {
+  Panel,
+  Figure,
+  Skeleton,
+  formatCurrency,
+  focusRing,
+} from "@/app/components/dashboard/ui";
 
 export default function AdminStats() {
-  const router = useRouter();
-  const [activeSection, setActiveSection] = useState("attention");
   const [counts, setCounts] = useState(null); // null = still loading
 
   useEffect(() => {
@@ -88,13 +90,6 @@ export default function AdminStats() {
     loadCounts();
   }, []);
 
-  const attentionTotal = counts
-    ? counts.pendingEnquiries +
-      counts.consultationRequests +
-      counts.overdueInvoices +
-      counts.pendingTestimonials
-    : 0;
-
   const attentionCards = counts
     ? [
         {
@@ -120,118 +115,72 @@ export default function AdminStats() {
       ]
     : [];
 
-  const overviewCards = counts
-    ? [
-        { label: "Upcoming Events", value: counts.upcomingEvents, prefix: "" },
-        {
-          label: "Revenue This Month",
-          value: counts.revenueThisMonth,
-          prefix: "R",
-        },
-        { label: "Active Orders", value: counts.activeOrders, prefix: "" },
-      ]
-    : [];
-
-  const currentCards =
-    activeSection === "attention" ? attentionCards : overviewCards;
-
-  function cycle(direction) {
-    const currentIndex = sections.indexOf(activeSection);
-    const nextIndex =
-      (currentIndex + direction + sections.length) % sections.length;
-    setActiveSection(sections[nextIndex]);
-  }
-
   return (
-    <section className="rounded-2xl border border-[#1F1F1F] bg-white/5 p-6 backdrop-blur-md">
-      {/* HEADER: title + urgency badge + arrows */}
-      <div className="mb-6 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <h2 className="text-lg font-semibold text-white">
-            {activeSection === "attention"
-              ? "Needs Your Attention"
-              : "Overview"}
-          </h2>
-
-          {/* Persistent urgency badge — visible on both panels */}
-          {attentionTotal > 0 && (
-            <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-[#D4AF37] px-2 text-xs font-semibold text-black">
-              {attentionTotal}
-            </span>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => cycle(-1)}
-            aria-label="Previous section"
-            className="rounded-lg border border-[#1F1F1F] p-2 text-[#A0A0A0] transition hover:border-[#D4AF37] hover:text-[#D4AF37] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37]"
-          >
-            <ChevronLeft size={18} />
-          </button>
-
-          <button
-            onClick={() => cycle(1)}
-            aria-label="Next section"
-            className="rounded-lg border border-[#1F1F1F] p-2 text-[#A0A0A0] transition hover:border-[#D4AF37] hover:text-[#D4AF37] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37]"
-          >
-            <ChevronRight size={18} />
-          </button>
-        </div>
-      </div>
-
-      {/* CARDS — skeleton while loading, crossfade between sections once ready */}
-      {counts === null ? (
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          {[...Array(4)].map((_, i) => (
-            <div
-              key={i}
-              className="h-28 animate-pulse rounded-xl border border-[#1F1F1F] bg-white/5"
-            />
-          ))}
-        </div>
-      ) : (
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeSection}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            className="grid grid-cols-2 gap-4 lg:grid-cols-4"
-          >
-            {currentCards.map((card) => {
-              const isAttention = activeSection === "attention";
-              const CardWrapper = isAttention ? "button" : "div";
-
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
+      <Panel density="dense" aria-labelledby="attention-title">
+        <h2 id="attention-title" className="text-[15px] font-semibold text-mgh-text">
+          Needs attention
+        </h2>
+        {counts === null ? (
+          <div className="mt-3 flex flex-col gap-3" role="status">
+            <span className="sr-only">Loading counts…</span>
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-8 w-full" />
+            ))}
+          </div>
+        ) : (
+          <ul className="mt-2 divide-y divide-mgh-line-soft">
+            {attentionCards.map((card) => {
+              const urgent = card.label === "Overdue Invoices" && card.value > 0;
               return (
-                <CardWrapper
-                  key={card.label}
-                  {...(isAttention && {
-                    onClick: () => router.push(card.href),
-                    type: "button",
-                  })}
-                  className={`
-                    rounded-xl border p-5 text-left transition
-                    ${
-                      isAttention
-                        ? "cursor-pointer border-[#D4AF37]/30 bg-[#D4AF37]/5 hover:border-[#D4AF37]"
-                        : "border-[#1F1F1F] bg-white/5"
-                    }
-                  `}
-                >
-                  <p className="text-sm text-[#A0A0A0]">{card.label}</p>
-
-                  <p className="mt-2 text-3xl font-bold text-white">
-                    {card.prefix}
-                    <AnimatedNumber value={card.value} />
-                  </p>
-                </CardWrapper>
+                <li key={card.label}>
+                  <Link
+                    href={card.href}
+                    className={cn(
+                      "-mx-2 flex h-11 items-center gap-4 rounded-control px-2 text-sm transition-colors hover:bg-mgh-surface-2",
+                      focusRing,
+                    )}
+                  >
+                    <span className={cn("flex-1", card.value > 0 ? "text-mgh-text" : "text-mgh-dim")}>
+                      {card.label}
+                    </span>
+                    <span
+                      className={cn(
+                        "font-serif text-xl tabular-nums",
+                        urgent ? "text-mgh-gold" : card.value > 0 ? "text-mgh-text" : "text-mgh-dim",
+                      )}
+                    >
+                      {card.value}
+                    </span>
+                    <ChevronRight size={16} aria-hidden="true" className="text-mgh-dim" />
+                  </Link>
+                </li>
               );
             })}
-          </motion.div>
-        </AnimatePresence>
-      )}
-    </section>
+          </ul>
+        )}
+      </Panel>
+
+      <Panel density="dense" className="flex flex-col justify-between gap-5">
+        <Figure
+          label="Revenue This Month"
+          loading={counts === null}
+          value={counts ? formatCurrency(counts.revenueThisMonth) : null}
+        />
+        <div className="grid grid-cols-2 gap-4 border-t border-mgh-line pt-4">
+          <Figure
+            label="Active Orders"
+            loading={counts === null}
+            value={counts?.activeOrders}
+          />
+          <Figure
+            label="Upcoming Events"
+            hint="Next 7 days"
+            loading={counts === null}
+            value={counts?.upcomingEvents}
+          />
+        </div>
+      </Panel>
+    </div>
   );
 }
