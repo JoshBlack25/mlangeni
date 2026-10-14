@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
+import { Check } from "lucide-react";
 import { supabase } from "@/services/supabaseClient";
 import BookingSuccessModal from "@/app/components/dashboard/customer/BookingSuccessModal";
 import { PackageCalendar } from "@/app/components/PackageCalendar";
@@ -12,7 +14,21 @@ import {
   CarouselPrevious,
   CarouselNext,
 } from "@/app/components/package/carousel";
-import "@/app/globals.css";
+import {
+  Button,
+  EmptyState,
+  Field,
+  Input,
+  PageHeader,
+  Panel,
+  PanelHeader,
+  Select,
+  Skeleton,
+  focusRing,
+  formatCurrency,
+} from "@/app/components/dashboard/ui";
+import { EASE } from "@/app/components/dashboard/shared/motion";
+import { cn } from "@/lib/utils";
 import {
   getActiveBookingMessage,
   getActiveCustomerBooking,
@@ -21,6 +37,11 @@ import {
   getMinimumEventDate,
   isBeforeMinimumEventDate,
 } from "@/app/utils/customerBookingRules";
+
+// Carousel arrows sit under the cards (not in the gutter) so nothing
+// overflows on phones.
+const carouselNavClass =
+  "static size-10 rounded-control border-mgh-line-strong bg-mgh-surface text-mgh-text hover:bg-mgh-surface-2 hover:text-mgh-text dark:bg-mgh-surface dark:hover:bg-mgh-surface-2";
 
 export default function Packages() {
   const router = useRouter();
@@ -265,184 +286,243 @@ export default function Packages() {
 
   if (checkingAuth || loadingData) {
     return (
-      <div className="mgh-menu">
-        <div className="mgh-menu-page">
-          <div className="mgh-spinner-wrap">
-            <div className="mgh-spinner"></div>
-            <p>Loading menu...</p>
-          </div>
+      <div role="status">
+        <span className="sr-only">Loading menu...</span>
+        <Skeleton className="h-10 w-64 md:h-12" />
+        <div className="mt-8 grid grid-cols-1 gap-4 md:mt-12 md:grid-cols-2">
+          <Skeleton className="h-72 rounded-card" />
+          <Skeleton className="hidden h-72 rounded-card md:block" />
         </div>
+        <Skeleton className="mt-8 h-80 rounded-card md:mt-10" />
       </div>
     );
   }
 
   if (activeBooking) {
     return (
-      <div className="mgh-menu">
-        <div className="mgh-menu-page">
-          <h1>Active Booking In Progress</h1>
-          <div className="mgh-menu-line"></div>
-          <div className="mgh-menu-card selected">
-            <p>{getActiveBookingMessage(activeBooking)}</p>
-            <button
-              type="button"
-              className="mgh-menu-submit-btn"
-              onClick={() => router.push("/dashboard/customer/orders")}
-            >
-              VIEW MY BOOKINGS
-            </button>
-          </div>
-        </div>
-      </div>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.2, ease: EASE }}
+      >
+        <PageHeader title="Active Booking In Progress" />
+        <Panel className="max-w-2xl">
+          <p className="text-body text-mgh-muted">
+            {getActiveBookingMessage(activeBooking)}
+          </p>
+          <Button
+            variant="primary"
+            className="mt-6 w-full sm:w-auto"
+            onClick={() => router.push("/dashboard/customer/orders")}
+          >
+            View My Bookings
+          </Button>
+        </Panel>
+      </motion.div>
     );
   }
 
   return (
-    <div className="mgh-menu">
-      <div className="mgh-menu-page">
-        <h1>Choose a Package</h1>
-        <div className="mgh-menu-line"></div>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.2, ease: EASE }}
+      className="flex flex-col gap-8 md:gap-10"
+    >
+      <PageHeader title="Choose a Package" className="mb-0 md:mb-0" />
 
-        {premadeMenus.length === 0 && (
-          <p style={{ color: "rgba(255,255,255,0.7)" }}>
-            No premade menus available yet.
-          </p>
-        )}
-
-        <Carousel className="mgh-menu-carousel">
+      {premadeMenus.length === 0 ? (
+        <EmptyState title="No premade menus available yet." align="start" />
+      ) : (
+        <Carousel aria-label="Packages">
           <CarouselContent>
             {premadeMenus.map((menu) => {
               const items = menu.premade_menu_items ?? [];
               const isSelected = selectedMenuId === menu.premade_menu_id;
 
               return (
-                <CarouselItem key={menu.premade_menu_id}>
-                  <div
-                    className={`mgh-menu-card${isSelected ? " selected" : ""}`}
+                <CarouselItem
+                  key={menu.premade_menu_id}
+                  className="md:basis-1/2"
+                >
+                  <button
+                    type="button"
+                    aria-pressed={isSelected}
                     onClick={() => setSelectedMenuId(menu.premade_menu_id)}
+                    className={cn(
+                      "flex h-full min-h-72 w-full flex-col rounded-card border p-5 text-left md:p-7",
+                      "transition-colors duration-(--mgh-dur-fast) ease-mgh",
+                      isSelected
+                        ? "border-mgh-gold bg-mgh-gold/5"
+                        : "border-mgh-line bg-mgh-surface hover:border-mgh-line-strong hover:bg-mgh-surface-2",
+                      focusRing,
+                    )}
                   >
-                    <h3>{menu.name}</h3>
-                    <p>{menu.description}</p>
+                    <span className="flex items-start justify-between gap-4">
+                      <span className="font-serif text-xl font-medium text-mgh-text md:text-title">
+                        {menu.name}
+                      </span>
+                      {isSelected && (
+                        <Check
+                          size={16}
+                          aria-hidden="true"
+                          className="mt-1.5 shrink-0 text-mgh-gold"
+                        />
+                      )}
+                    </span>
+                    {menu.description && (
+                      <span className="mt-2 block text-sm leading-relaxed text-mgh-muted">
+                        {menu.description}
+                      </span>
+                    )}
 
-                    <ul>
+                    <ul className="mt-5 flex-1 divide-y divide-mgh-line-soft border-y border-mgh-line-soft">
                       {items.map((pmi, i) => (
-                        <li key={i}>
-                          {pmi.menu_item?.name} - R
-                          {pmi.menu_item?.price?.toFixed(2)}
-                          {pmi.menu_item?.is_alcoholic && " (alcoholic)"}
+                        <li
+                          key={i}
+                          className="flex items-baseline justify-between gap-4 py-2 text-sm"
+                        >
+                          <span className="min-w-0 text-mgh-text">
+                            {pmi.menu_item?.name}
+                            {pmi.menu_item?.is_alcoholic && (
+                              <span className="text-mgh-dim"> (alcoholic)</span>
+                            )}
+                          </span>
+                          <span className="shrink-0 tabular-nums text-mgh-muted">
+                            {formatCurrency(pmi.menu_item?.price)}
+                          </span>
                         </li>
                       ))}
                     </ul>
 
-                    <strong>Total: R{menuTotal(menu).toFixed(2)}</strong>
-                  </div>
+                    <span className="mt-5 flex items-baseline justify-between gap-4">
+                      <span className="text-label font-semibold uppercase text-mgh-dim">
+                        Total
+                      </span>
+                      <span className="font-serif text-2xl font-medium tabular-nums text-mgh-text">
+                        {formatCurrency(menuTotal(menu))}
+                      </span>
+                    </span>
+                  </button>
                 </CarouselItem>
               );
             })}
           </CarouselContent>
-          <CarouselPrevious />
-          <CarouselNext />
+          <div className="mt-4 flex justify-end gap-2">
+            <CarouselPrevious className={carouselNavClass} />
+            <CarouselNext className={carouselNavClass} />
+          </div>
         </Carousel>
+      )}
 
-        <h2>Event Details</h2>
-        <form className="mgh-menu-form" onSubmit={handleSubmit}>
-          <div>
-            <div className="mgh-menu-label">Event Type</div>
-            <div className="mgh-menu-input-box">
-              <select
-                value={eventTypeId}
-                onChange={(e) => setEventTypeId(e.target.value)}
-              >
-                <option value="">Select an event type</option>
-                {eventTypes.map((et) => (
-                  <option key={et.event_id} value={et.event_id}>
-                    {et.event_name}
-                  </option>
-                ))}
-              </select>
+      <Panel>
+        <PanelHeader title="Event Details" />
+        <form
+          className="grid grid-cols-1 gap-5 sm:grid-cols-2"
+          onSubmit={handleSubmit}
+          noValidate
+        >
+          <Field label="Event Type">
+            <Select
+              value={eventTypeId}
+              onChange={(e) => setEventTypeId(e.target.value)}
+            >
+              <option value="">Select an event type</option>
+              {eventTypes.map((et) => (
+                <option key={et.event_id} value={et.event_id}>
+                  {et.event_name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+
+          <div className="flex flex-col gap-1.5">
+            <span
+              id="package-event-date-label"
+              className="text-[13px] font-medium text-mgh-muted"
+            >
+              Event Date
+            </span>
+            <div role="group" aria-labelledby="package-event-date-label">
+              <PackageCalendar
+                value={eventDate ? new Date(eventDate) : undefined} //setting up eventDate value
+                minDate={minimumEventDate}
+                onChange={(selectedDate) => {
+                  if (selectedDate) {
+                    const yyyy = selectedDate.getFullYear();
+                    const mm = String(selectedDate.getMonth() + 1).padStart(
+                      2,
+                      "0",
+                    );
+                    const dd = String(selectedDate.getDate()).padStart(2, "0");
+                    setEventDate(`${yyyy}-${mm}-${dd}`);
+                  }
+                }}
+              />
             </div>
           </div>
 
-          <div>
-            <div className="mgh-menu-label">Event Date</div>
-            <PackageCalendar
-              value={eventDate ? new Date(eventDate) : undefined} //setting up eventDate value
-              minDate={minimumEventDate}
-              onChange={(selectedDate) => {
-                if (selectedDate) {
-                  const yyyy = selectedDate.getFullYear();
-                  const mm = String(selectedDate.getMonth() + 1).padStart(
-                    2,
-                    "0",
-                  );
-                  const dd = String(selectedDate.getDate()).padStart(2, "0");
-                  setEventDate(`${yyyy}-${mm}-${dd}`);
-                }
-              }}
+          <Field label="Start Time">
+            <Input
+              type="time"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
             />
-            {/* <div className="mgh-menu-input-box">
-              <input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} />
-            </div> */}
-          </div>
+          </Field>
 
-          <div>
-            <div className="mgh-menu-label">Start Time</div>
-            <div className="mgh-menu-input-box">
-              <input
-                type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-              />
+          <Field label="End Time">
+            <Input
+              type="time"
+              value={endTime}
+              onChange={(e) => setEndTime(e.target.value)}
+            />
+          </Field>
+
+          <Field label="Event Location">
+            <Input
+              type="text"
+              placeholder="Venue or address"
+              value={eventLocation}
+              onChange={(e) => setEventLocation(e.target.value)}
+            />
+          </Field>
+
+          <Field label="Number Of Guest">
+            <Input
+              type="text"
+              inputMode="numeric"
+              placeholder="0"
+              value={numberOfGuest}
+              onChange={(e) => setNumberOfGuest(e.target.value)}
+            />
+          </Field>
+
+          <div className="flex flex-col gap-4 border-t border-mgh-line-soft pt-6 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0 text-sm">
+              {error && (
+                <p role="alert" className="text-mgh-danger">
+                  {error}
+                </p>
+              )}
+              {success && (
+                <p role="status" className="text-mgh-ok">
+                  {success}
+                </p>
+              )}
             </div>
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              className="w-full sm:w-auto"
+              loading={submitting}
+              disabled={submitting || Boolean(activeBooking)}
+            >
+              {submitting ? "Submitting..." : "Submit Order Request"}
+            </Button>
           </div>
-
-          <div>
-            <div className="mgh-menu-label">End Time</div>
-            <div className="mgh-menu-input-box">
-              <input
-                type="time"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div>
-            <div className="mgh-menu-label">Event Location</div>
-            <div className="mgh-menu-input-box">
-              <input
-                type="text"
-                placeholder="Venue or address"
-                value={eventLocation}
-                onChange={(e) => setEventLocation(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div>
-            <div className="mgh-menu-label">Number Of Guest</div>
-            <div className="mgh-menu-input-box">
-              <input
-                type="text"
-                placeholder="0"
-                value={numberOfGuest}
-                onChange={(e) => setNumberOfGuest(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            className="mgh-menu-submit-btn"
-            disabled={submitting || Boolean(activeBooking)}
-          >
-            {submitting ? "SUBMITTING..." : "SUBMIT ORDER REQUEST"}
-          </button>
         </form>
-
-        {error && <p className="mgh-menu-error">{error}</p>}
-        {success && <p className="mgh-menu-success">{success}</p>}
-      </div>
+      </Panel>
 
       <BookingSuccessModal
         isOpen={showSuccessModal}
@@ -451,6 +531,6 @@ export default function Packages() {
         orderLabel={success || "Your booking has been submitted."}
         onClose={() => setShowSuccessModal(false)}
       />
-    </div>
+    </motion.div>
   );
 }

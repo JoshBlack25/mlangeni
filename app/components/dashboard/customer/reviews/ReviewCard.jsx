@@ -3,23 +3,12 @@
 import { Pencil, Trash2, Star } from "lucide-react";
 import StarRating from "@/app/components/dashboard/shared/StarRating";
 import { formatReviewDate } from "@/services/testimonialsService";
+import { Button, StatusBadge } from "@/app/components/dashboard/ui";
 
 const statusConfig = {
-  pending: {
-    label: "Awaiting review by our team",
-    dot: "bg-yellow-400",
-    text: "text-yellow-400",
-  },
-  approved: {
-    label: "Published",
-    dot: "bg-emerald-400",
-    text: "text-emerald-400",
-  },
-  rejected: {
-    label: "Not published",
-    dot: "bg-white/40",
-    text: "text-[#A0A0A0]",
-  },
+  pending: { status: "pending", label: "Awaiting review by our team", tone: "warn" },
+  approved: { status: "approved", label: "Published", tone: "ok" },
+  rejected: { status: "rejected", label: "Not published", tone: "quiet" },
 };
 
 /**
@@ -36,65 +25,56 @@ export default function ReviewCard({ review, orderLabel, onEdit, onDelete }) {
   const isRejected = review.status === "rejected";
 
   return (
-    <article className="rounded-2xl border border-[#1F1F1F] bg-white/5 p-5">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-medium text-white">
+    <article className="py-6 first:pt-0 last:pb-0">
+      <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+        <div className="min-w-0">
+          <h3 className="font-serif text-lg font-medium text-mgh-text">
             {orderLabel ?? "Your event"}
-          </p>
-          <p className="mt-0.5 text-xs text-[#797676]">
+          </h3>
+          <p className="mt-0.5 text-caption text-mgh-dim">
             Submitted {formatReviewDate(review.created_at)}
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className={`h-2 w-2 rounded-full ${status.dot}`} />
-          <span className={`text-xs font-medium ${status.text}`}>
-            {status.label}
-          </span>
-        </div>
+        <StatusBadge
+          status={status.status}
+          label={status.label}
+          tone={status.tone}
+        />
       </header>
 
       <StarRating value={review.rating} size={14} className="mt-4" />
 
-      <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-white/80">
+      <blockquote className="mt-3 max-w-prose whitespace-pre-line font-serif text-base italic leading-relaxed text-mgh-text">
         {review.message}
-      </p>
+      </blockquote>
 
       {review.featured && review.status === "approved" && (
-        <p className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-[#D4AF37]/30 bg-[#D4AF37]/10 px-3 py-1.5 text-xs text-[#D4AF37]">
-          <Star size={12} className="fill-[#D4AF37]" />
+        <p className="mt-4 inline-flex items-center gap-1.5 text-caption text-mgh-muted">
+          <Star size={16} aria-hidden="true" className="text-mgh-dim" />
           Featured on our homepage
         </p>
       )}
 
       {isRejected && (
-        <p className="mt-4 text-xs text-[#797676]">
+        <p className="mt-4 text-sm text-mgh-muted">
           This one wasn&rsquo;t published. You can delete it and write a new one
           for the same event.
         </p>
       )}
 
       {(isPending || isRejected) && (
-        <div className="mt-5 flex items-center gap-2">
+        <div className="mt-5 flex flex-wrap items-center gap-2">
           {isPending && (
-            <button
-              type="button"
-              onClick={() => onEdit(review)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-[#1F1F1F] bg-white/5 px-3 py-2 text-xs text-white transition hover:border-[#D4AF37] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37]"
-            >
-              <Pencil size={13} />
+            <Button size="md" onClick={() => onEdit(review)}>
+              <Pencil size={16} aria-hidden="true" />
               Edit
-            </button>
+            </Button>
           )}
-          <button
-            type="button"
-            onClick={() => onDelete(review)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-[#1F1F1F] bg-white/5 px-3 py-2 text-xs text-red-300 transition hover:border-red-400/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
-          >
-            <Trash2 size={13} />
+          <Button variant="danger" size="md" onClick={() => onDelete(review)}>
+            <Trash2 size={16} aria-hidden="true" />
             Delete
-          </button>
+          </Button>
         </div>
       )}
     </article>

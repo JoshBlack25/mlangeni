@@ -2,14 +2,16 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
-import { supabase } from "@/services/supabaseClient";
+import Image from "next/image";
+import { ChevronDown } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { getSupabase } from "@/services/lazySupabase";
 import { sendEnquiryEmail } from "@/services/emailService";
 import { redirectToWhatsApp } from "@/utils/whatsappRedirect";
 import DatePicker from "@/app/components/contact/DatePicker";
 import PhoneInputField from "@/app/components/contact/PhoneInputField";
 import SessionDropDown from "@/app/components/contact/SessionDropDown";
 import SuccessModal from "@/app/components/contact/SuccessModal";
-import Link from "next/link";
 import {
   SESSION_OPTIONS,
   normalizeSession,
@@ -26,59 +28,13 @@ const initialFormData = {
   message: "",
 };
 
-// Animation variants
-const fadeUp = {
-  hidden: { opacity: 0, y: 30 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.1 },
-  },
-};
-
-const slideInLeft = {
-  hidden: { opacity: 0, x: -60 },
-  visible: {
-    opacity: 1,
-    x: 0,
-    transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.3 },
-  },
-};
-
-const slideInRight = {
-  hidden: { opacity: 0, x: 60 },
-  visible: {
-    opacity: 1,
-    x: 0,
-    transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.5 },
-  },
-};
-
-const staggerContainer = {
-  hidden: {},
-  visible: {
-    transition: {
-      staggerChildren: 0.15,
-      delayChildren: 0.6,
-    },
-  },
-};
-
-const fieldFadeUp = {
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] },
-  },
-};
-
 export default function EnquiryForm() {
   const [formData, setFormData] = useState(initialFormData);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [bookedSessions, setBookedSessions] = useState([]);
+  const [submitError, setSubmitError] = useState(null);
 
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -103,6 +59,7 @@ export default function EnquiryForm() {
       // db/007 deliberately keeps it dropped. A table read here returns zero
       // rows for an anonymous visitor rather than erroring, which would show
       // every session as free and let the date be double-booked.
+      const supabase = await getSupabase();
       const { data } = await supabase.rpc("get_booked_sessions", {
         p_date: formData.eventDate,
       });
@@ -129,7 +86,14 @@ export default function EnquiryForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validate()) return;
+    setSubmitError(null);
+    if (!validate()) {
+      // Take the visitor to the first field that needs attention.
+      requestAnimationFrame(() => {
+        document.querySelector('#enquiry-form [aria-invalid="true"]')?.focus();
+      });
+      return;
+    }
     setIsSubmitting(true);
     try {
       const enquiryData = {
@@ -141,6 +105,7 @@ export default function EnquiryForm() {
         guests: parseInt(formData.guests),
         message: formData.message,
       };
+      const supabase = await getSupabase();
       const { error: supabaseError } = await supabase.from("enquiries").insert([
         {
           name: enquiryData.name,
@@ -158,7 +123,7 @@ export default function EnquiryForm() {
       setShowModal(true);
     } catch (error) {
       console.error("Submission error:", error);
-      alert("Something went wrong. Please try again.");
+      setSubmitError("Something went wrong. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -170,14 +135,6 @@ export default function EnquiryForm() {
     setErrors({});
   };
 
-  const labelClass =
-    "text-[10px] tracking-[0.2em] uppercase text-[#D4AF37] font-bold";
-
-  const inputClass = (hasError) =>
-    `w-full bg-transparent border-b py-2 text-sm text-white placeholder-[#444] outline-none transition-all
-    ${hasError ? "border-red-500" : "border-[#2A2A2A] focus:border-[#D4AF37]"}`;
-
-  const errorClass = "text-[10px] text-red-400 mt-0.5";
 
   const formattedDate = formData.eventDate
     ? new Date(formData.eventDate + "T00:00:00")
@@ -189,331 +146,292 @@ export default function EnquiryForm() {
         .toUpperCase()
     : null;
 
+  // Underlined fields, like a reply card: a hairline that turns gold on focus.
+  const control = (hasError) =>
+    cn(
+      "w-full border-0 border-b bg-transparent px-0 py-3 text-[15px] text-mgh-text placeholder:text-mgh-dim",
+      "outline-none transition-[border-color,box-shadow] duration-200",
+      "focus-visible:border-mgh-gold focus-visible:shadow-[0_1px_0_0_var(--mgh-gold)]",
+      hasError ? "border-mgh-danger" : "border-mgh-line-strong hover:border-mgh-dim",
+    );
+  const wrap = (hasError) =>
+    cn(
+      "border-b transition-[border-color,box-shadow] duration-200 focus-within:border-mgh-gold focus-within:shadow-[0_1px_0_0_var(--mgh-gold)]",
+      hasError ? "border-mgh-danger" : "border-mgh-line-strong hover:border-mgh-dim",
+    );
+
   return (
     <>
-      <style>{`
-        input[type="date"]::-webkit-calendar-picker-indicator {
-          filter: invert(1) opacity(0.3);
-          cursor: pointer;
-        }
-        input[type="date"] { color-scheme: dark; }
-
-        input[type="number"]::-webkit-inner-spin-button,
-        input[type="number"]::-webkit-outer-spin-button {
-          -webkit-appearance: none;
-          margin: 0;
-        }
-
-        .mgh-phone .PhoneInputCountry { margin-right: 8px; }
-        .mgh-phone .PhoneInputCountrySelect {
-          background: transparent;
-          color: white;
-          border: none;
-          outline: none;
-          font-size: 13px;
-          cursor: pointer;
-        }
-        .mgh-phone .PhoneInputCountrySelectArrow { color: #D4AF37; }
-        .mgh-phone .PhoneInputInput {
-          background: transparent;
-          border: none;
-          outline: none;
-          color: white;
-          font-size: 13px;
-          width: 100%;
-        }
-        .mgh-phone .PhoneInputInput::placeholder { color: #444; }
-      `}</style>
-
-      <section className="bg-[#0a0a0a] text-white px-6 md:px-12 py-20 font-[Playfair_Display] overflow-hidden">
-        <div className="max-w-7xl mx-auto">
-          {/* Heading — fades up first */}
+      <section aria-labelledby="enquiry-title" className="mgh-enquiry bg-mgh-bg px-5 py-24 md:px-10 md:py-36">
+        <div className="mx-auto max-w-[1280px]">
           <motion.div
-            className="mb-12"
-            variants={fadeUp}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.3 }}
+            className="mb-14 max-w-2xl md:mb-20"
+            initial={{ opacity: 0, y: 18 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.4 }}
+            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
           >
-            <h2 className="text-4xl font-bold text-[#D4AF37] mb-3">
+            <h2
+              id="enquiry-title"
+              className="font-serif text-[3rem] font-normal leading-none tracking-[-0.015em] text-mgh-text sm:text-[4rem]"
+            >
               Contact MGH
             </h2>
-            <p className="text-white/50 text-sm leading-relaxed max-w-md">
+            <p className="mt-6 max-w-[46ch] text-pretty text-[17px] leading-relaxed text-mgh-muted">
               Contact MGH today to begin your journey toward an extraordinary,
               bespoke hospitality experience.
             </p>
           </motion.div>
 
-          {/* Two column layout */}
-          <div className="flex flex-col lg:flex-row gap-12">
-            {/* ── LEFT: Form slides in from left ── */}
-            <motion.div
-              className="flex-1"
-              variants={slideInLeft}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.2 }}
+          <div className="grid grid-cols-1 gap-16 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-20">
+            <motion.form
+              id="enquiry-form"
+              onSubmit={handleSubmit}
+              aria-describedby="enquiry-required-note"
+              className="flex flex-col gap-10"
+              initial={{ opacity: 0, y: 18 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.15 }}
+              transition={{ duration: 0.8, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
             >
-              {/* Staggered form fields */}
-              <motion.form
-                onSubmit={handleSubmit}
-                className="flex flex-col gap-8"
-                variants={staggerContainer}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, amount: 0.1 }}
-              >
-                {/* Name + Email */}
-                <motion.div
-                  className="grid grid-cols-1 md:grid-cols-2 gap-8"
-                  variants={fieldFadeUp}
-                >
-                  <div className="flex flex-col gap-1">
-                    <label className={labelClass}>Full Name</label>
-                    <input
-                      type="text"
-                      value={formData.name}
-                      onChange={(e) => handleChange("name", e.target.value)}
-                      placeholder="ALEXANDER MONROE"
-                      className={inputClass(errors.name)}
-                    />
-                    {errors.name && <p className={errorClass}>{errors.name}</p>}
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className={labelClass}>Email Address</label>
-                    <input
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => handleChange("email", e.target.value)}
-                      placeholder="ALEXANDER@EXAMPLE.COM"
-                      className={inputClass(errors.email)}
-                    />
-                    {errors.email && (
-                      <p className={errorClass}>{errors.email}</p>
-                    )}
-                  </div>
-                </motion.div>
+              <p id="enquiry-required-note" className="sr-only">
+                All fields except your message are required.
+              </p>
 
-                {/* Phone + Date */}
-                <motion.div
-                  className="grid grid-cols-1 md:grid-cols-2 gap-8"
-                  variants={fieldFadeUp}
-                >
-                  <div className="flex flex-col gap-1">
-                    <label className={labelClass}>Phone Number</label>
-                    <div
-                      className={`border-b py-1 transition-all ${
-                        errors.phone
-                          ? "border-red-500"
-                          : "border-[#2A2A2A] focus-within:border-[#D4AF37]"
-                      }`}
-                    >
+              <div className="grid grid-cols-1 gap-10 md:grid-cols-2">
+                <FormField id="enquiry-name" label="Full Name" error={errors.name}>
+                  {(aria) => (
+                    <input
+                      {...aria}
+                      type="text"
+                      autoComplete="name"
+                      value={formData.name}
+                      maxLength={120}
+                      onChange={(e) => handleChange("name", e.target.value)}
+                      placeholder="Your full name"
+                      className={control(errors.name)}
+                    />
+                  )}
+                </FormField>
+                <FormField id="enquiry-email" label="Email Address" error={errors.email}>
+                  {(aria) => (
+                    <input
+                      {...aria}
+                      type="email"
+                      autoComplete="email"
+                      value={formData.email}
+                      maxLength={254}
+                      onChange={(e) => handleChange("email", e.target.value)}
+                      placeholder="you@example.com"
+                      className={control(errors.email)}
+                    />
+                  )}
+                </FormField>
+              </div>
+
+              <div className="grid grid-cols-1 gap-10 md:grid-cols-2">
+                <FormField id="enquiry-phone" label="Phone Number" error={errors.phone}>
+                  {(aria) => (
+                    <div className={cn(wrap(errors.phone), "py-2")}>
                       <PhoneInputField
+                        id={aria.id}
+                        describedBy={aria["aria-describedby"]}
                         value={formData.phone}
                         onChange={handlePhoneChange}
-                        error={undefined}
+                        error={errors.phone}
                       />
                     </div>
-                    {errors.phone && (
-                      <p className={errorClass}>{errors.phone}</p>
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className={labelClass}>Event Date</label>
-                    <div
-                      className={`border-b py-0.5 transition-all ${
-                        errors.eventDate
-                          ? "border-red-500"
-                          : "border-[#2A2A2A] focus-within:border-[#D4AF37]"
-                      }`}
-                    >
-                      <div className="[&_label]:hidden [&_p]:hidden [&_input]:bg-transparent [&_input]:border-0 [&_input]:text-white [&_input]:outline-none [&_input]:text-sm [&_input]:py-1.5 [&_input]:w-full [&_input]:cursor-pointer [&_div]:gap-0">
-                        <DatePicker
-                          value={formData.eventDate}
-                          onChange={(date) => handleChange("eventDate", date)}
-                          error={errors.eventDate}
-                        />
-                      </div>
-                    </div>
-                    {errors.eventDate && (
-                      <p className={errorClass}>{errors.eventDate}</p>
-                    )}
-                  </div>
-                </motion.div>
+                  )}
+                </FormField>
+                <FormField id="enquiry-date" label="Event Date" error={errors.eventDate}>
+                  {(aria) => (
+                    <DatePicker
+                      id={aria.id}
+                      describedBy={aria["aria-describedby"]}
+                      value={formData.eventDate}
+                      onChange={(date) => handleChange("eventDate", date)}
+                      error={errors.eventDate}
+                      className={cn(control(errors.eventDate), "cursor-pointer")}
+                    />
+                  )}
+                </FormField>
+              </div>
 
-                {/* Session + Guests */}
-                <motion.div
-                  className="grid grid-cols-1 md:grid-cols-2 gap-8"
-                  variants={fieldFadeUp}
-                >
-                  <div className="flex flex-col gap-1">
-                    <label className={labelClass}>Session Preference</label>
-                    <div
-                      className={`border-b py-1 transition-all ${
-                        errors.session
-                          ? "border-red-500"
-                          : "border-[#2A2A2A] focus-within:border-[#D4AF37]"
-                      }`}
-                    >
-                      <SessionDropDown
-                        value={formData.session}
-                        onChange={handleSessionChange}
-                        selectedDate={formData.eventDate}
-                        error={errors.session}
-                        dark={true}
-                        showBadges={false}
-                      />
+              <div className="grid grid-cols-1 gap-10 md:grid-cols-2">
+                <FormField id="enquiry-session" label="Session Preference" error={errors.session}>
+                  {(aria) => (
+                    <div className="relative">
+                    <SessionDropDown
+                      id={aria.id}
+                      describedBy={aria["aria-describedby"]}
+                      value={formData.session}
+                      onChange={handleSessionChange}
+                      selectedDate={formData.eventDate}
+                      error={errors.session}
+                      dark={true}
+                      showBadges={false}
+                      className={cn(
+                        control(errors.session),
+                        "cursor-pointer appearance-none pr-8 disabled:cursor-not-allowed disabled:text-mgh-dim",
+                      )}
+                    />
+                    <ChevronDown
+                      size={16}
+                      aria-hidden="true"
+                      className="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 text-mgh-muted"
+                    />
                     </div>
-                    {errors.session && (
-                      <p className={errorClass}>{errors.session}</p>
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className={labelClass}>Number of Guests</label>
+                  )}
+                </FormField>
+                <FormField id="enquiry-guests" label="Number of Guests" error={errors.guests}>
+                  {(aria) => (
                     <input
+                      {...aria}
                       type="number"
+                      inputMode="numeric"
                       value={formData.guests}
                       onChange={(e) => handleChange("guests", e.target.value)}
                       placeholder="50"
                       min={1}
-                      className={inputClass(errors.guests)}
+                      max={5000}
+                      className={control(errors.guests)}
                     />
-                    {errors.guests && (
-                      <p className={errorClass}>{errors.guests}</p>
-                    )}
-                  </div>
-                </motion.div>
+                  )}
+                </FormField>
+              </div>
 
-                {/* Message */}
-                <motion.div
-                  className="flex flex-col gap-1"
-                  variants={fieldFadeUp}
-                >
-                  <label className={labelClass}>Your Message</label>
+              <FormField id="enquiry-message" label="Your Message" optional>
+                {(aria) => (
                   <textarea
+                    {...aria}
                     value={formData.message}
+                    maxLength={2000}
                     onChange={(e) => handleChange("message", e.target.value)}
                     placeholder="Tell us more about your vision..."
                     rows={4}
-                    className="w-full bg-transparent border border-[#1E1E1E] focus:border-[#D4AF37]
-                      px-4 py-3 text-sm text-white placeholder-[#444] outline-none transition-all resize-none"
+                    className={cn(control(false), "resize-none leading-relaxed")}
                   />
-                </motion.div>
+                )}
+              </FormField>
 
-                {/* Submit */}
-                <motion.div variants={fieldFadeUp}>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="bg-[#D4AF37] hover:bg-[#C09B2A] disabled:opacity-40 disabled:cursor-not-allowed
-                      text-[#0A0A0A] text-xs font-bold tracking-[0.3em] uppercase py-3.5 px-12
-                      transition-colors duration-200"
-                  >
-                    {isSubmitting ? "Submitting..." : "Send Enquiry"}
-                  </button>
-                </motion.div>
-              </motion.form>
-            </motion.div>
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  aria-describedby={submitError ? "enquiry-submit-error" : undefined}
+                  className="inline-flex h-12 items-center justify-center rounded-control bg-mgh-gold px-10 text-[0.75rem] font-semibold uppercase tracking-[0.22em] text-mgh-gold-ink transition-[background-color,transform] duration-200 hover:bg-mgh-gold-hover active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mgh-gold focus-visible:ring-offset-2 focus-visible:ring-offset-mgh-bg"
+                >
+                  {isSubmitting ? "Submitting..." : "Send Enquiry"}
+                </button>
+                <p
+                  id="enquiry-submit-error"
+                  role="alert"
+                  className="text-sm text-mgh-danger empty:hidden"
+                >
+                  {submitError}
+                </p>
+              </div>
+            </motion.form>
 
-            {/* ── RIGHT: Sidebar slides in from right ── */}
-            <motion.div
-              className="w-full lg:w-[320px] shrink-0 flex flex-col gap-8"
-              variants={slideInRight}
-              initial="hidden"
-              whileInView="visible"
+            <motion.aside
+              aria-label="Availability and gallery"
+              className="flex flex-col gap-6"
+              initial={{ opacity: 0, y: 18 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.2 }}
+              transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
             >
-              {/* Availability Tracker */}
-              <div className="border border-[#1A1A1A] p-8">
-                <h3 className="text-sm font-bold text-white tracking-wide mb-1">
-                  Session Availability
-                </h3>
-                {formattedDate ? (
-                  <>
-                    <p className="text-[10px] tracking-[0.15em] text-white/30 mb-5">
-                      {formattedDate}
-                    </p>
-                    <div className="flex flex-col">
-                      {SESSION_OPTIONS.map((session, i) => {
-                        const isUnavailable = isSessionUnavailable(
-                          session.value,
-                          bookedSessions,
-                        );
-                        return (
-                          <div
-                            key={session.value}
-                            className={`flex items-center justify-between py-3.5 ${
-                              i < SESSION_OPTIONS.length - 1
-                                ? "border-b border-[#1A1A1A]"
-                                : ""
-                            }`}
-                          >
-                            <span className="text-[10px] tracking-[0.2em] uppercase text-white/40">
-                              {session.label} Session
-                            </span>
-                            <div className="flex items-center gap-2">
+              <div className="rounded-card border border-mgh-line bg-mgh-surface p-6 md:p-7">
+                <h3 className="font-serif text-xl text-mgh-text">Session Availability</h3>
+                <div aria-live="polite">
+                  {formattedDate ? (
+                    <>
+                      <p className="mt-1 text-[0.72rem] font-medium uppercase tracking-[0.16em] text-mgh-muted">
+                        {formattedDate}
+                      </p>
+                      <ul className="mt-5 divide-y divide-mgh-line-soft border-t border-mgh-line-soft">
+                        {SESSION_OPTIONS.map((session) => {
+                          const isUnavailable = isSessionUnavailable(session.value, bookedSessions);
+                          return (
+                            <li key={session.value} className="flex items-center justify-between gap-4 py-3">
+                              <span className="text-sm text-mgh-text">{session.label} Session</span>
                               <span
-                                className={`w-1.5 h-1.5 rounded-full ${
-                                  isUnavailable
-                                    ? "bg-red-500"
-                                    : "bg-emerald-400"
-                                }`}
-                              />
-                              <span
-                                className={`text-[10px] tracking-[0.15em] uppercase font-bold ${
-                                  isUnavailable
-                                    ? "text-red-400"
-                                    : "text-emerald-400"
-                                }`}
+                                className={cn(
+                                  "inline-flex items-center gap-2 text-[0.7rem] font-semibold uppercase tracking-[0.14em]",
+                                  isUnavailable ? "text-mgh-danger" : "text-mgh-ok",
+                                )}
                               >
+                                <span
+                                  aria-hidden="true"
+                                  className={cn("size-1.5 rounded-full", isUnavailable ? "bg-mgh-danger" : "bg-mgh-ok")}
+                                />
                                 {isUnavailable ? "Unavailable" : "Available"}
                               </span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-[11px] text-white/30 italic mt-3">
-                    Select a date to view real-time session availability
-                  </p>
-                )}
-              </div>
-
-              {/* Gallery CTA */}
-              <div className="relative h-64 group cursor-pointer overflow-hidden">
-                <img
-                  src="/images/image1.png"
-                  alt="Client Gallery"
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-8">
-                  <h3 className="text-lg font-bold text-[#D4AF37] mb-2">
-                    Explore Our Client Gallery
-                  </h3>
-                  <p className="text-xs text-white/60 mb-4 leading-relaxed">
-                    View our portfolio of extraordinary events and bespoke
-                    catering experiences.
-                  </p>
-                  <Link href="#gallery" scroll={true}>
-                    <span className="text-[10px] tracking-[0.25em] uppercase text-[#D4AF37] border-b border-[#D4AF37] pb-0.5 hover:text-white hover:border-white transition-colors cursor-pointer">
-                      View Gallery
-                    </span>
-                  </Link>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </>
+                  ) : (
+                    <p className="mt-3 text-sm italic leading-relaxed text-mgh-muted">
+                      Select a date to view real-time session availability
+                    </p>
+                  )}
                 </div>
               </div>
-            </motion.div>
+
+              <div className="group relative isolate overflow-hidden rounded-card">
+                <Image
+                  src="/images/gallery_images/showreel_thumbnail.png"
+                  alt=""
+                  fill
+                  sizes="20rem"
+                  className="-z-10 object-cover transition-transform duration-[1200ms] ease-mgh group-hover:scale-[1.04]"
+                />
+                <div aria-hidden="true" className="absolute inset-0 -z-10 bg-linear-to-t from-mgh-bg via-mgh-bg/70 to-mgh-bg/10" />
+                <div className="flex min-h-64 flex-col justify-end p-6 md:p-7">
+                  <h3 className="font-serif text-xl text-mgh-text">Explore Our Client Gallery</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-mgh-muted">
+                    View our portfolio of extraordinary events and bespoke catering experiences.
+                  </p>
+                  <a
+                    href="#gallery"
+                    className="mt-4 w-fit rounded-sm border-b border-mgh-gold pb-0.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-mgh-gold transition-colors after:absolute after:inset-0 after:content-[''] hover:text-mgh-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mgh-gold focus-visible:ring-offset-2 focus-visible:ring-offset-mgh-bg"
+                  >
+                    View Gallery
+                  </a>
+                </div>
+              </div>
+            </motion.aside>
           </div>
         </div>
       </section>
 
-      <SuccessModal
-        isOpen={showModal}
-        onClose={handleModalClose}
-        name={formData.name}
-      />
+      <SuccessModal isOpen={showModal} onClose={handleModalClose} name={formData.name} />
     </>
+  );
+}
+
+/** Label above, control, then the error below it, all wired together. */
+function FormField({ id, label, error, optional = false, children }) {
+  const errorId = `${id}-error`;
+  return (
+    <div className="flex flex-col gap-1">
+      <label htmlFor={id} className="text-[13px] font-medium text-mgh-muted">
+        {label}
+        {optional && <span className="ml-1.5 font-normal text-mgh-dim">(optional)</span>}
+      </label>
+      {children({
+        id,
+        "aria-invalid": error ? true : undefined,
+        "aria-describedby": error ? errorId : undefined,
+        "aria-required": optional ? undefined : true,
+      })}
+      {error && (
+        <p id={errorId} className="mt-1.5 text-[13px] text-mgh-danger">
+          {error}
+        </p>
+      )}
+    </div>
   );
 }

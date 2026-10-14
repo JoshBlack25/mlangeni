@@ -293,18 +293,22 @@ create table orders (                                           -- ~17 rows
   constraint orders_time_check CHECK ((end_time > start_time))
 );
 
--- Payment records. `stripe_payment_id` is unique; Stripe is not yet wired up.
+-- Payment records, written by the PayFast ITN webhook (app/api/payfast/notify).
+-- `provider_payment_id` holds PayFast's pf_payment_id and is unique, which is
+-- what makes the webhook idempotent. Renamed from stripe_payment_id by db/008.
 create table payments (                                         -- 0 rows (unused so far)
   payments_id           uuid not null default gen_random_uuid(),
   invoice_id            uuid not null,
   amount                numeric(10,2) not null,
-  stripe_payment_id     text not null,
+  provider_payment_id   text not null,
   status                payment_status not null default 'pending'::payment_status,
   date                  timestamp with time zone not null default now(),
   created_at            timestamp with time zone not null default now(),
   updated_at            timestamp with time zone not null default now(),
+  provider              text not null default 'payfast',
+  provider_payload      jsonb,
   constraint payments_pkey PRIMARY KEY (payments_id),
-  constraint payments_stripe_payment_id_key UNIQUE (stripe_payment_id)
+  constraint payments_provider_payment_id_key UNIQUE (provider_payment_id)
 );
 
 -- Curated set menus offered as an alternative to building a menu item by item.

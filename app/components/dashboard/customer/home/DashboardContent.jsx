@@ -9,36 +9,28 @@ import Testimonials from "./Testimonials/Testimonials";
 import RecentOrders from "./RecentOrders/RecentOrders";
 import DashboardFooter from "./DashboardFooter";
 
+/**
+ * Customer home, in reading order: a greeting, the next event and what is
+ * owed, the bookings at a glance, what is in motion, then other guests' words.
+ */
 export default function DashboardContent() {
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-10 md:gap-12">
       <Hero />
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <UpcomingEvents />
+        <Invoices />
+      </div>
 
       <Stats />
 
-      {/* BENTO GRID — 4 columns x 2 rows.
-          Events: 2x2 | Invoices+Consultations stacked: 1x2 | Testimonials: 1x2 */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-4 lg:auto-rows-[minmax(240px,auto)]">
-        <div className="lg:col-span-2 lg:row-span-2">
-          <UpcomingEvents />
-        </div>
-
-        <div className="flex flex-col gap-6 lg:col-span-1 lg:row-span-2">
-          <div className="flex-1">
-            <Invoices />
-          </div>
-          <div className="flex-1">
-            <Enquiries />
-          </div>
-        </div>
-
-        <div className="lg:col-span-1 lg:row-span-2">
-          <Testimonials />
-        </div>
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <RecentOrders />
+        <Enquiries />
       </div>
 
-      {/* RECENT ORDERS — full width, now that Notifications lives in the header */}
-      <RecentOrders />
+      <Testimonials />
 
       <DashboardFooter />
     </div>

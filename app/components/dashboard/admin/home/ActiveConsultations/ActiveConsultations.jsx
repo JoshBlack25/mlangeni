@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { EngravedDate } from "@/app/components/dashboard/ui";
+import HomeSection, { rowLink } from "../HomeSection";
 import { supabase } from "@/services/supabaseClient";
 
 function formatDate(dateString) {
@@ -94,57 +96,31 @@ export default function ActiveConsultations() {
   }, []);
 
   return (
-    <div className="flex h-full flex-col rounded-2xl border border-[#1F1F1F] bg-white/5 p-6 backdrop-blur-md">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-white">Active Meetings</h3>
-        <Link
-          href="/dashboard/admin/active-meetings"
-          className="text-sm font-medium text-[#D4AF37] hover:underline"
-        >
-          View all
-        </Link>
-      </div>
-
-      {meetings === null ? (
-        <div className="flex flex-1 flex-col gap-3">
-          {[...Array(4)].map((_, i) => (
-            <div
-              key={i}
-              className="h-16 animate-pulse rounded-xl border border-[#1F1F1F] bg-white/5"
-            />
-          ))}
-        </div>
-      ) : meetings.length === 0 ? (
-        <p className="flex flex-1 items-center justify-center text-sm text-[#A0A0A0]">
-          No active meetings right now.
-        </p>
-      ) : (
-        <div className="flex flex-1 flex-col gap-3 overflow-y-auto">
-          {meetings.map((meeting) => (
-            <Link
-              key={meeting.id}
-              href={`/dashboard/admin/consultations/${meeting.id}`}
-              className="grid grid-cols-1 gap-3 rounded-xl border border-[#1F1F1F] bg-[#0A0A0A]/40 p-4 transition hover:border-[#D4AF37] md:grid-cols-[1fr_auto] md:items-center"
-            >
-              <div>
-                <p className="font-medium text-white">{meeting.clientName}</p>
-                <p className="mt-1 text-sm text-[#A0A0A0]">
+    <HomeSection
+      title="Active Meetings"
+      href="/dashboard/admin/active-meetings"
+      items={meetings}
+      loadingLabel="Loading active meetings…"
+      emptyText="No active meetings right now."
+    >
+      <ul className="divide-y divide-mgh-line-soft">
+        {meetings?.map((meeting) => (
+          <li key={meeting.id}>
+            <Link href={`/dashboard/admin/consultations/${meeting.id}`} className={rowLink}>
+              <EngravedDate date={meeting.meetingDate} size="sm" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-mgh-text">{meeting.clientName}</span>
+                <span className="block truncate text-caption text-mgh-dim">
                   {meeting.eventType} - Event {formatDate(meeting.eventDate)}
-                </p>
-              </div>
-
-              <div className="border-l border-white/10 pl-4 text-left md:text-right">
-                <p className="text-sm font-medium text-[#D4AF37]">
-                  {formatDate(meeting.meetingDate)}
-                </p>
-                <p className="mt-1 text-xs text-[#797676]">
-                  {formatTime(meeting.meetingDate)}
-                </p>
-              </div>
+                </span>
+              </span>
+              <span className="shrink-0 text-right text-caption tabular-nums text-mgh-muted">
+                {formatTime(meeting.meetingDate)}
+              </span>
             </Link>
-          ))}
-        </div>
-      )}
-    </div>
+          </li>
+        ))}
+      </ul>
+    </HomeSection>
   );
 }

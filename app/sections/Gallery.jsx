@@ -1,18 +1,18 @@
 import Hero from "../components/gallery/Hero.jsx";
-import PostHero from "../components/gallery/PostHero.jsx";
 import Carousel from "../components/gallery/Carousel.jsx";
 import Showreel from "../components/gallery/Showreel.jsx";
 import CallToAction from "../components/gallery/CallToAction.jsx";
 
+// PostHero ("The Philosophy") is held back until it has real copy; it is
+// still placeholder text. Put it back between Hero and Carousel when ready.
 const Gallery = () => {
   return (
-    <main>
-      <Hero/>
-      <PostHero />
+    <>
+      <Hero />
       <Carousel />
       <Showreel />
       <CallToAction />
-    </main>
+    </>
   );
 };
 

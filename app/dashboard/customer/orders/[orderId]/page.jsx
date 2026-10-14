@@ -1,21 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import {
-  ArrowLeft,
-  CalendarDays,
-  ClipboardList,
-  Clock3,
-  MapPin,
-} from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { supabase } from "@/services/supabaseClient";
-
-const currency = new Intl.NumberFormat("en-ZA", {
-  style: "currency",
-  currency: "ZAR",
-});
+import {
+  Button,
+  EmptyState,
+  EngravedDate,
+  Panel,
+  PanelHeader,
+  Skeleton,
+  StatusBadge,
+  statusLabel,
+  Money,
+  toDate,
+} from "@/app/components/dashboard/ui";
+import { cn } from "@/lib/utils";
 
 function formatDate(dateString) {
   if (!dateString) return "TBC";
@@ -44,32 +45,6 @@ function formatTime(value) {
       });
 }
 
-function statusLabel(status) {
-  if (!status) return "Pending";
-
-  return status
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-}
-
-function statusStyles(status) {
-  const normalized = status?.toLowerCase();
-
-  if (normalized === "confirmed") {
-    return "border-[#D4AF37]/40 bg-[#D4AF37]/10 text-[#D4AF37]";
-  }
-
-  if (normalized === "pending") {
-    return "border-white/20 bg-white/10 text-[#A0A0A0]";
-  }
-
-  if (normalized === "cancelled") {
-    return "border-white/10 bg-white/5 text-[#797676]";
-  }
-
-  return "border-white/20 bg-white/10 text-[#A0A0A0]";
-}
 
 export default function OrderDetailPage() {
   const router = useRouter();
@@ -164,102 +139,163 @@ export default function OrderDetailPage() {
     };
   }, [orderId, router]);
 
+  const isCancelled = order?.status === "cancelled";
+  const isPast = order?.event_date ? order.event_date < new Date().toISOString().slice(0, 10) : false;
+  const isConfirmed = ["confirmed", "in_progress", "completed"].includes(order?.status);
+  const progressStep = order?.status === "completed" || (isConfirmed && isPast) ? 2 : isConfirmed ? 1 : 0;
+
   return (
-    <div className="min-h-screen bg-[#0A0A0A] px-4 py-8 text-white md:px-8 lg:px-10">
-      <div className="mx-auto flex max-w-5xl flex-col gap-6">
-        <Link
-          href="/dashboard/customer/orders"
-          className="inline-flex w-fit items-center gap-2 text-sm font-medium text-[#A0A0A0] transition hover:text-[#D4AF37]"
-        >
-          <ArrowLeft size={16} />
-          Back to orders
-        </Link>
+    <div className="flex flex-col gap-8 md:gap-10">
+      <Button
+        variant="quiet"
+        size="sm"
+        href="/dashboard/customer/orders"
+        className="-ml-3 w-fit"
+      >
+        <ArrowLeft size={16} aria-hidden="true" />
+        Back to orders
+      </Button>
 
-        <div className="rounded-[28px] border border-white/10 bg-white/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.02)] backdrop-blur-md md:p-8">
-          {loading ? (
-            <div className="flex h-56 items-center justify-center rounded-2xl border border-white/10 bg-[#0A0A0A]/60">
-              <p className="text-sm text-[#A0A0A0]">Loading order details…</p>
+      {loading ? (
+        <div role="status" className="flex flex-col gap-8">
+          <span className="sr-only">Loading order details…</span>
+          <div className="flex items-center gap-6">
+            <Skeleton className="h-24 w-20" />
+            <div className="flex flex-1 flex-col gap-3">
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-9 w-2/3 max-w-sm" />
+              <Skeleton className="h-3 w-32" />
             </div>
-          ) : error ? (
-            <div className="flex h-56 flex-col items-center justify-center rounded-2xl border border-red-400/20 bg-red-400/5 text-center">
-              <p className="text-sm font-medium text-red-400">
-                We couldn&apos;t load this order
-              </p>
-              <p className="mt-2 max-w-md text-sm text-[#A0A0A0]">{error}</p>
-            </div>
-          ) : !order ? (
-            <div className="flex h-56 flex-col items-center justify-center rounded-2xl border border-white/10 bg-[#0A0A0A]/60 text-center">
-              <ClipboardList className="mb-4 text-[#D4AF37]" size={28} />
-              <h2 className="text-lg font-semibold text-white">Order not found</h2>
-              <p className="mt-2 max-w-md text-sm text-[#A0A0A0]">
-                This order could not be found for your account.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div>
-                  <div className="inline-flex items-center gap-2 rounded-full border border-[#D4AF37]/30 bg-[#D4AF37]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-[#D4AF37]">
-                    <ClipboardList size={14} />
-                    Order #{order.order_id}
-                  </div>
-                  <h1 className="mt-4 text-3xl font-semibold text-white">
-                    {order.event_type?.event_name ?? "Event booking"}
-                  </h1>
-                  <p className="mt-2 text-sm text-[#A0A0A0]">
-                    Placed on {formatDate(order.created_at)}
-                  </p>
-                </div>
-
-                <span
-                  className={`rounded-full border px-2.5 py-1 text-[11px] font-medium ${statusStyles(order.status)}`}
-                >
-                  {statusLabel(order.status)}
-                </span>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                <div className="rounded-2xl border border-white/10 bg-[#0A0A0A]/70 p-4">
-                  <div className="flex items-center gap-2 text-sm text-[#A0A0A0]">
-                    <CalendarDays size={15} className="text-[#D4AF37]" />
-                    Event date
-                  </div>
-                  <p className="mt-3 text-lg font-semibold text-white">
-                    {formatDate(order.event_date)}
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-white/10 bg-[#0A0A0A]/70 p-4">
-                  <div className="flex items-center gap-2 text-sm text-[#A0A0A0]">
-                    <Clock3 size={15} className="text-[#D4AF37]" />
-                    Time
-                  </div>
-                  <p className="mt-3 text-lg font-semibold text-white">
-                    {formatTime(order.start_time)} – {formatTime(order.end_time)}
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-white/10 bg-[#0A0A0A]/70 p-4">
-                  <div className="flex items-center gap-2 text-sm text-[#A0A0A0]">
-                    <MapPin size={15} className="text-[#D4AF37]" />
-                    Location
-                  </div>
-                  <p className="mt-3 text-lg font-semibold text-white">
-                    {order.event_location || "Location to be confirmed"}
-                  </p>
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-[#0A0A0A]/70 p-5">
-                <p className="text-sm text-[#797676]">Order total</p>
-                <p className="mt-2 text-3xl font-semibold text-white">
-                  {currency.format(Number(order.total_price || 0))}
-                </p>
-              </div>
-            </div>
-          )}
+          </div>
+          <Skeleton className="h-40 w-full" />
         </div>
-      </div>
+      ) : error ? (
+        <Panel>
+          <p className="font-serif text-xl text-mgh-text">
+            We couldn&apos;t load this order
+          </p>
+          <p className="mt-2 max-w-md text-sm text-mgh-danger">{error}</p>
+        </Panel>
+      ) : !order ? (
+        <EmptyState
+          title="Order not found"
+          action={
+            <Button variant="secondary" href="/dashboard/customer/orders">
+              Back to orders
+            </Button>
+          }
+        >
+          This order could not be found for your account.
+        </EmptyState>
+      ) : (
+        <>
+          <header className="flex items-start gap-5 border-b border-mgh-line pb-8 sm:gap-8 md:pb-10">
+            <EngravedDate date={order.event_date} size="lg" next={!isPast && !isCancelled} />
+            <div className="min-w-0 flex-1 pt-1">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <span
+                  className="text-label font-semibold uppercase tabular-nums text-mgh-dim"
+                  title={`Order #${order.order_id}`}
+                >
+                  Ref ORD-{String(order.order_id).slice(0, 8).toUpperCase()}
+                </span>
+                <StatusBadge
+                  status={order.status ?? "pending"}
+                  label={statusLabel(order.status, "Pending")}
+                />
+              </div>
+              <h1 className="mt-2 text-balance font-serif text-display-sm font-medium text-mgh-text md:text-display">
+                {order.event_type?.event_name ?? "Event booking"}
+              </h1>
+              <p className="mt-2 text-sm text-mgh-muted">
+                Placed on {formatDate(order.created_at)}
+              </p>
+            </div>
+          </header>
+
+          {!isCancelled && <OrderProgress step={progressStep} />}
+
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+            <Panel variant="feature" aria-labelledby="occasion-title">
+              <PanelHeader titleId="occasion-title" title="The occasion" />
+              <dl className="divide-y divide-mgh-line-soft border-y border-mgh-line-soft">
+                {[
+                  {
+                    label: "Date",
+                    value: toDate(order.event_date)
+                      ? toDate(order.event_date).toLocaleDateString("en-ZA", {
+                          weekday: "long",
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })
+                      : "TBC",
+                  },
+                  {
+                    label: "Time",
+                    value: `${formatTime(order.start_time)} - ${formatTime(order.end_time)}`,
+                  },
+                  {
+                    label: "Location",
+                    value: order.event_location || "Location to be confirmed",
+                  },
+                ].map((fact) => (
+                  <div
+                    key={fact.label}
+                    className="flex flex-col gap-1 py-4 sm:flex-row sm:items-baseline sm:gap-6"
+                  >
+                    <dt className="text-label font-semibold uppercase text-mgh-dim sm:w-24 sm:shrink-0">
+                      {fact.label}
+                    </dt>
+                    <dd className="text-[15px] tabular-nums text-mgh-text">{fact.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </Panel>
+
+            <Panel aria-labelledby="account-title" className="flex flex-col">
+              <PanelHeader titleId="account-title" title="The account" />
+              <p className="text-label font-semibold uppercase text-mgh-dim">Order total</p>
+              <p className="mt-2 font-serif text-[2.25rem] font-medium leading-none text-mgh-text">
+                <Money value={Number(order.total_price || 0)} />
+              </p>
+              <p className="mt-3 max-w-[32ch] text-sm leading-relaxed text-mgh-muted">
+                Invoices for this booking, and anything still to pay, live under Payments.
+              </p>
+              <div className="mt-auto pt-6">
+                <Button variant="secondary" href="/dashboard/customer/payments" className="w-full sm:w-auto">
+                  View payments
+                </Button>
+              </div>
+            </Panel>
+          </div>
+        </>
+      )}
     </div>
+  );
+}
+
+const PROGRESS = ["Booking received", "Confirmed", "The day"];
+
+/** Where the booking stands, read from its status alone. */
+function OrderProgress({ step }) {
+  return (
+    <ol aria-label="Booking progress" className="grid grid-cols-3 gap-3">
+      {PROGRESS.map((label, i) => {
+        const done = i <= step;
+        const current = i === step;
+        return (
+          <li key={label} aria-current={current ? "step" : undefined} className="flex flex-col gap-2.5">
+            <span
+              aria-hidden="true"
+              className={cn("h-px w-full", done ? (current ? "bg-mgh-gold" : "bg-mgh-muted") : "bg-mgh-line-strong")}
+            />
+            <span className={cn("text-caption sm:text-sm", done ? "text-mgh-text" : "text-mgh-dim")}>
+              {label}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
   );
 }

@@ -1,24 +1,37 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { motion } from "framer-motion";
 import {
   ArrowLeft,
-  CalendarCheck,
-  CalendarDays,
   Check,
   CheckCircle2,
-  ClipboardList,
   Mail,
   MapPin,
   Phone,
   Trash2,
-  UserRound,
-  UtensilsCrossed,
 } from "lucide-react";
 import { supabase } from "@/services/supabaseClient";
+import { cn } from "@/lib/utils";
+import {
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogDescription,
+  EmptyState,
+  EngravedDate,
+  Field,
+  Input,
+  PageHeader,
+  Panel,
+  PanelHeader,
+  Skeleton,
+  StatusBadge,
+  Textarea,
+  focusRing,
+  statusLabel,
+  Blank,
+} from "@/app/components/dashboard/ui";
 
 const currency = new Intl.NumberFormat("en-ZA", {
   style: "currency",
@@ -93,14 +106,6 @@ function getReference(id) {
   return `REQ-${id.slice(0, 8).toUpperCase()}`;
 }
 
-function statusLabel(status) {
-  if (!status) return "Requested";
-
-  return status
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-}
 
 function buildMeetingDates() {
   const dates = [];
@@ -441,228 +446,206 @@ export default function AdminConsultationDetailsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0A0A0A] px-6 py-10 text-white md:px-10 lg:px-14">
-      <div className="mx-auto max-w-[1400px]">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between"
-        >
-          <div>
-            <Link
-              href="/dashboard/admin/consultations"
-              className="mb-5 inline-flex items-center gap-2 text-sm font-medium text-[#A0A0A0] transition hover:text-[#D4AF37]"
-            >
-              <ArrowLeft size={16} />
-              Back to consultations
-            </Link>
+    <div>
+      <PageHeader
+        density="dense"
+        title={loading ? "Loading request" : fullName}
+        lead="Review the submitted order and prepare the in-person meeting details for the customer."
+        actions={
+          <Button variant="quiet" href="/dashboard/admin/consultations">
+            <ArrowLeft size={16} className="text-mgh-dim" />
+            Back to consultations
+          </Button>
+        }
+      />
 
-            <div className="mb-4 flex items-center gap-2 text-sm uppercase tracking-[0.25em] text-[#D4AF37]">
-              <CalendarCheck size={17} />
-              <span>Consultation Request</span>
+      {loading ? (
+        <div role="status" className="flex flex-col gap-6">
+          <span className="sr-only">Loading request</span>
+          <Skeleton className="h-20 w-full" />
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
+            <div className="flex flex-col gap-6">
+              <Skeleton className="h-40 w-full" />
+              <Skeleton className="h-56 w-full" />
             </div>
+            <Skeleton className="h-96 w-full" />
+          </div>
+        </div>
+      ) : loadError ? (
+        <Panel density="dense" className="border-mgh-danger/30">
+          <p className="text-sm font-semibold text-mgh-danger">
+            We could not load this consultation
+          </p>
+          <p className="mt-2 max-w-lg text-sm leading-6 text-mgh-muted">
+            {loadError}
+          </p>
+        </Panel>
+      ) : !consultation ? (
+        <Panel density="dense">
+          <EmptyState title="Consultation not found">
+            This consultation request is no longer available.
+          </EmptyState>
+        </Panel>
+      ) : (
+        <div className="flex flex-col gap-6">
+          <Panel
+            density="dense"
+            className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6"
+          >
+            <EngravedDate date={order?.event_date} size="md" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-mgh-text">{eventType}</p>
+              <p className="mt-1 text-sm text-mgh-muted">
+                {formatDate(order?.event_date)} · {guestCount}
+              </p>
+              <p className="mt-1 text-caption tabular-nums text-mgh-dim">
+                {getReference(consultation?.consultations_id)}
+              </p>
+            </div>
+            <dl className="flex flex-wrap gap-x-8 gap-y-3 sm:justify-end">
+              <div>
+                <dt className="text-label font-semibold uppercase text-mgh-dim">
+                  Consultation
+                </dt>
+                <dd className="mt-1.5">
+                  <StatusBadge
+                    status={consultation?.status || "requested"}
+                    label={statusLabel(consultation?.status, "Requested")}
+                  />
+                </dd>
+              </div>
+              <div>
+                <dt className="text-label font-semibold uppercase text-mgh-dim">
+                  Order Status
+                </dt>
+                <dd className="mt-1.5">
+                  <StatusBadge
+                    status={order?.status || "requested"}
+                    label={statusLabel(order?.status, "Requested")}
+                  />
+                </dd>
+              </div>
+            </dl>
+          </Panel>
 
-            <h1 className="font-serif text-4xl font-medium tracking-tight text-white md:text-5xl">
-              {loading ? "Loading request" : fullName}
-            </h1>
-
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-[#A0A0A0] md:text-base">
-              Review the submitted order and prepare the in-person meeting
-              details for the customer.
-            </p>
-          </div>
-
-          <div className="border-l-2 border-[#D4AF37] bg-white/[0.03] px-4 py-3 text-sm text-[#D4AF37]">
-            {getReference(consultation?.consultations_id)}{" "}
-            {statusLabel(consultation?.status)}
-          </div>
-        </motion.div>
-
-        {loading ? (
-          <div className="mt-10 grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
-            <div className="h-64 animate-pulse rounded-2xl border border-[#1F1F1F] bg-white/5" />
-            <div className="h-64 animate-pulse rounded-2xl border border-[#1F1F1F] bg-white/5" />
-          </div>
-        ) : loadError ? (
-          <div className="mt-10 flex min-h-64 flex-col items-center justify-center border border-red-400/20 bg-red-400/5 px-6 text-center">
-            <p className="text-sm font-semibold text-red-300">
-              We could not load this consultation
-            </p>
-            <p className="mt-2 max-w-lg text-sm leading-6 text-[#A0A0A0]">
-              {loadError}
-            </p>
-          </div>
-        ) : !consultation ? (
-          <div className="mt-10 flex min-h-64 flex-col items-center justify-center border border-white/10 bg-white/5 px-6 text-center">
-            <ClipboardList className="text-[#D4AF37]" size={28} />
-            <h2 className="mt-4 text-lg font-semibold text-white">
-              Consultation not found
-            </h2>
-            <p className="mt-2 max-w-lg text-sm leading-6 text-[#A0A0A0]">
-              This consultation request is no longer available.
-            </p>
-          </div>
-        ) : (
-          <>
-            <motion.section
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45, delay: 0.1 }}
-              className="mt-10 grid grid-cols-1 gap-6 xl:grid-cols-[0.85fr_1.15fr]"
-            >
-              <InfoPanel
-                icon={UserRound}
-                eyebrow="Customer"
-                title="Customer Details"
-              >
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <DetailField
+          <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
+            <div className="flex min-w-0 flex-col gap-6">
+              <Panel density="dense">
+                <PanelHeader density="dense" title="Customer Details" />
+                <dl className="divide-y divide-mgh-line-soft border-t border-mgh-line-soft">
+                  <DetailRow
                     label="First Name"
                     value={customer?.first_name || "First name pending"}
                   />
-                  <DetailField
+                  <DetailRow
                     label="Last Name"
                     value={customer?.last_name || "Last name pending"}
                   />
-                </div>
-
-                <div className="mt-5 grid grid-cols-1 gap-3">
-                  <ContactRow
+                  <DetailRow
                     icon={Mail}
                     label="Email"
                     value={customer?.email || "Email pending"}
                   />
-                  <ContactRow
+                  <DetailRow
                     icon={Phone}
                     label="Phone"
                     value={customer?.phone_number || "Phone pending"}
                   />
-                </div>
-              </InfoPanel>
+                </dl>
+              </Panel>
 
-              <InfoPanel
-                icon={ClipboardList}
-                eyebrow="Order"
-                title="Submitted Event Details"
-              >
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <DetailField label="Event Type" value={eventType} />
-                  <DetailField label="Guest Count" value={guestCount} />
-                  <DetailField
+              <Panel density="dense">
+                <PanelHeader density="dense" title="Submitted Event Details" />
+                <dl className="divide-y divide-mgh-line-soft border-t border-mgh-line-soft">
+                  <DetailRow label="Event Type" value={eventType} />
+                  <DetailRow label="Guest Count" value={guestCount} />
+                  <DetailRow
                     label="Event Date"
                     value={formatDate(order?.event_date)}
                   />
-                  <DetailField
+                  <DetailRow
                     label="Event Time"
                     value={`${formatTime(order?.start_time)} - ${formatTime(
                       order?.end_time,
                     )}`}
                   />
-                  <DetailField label="Order Total" value={totalPrice} />
-                  <DetailField
-                    label="Order Status"
-                    value={statusLabel(order?.status)}
+                  <DetailRow
+                    icon={MapPin}
+                    label="Location"
+                    value={order?.event_location || "Event location pending"}
                   />
-                </div>
+                </dl>
+              </Panel>
 
-                <div className="mt-4 flex items-center gap-2 border border-white/10 bg-[#0A0A0A]/50 px-4 py-3 text-sm text-[#A0A0A0]">
-                  <MapPin size={16} className="text-[#D4AF37]" />
-                  <span>{order?.event_location || "Event location pending"}</span>
-                </div>
-              </InfoPanel>
-            </motion.section>
+              <Panel density="dense">
+                <PanelHeader density="dense" title="Customer Menu Selection" />
 
-            <motion.section
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45, delay: 0.16 }}
-              className="mt-6 rounded-2xl border border-[#1F1F1F] bg-white/5 p-6 backdrop-blur-md"
-            >
-              <div className="mb-5 flex items-start justify-between gap-4 border-b border-white/10 pb-5">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-[#A0A0A0]">
-                    Ordered Items
+                {orderItems.length === 0 ? (
+                  <p className="text-sm text-mgh-muted">
+                    No menu items were found for this order yet.
                   </p>
-                  <h2 className="mt-2 text-xl font-semibold text-white">
-                    Customer Menu Selection
-                  </h2>
-                </div>
-                <div className="inline-flex rounded-xl bg-[#D4AF37]/10 p-3 text-[#D4AF37]">
-                  <UtensilsCrossed size={21} />
-                </div>
-              </div>
-
-              {orderItems.length === 0 ? (
-                <div className="border border-white/10 bg-[#0A0A0A]/50 px-4 py-6 text-sm text-[#A0A0A0]">
-                  No menu items were found for this order yet.
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-                  {orderItems.map((item) => (
-                    <div
-                      key={item.id}
-                      className="grid grid-cols-1 gap-3 rounded-xl border border-white/10 bg-[#0A0A0A]/50 p-4 md:grid-cols-[1fr_auto]"
-                    >
-                      <div>
-                        <p className="text-sm font-semibold text-white">
-                          {item.name}
-                        </p>
-                        <p className="mt-1 text-xs text-[#797676]">
-                          {item.note}
-                        </p>
-                      </div>
-                      <div className="text-sm font-medium text-[#D4AF37] md:text-right">
-                        <p>Qty {item.quantity}</p>
-                        {item.price !== null && item.price !== undefined && (
-                          <p className="mt-1 text-xs text-[#A0A0A0]">
-                            {currency.format(Number(item.price))}
+                ) : (
+                  <ul className="divide-y divide-mgh-line-soft border-t border-mgh-line-soft">
+                    {orderItems.map((item) => (
+                      <li key={item.id} className="py-2.5">
+                        <div className="flex items-baseline gap-2 text-sm">
+                          <span className="min-w-0 font-medium text-mgh-text">
+                            {item.name}
+                          </span>
+                          <span className="shrink-0 tabular-nums text-mgh-dim">
+                            × {item.quantity}
+                          </span>
+                          <span
+                            aria-hidden="true"
+                            className="min-w-4 flex-1 translate-y-[-3px] border-b border-dotted border-mgh-line-strong"
+                          />
+                          {item.price !== null && item.price !== undefined ? (
+                            <span className="shrink-0 tabular-nums text-mgh-text">
+                              {currency.format(Number(item.price))}
+                            </span>
+                          ) : (
+                            <Blank label="Price not set" className="shrink-0" />
+                          )}
+                        </div>
+                        {item.note && (
+                          <p className="mt-0.5 text-caption text-mgh-dim">
+                            {item.note}
                           </p>
                         )}
-                      </div>
-                    </div>
-                  ))}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                <div className="mt-1 flex items-baseline justify-between gap-4 border-t border-mgh-line pt-3">
+                  <span className="text-label font-semibold uppercase text-mgh-dim">
+                    Order Total
+                  </span>
+                  <span className="font-serif text-xl font-medium tabular-nums text-mgh-text">
+                    {totalPrice}
+                  </span>
                 </div>
-              )}
+              </Panel>
 
               {consultation.note && (
-                <div className="mt-5 border border-[#D4AF37]/20 bg-[#D4AF37]/5 px-4 py-4">
-                  <p className="text-xs uppercase tracking-[0.18em] text-[#D4AF37]">
-                    Customer Notes
-                  </p>
-                  <p className="mt-2 whitespace-pre-line text-sm leading-6 text-[#A0A0A0]">
+                <Panel density="dense">
+                  <PanelHeader density="dense" title="Customer Notes" />
+                  <p className="whitespace-pre-line text-sm leading-6 text-mgh-muted">
                     {consultation.note}
                   </p>
-                </div>
+                </Panel>
               )}
-            </motion.section>
+            </div>
 
-            <motion.section
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45, delay: 0.22 }}
-              className="mt-6 rounded-2xl border border-[#1F1F1F] bg-white/5 p-6 backdrop-blur-md"
-            >
-              <div className="mb-5 flex items-start justify-between gap-4 border-b border-white/10 pb-5">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-[#A0A0A0]">
-                    Meeting
-                  </p>
-                  <h2 className="mt-2 text-xl font-semibold text-white">
-                    Schedule In-Person Meeting
-                  </h2>
-                </div>
-                <div className="inline-flex rounded-xl bg-[#D4AF37]/10 p-3 text-[#D4AF37]">
-                  <CalendarDays size={21} />
-                </div>
-              </div>
+            <Panel density="dense" className="lg:sticky lg:top-6">
+              <PanelHeader density="dense" title="Schedule In-Person Meeting" />
 
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-                <div>
-                  <p className="mb-3 text-xs uppercase tracking-[0.18em] text-[#A0A0A0]">
+              <div className="flex flex-col gap-4">
+                <fieldset>
+                  <legend className="mb-1.5 text-[13px] font-medium text-mgh-muted">
                     Select Date
-                  </p>
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  </legend>
+                  <div className="grid grid-cols-3 gap-2">
                     {meetingDates.map((meetingDate) => {
                       const active = selectedMeetingDate === meetingDate.value;
 
@@ -670,120 +653,111 @@ export default function AdminConsultationDetailsPage() {
                         <button
                           key={meetingDate.value}
                           type="button"
+                          aria-pressed={active}
                           onClick={() =>
                             setSelectedMeetingDate(meetingDate.value)
                           }
-                          className={`border p-4 text-left transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A] ${
+                          className={cn(
+                            "flex flex-col items-center rounded-control border px-2 py-2 transition-colors",
                             active
-                              ? "border-[#D4AF37] bg-[#D4AF37]/10"
-                              : "border-white/10 bg-[#0A0A0A]/50 hover:border-[#D4AF37]/50"
-                          }`}
+                              ? "border-mgh-gold bg-mgh-gold/10"
+                              : "border-mgh-line bg-mgh-surface-2 hover:border-mgh-line-strong",
+                            focusRing,
+                          )}
                         >
-                          <p className="text-xs uppercase tracking-[0.18em] text-[#797676]">
+                          <span className="text-label font-semibold uppercase text-mgh-dim">
                             {meetingDate.day}
-                          </p>
-                          <p className="mt-2 text-2xl font-semibold text-white">
+                          </span>
+                          <span className="mt-0.5 font-serif text-xl tabular-nums text-mgh-text">
                             {meetingDate.date}
-                          </p>
+                          </span>
                         </button>
                       );
                     })}
                   </div>
+                </fieldset>
 
-                  <InputField
+                <Field label="Custom Date">
+                  <Input
                     id="meeting-date"
-                    label="Custom Date"
                     type="date"
                     value={selectedMeetingDate}
                     onChange={(event) =>
                       setSelectedMeetingDate(event.target.value)
                     }
-                    className="mt-5"
                   />
-                </div>
+                </Field>
 
-                <div>
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <InputField
-                      id="meeting-time"
-                      label="Meeting Time"
-                      type="time"
-                      value={meetingTime}
-                      onChange={(event) => setMeetingTime(event.target.value)}
-                    />
-                    <InputField
-                      id="meeting-location"
-                      label="Meeting Location"
-                      placeholder="Office or venue address"
-                      value={meetingLocation}
-                      onChange={(event) =>
-                        setMeetingLocation(event.target.value)
-                      }
-                    />
-                  </div>
+                <Field label="Meeting Time">
+                  <Input
+                    id="meeting-time"
+                    type="time"
+                    value={meetingTime}
+                    onChange={(event) => setMeetingTime(event.target.value)}
+                  />
+                </Field>
 
-                  <div className="mt-5">
-                    <label
-                      htmlFor="meeting-notes"
-                      className="mb-2 block text-xs uppercase tracking-[0.18em] text-[#A0A0A0]"
-                    >
-                      Notes To Customer
-                    </label>
-                    <textarea
-                      id="meeting-notes"
-                      rows={5}
-                      value={meetingNotes}
-                      onChange={(event) => setMeetingNotes(event.target.value)}
-                      placeholder="Add notes about what the customer should bring, what will be discussed, or where to meet..."
-                      className="w-full resize-none rounded-xl border border-white/10 bg-[#101010] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[#4F4F4F] focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20"
-                    />
-                  </div>
+                <Field label="Meeting Location">
+                  <Input
+                    id="meeting-location"
+                    placeholder="Office or venue address"
+                    value={meetingLocation}
+                    onChange={(event) => setMeetingLocation(event.target.value)}
+                  />
+                </Field>
+
+                <Field label="Notes To Customer">
+                  <Textarea
+                    id="meeting-notes"
+                    rows={5}
+                    value={meetingNotes}
+                    onChange={(event) => setMeetingNotes(event.target.value)}
+                    placeholder="Add notes about what the customer should bring, what will be discussed, or where to meet..."
+                    className="resize-none"
+                  />
+                </Field>
+
+                {(actionError || actionMessage) && (
+                  <p
+                    role={actionError ? "alert" : "status"}
+                    className={cn(
+                      "rounded-control border px-3 py-2.5 text-sm",
+                      actionError
+                        ? "border-mgh-danger/30 bg-mgh-danger/5 text-mgh-danger"
+                        : "border-mgh-line bg-mgh-surface-2 text-mgh-muted",
+                    )}
+                  >
+                    {actionError || actionMessage}
+                  </p>
+                )}
+
+                <div className="flex flex-col gap-2 border-t border-mgh-line pt-4">
+                  <Button
+                    variant="primary"
+                    onClick={handleScheduleMeeting}
+                    disabled={Boolean(savingAction)}
+                    className="w-full"
+                  >
+                    <Check size={16} />
+                    {savingAction === "schedule"
+                      ? "Scheduling..."
+                      : "Schedule Meeting"}
+                  </Button>
+                  <Button
+                    variant="danger"
+                    onClick={() => setShowCancelDialog(true)}
+                    disabled={Boolean(savingAction)}
+                    className="w-full"
+                  >
+                    <Trash2 size={16} />
+                    {savingAction === "cancel" ? "Cancelling..." : "Cancel Event"}
+                  </Button>
                 </div>
               </div>
-            </motion.section>
-
-            {(actionError || actionMessage) && (
-              <div
-                className={`mt-5 border px-4 py-4 text-sm ${
-                  actionError
-                    ? "border-red-400/20 bg-red-400/5 text-red-300"
-                    : "border-[#D4AF37]/20 bg-[#D4AF37]/5 text-[#D4AF37]"
-                }`}
-              >
-                {actionError || actionMessage}
-              </div>
-            )}
-
-            <motion.div
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45, delay: 0.28 }}
-              className="mt-6 flex flex-col gap-3 border-t border-white/10 pt-6 sm:flex-row sm:justify-end"
-            >
-              <button
-                type="button"
-                onClick={() => setShowCancelDialog(true)}
-                disabled={Boolean(savingAction)}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-lg border border-red-400/40 px-5 text-sm font-semibold text-red-400 transition hover:border-red-400 hover:bg-red-400/10 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <Trash2 size={16} />
-                {savingAction === "cancel" ? "Cancelling..." : "Cancel Event"}
-              </button>
-              <button
-                type="button"
-                onClick={handleScheduleMeeting}
-                disabled={Boolean(savingAction)}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-[#D4AF37] px-5 text-sm font-semibold text-black transition hover:bg-[#e0bd4a] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <Check size={16} />
-                {savingAction === "schedule"
-                  ? "Scheduling..."
-                  : "Schedule Meeting"}
-              </button>
-            </motion.div>
-          </>
-        )}
-      </div>
+            </Panel>
+          </div>
+        </div>
+      )}
 
       {showCancelDialog && (
         <CancelOrderDialog
@@ -805,7 +779,7 @@ export default function AdminConsultationDetailsPage() {
           }}
         />
       )}
-    </main>
+    </div>
   );
 }
 
@@ -817,61 +791,52 @@ function CancelOrderDialog({
   onConfirm,
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4 py-6 backdrop-blur-sm">
-      <motion.div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="cancel-order-title"
-        initial={{ opacity: 0, y: 16, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.2 }}
-        className="w-full max-w-lg border border-[#2A2A2A] bg-[#101010] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.55)]"
-      >
-        <div className="border-b border-white/10 pb-5">
-          <p className="text-xs uppercase tracking-[0.22em] text-red-400">
-            Cancel Order
-          </p>
-          <h2
-            id="cancel-order-title"
-            className="mt-3 font-serif text-2xl font-medium text-white"
-          >
+    <Dialog
+      open
+      onOpenChange={(o) => {
+        if (!o) onClose();
+      }}
+      size="md"
+      dismissible={!saving}
+      showClose={false}
+    >
+      <div>
+        <p className="text-label font-semibold uppercase text-mgh-danger">
+          Cancel Order
+        </p>
+        <DialogTitle asChild>
+          <h2 className="mt-2 font-serif text-title font-medium text-mgh-text">
             Are you sure you want to cancel this order?
           </h2>
-          <p className="mt-3 text-sm leading-6 text-[#A0A0A0]">
+        </DialogTitle>
+        <DialogDescription asChild>
+          <p className="mt-2 text-sm leading-relaxed text-mgh-muted">
             This will permanently delete the consultation and the order from the
             database. This action cannot be undone.
           </p>
-        </div>
+        </DialogDescription>
+      </div>
 
-        <div className="mt-5 border border-white/10 bg-[#0A0A0A]/60 px-4 py-3">
-          <p className="text-xs uppercase tracking-[0.18em] text-[#797676]">
-            Order Summary
-          </p>
-          <p className="mt-2 text-sm font-medium text-white">{customerName}</p>
-          <p className="mt-1 text-sm text-[#A0A0A0]">{eventType}</p>
-        </div>
+      <div className="mt-5 rounded-control border border-mgh-line bg-mgh-surface-2 px-4 py-3">
+        <p className="text-label font-semibold uppercase text-mgh-dim">
+          Order Summary
+        </p>
+        <p className="mt-1.5 text-sm font-medium text-mgh-text">
+          {customerName}
+        </p>
+        <p className="mt-0.5 text-sm text-mgh-muted">{eventType}</p>
+      </div>
 
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={saving}
-            className="inline-flex h-11 items-center justify-center rounded-lg border border-white/10 px-5 text-sm font-semibold text-[#A0A0A0] transition hover:border-white/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            Keep Order
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            disabled={saving}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-red-400/50 bg-red-400/10 px-5 text-sm font-semibold text-red-300 transition hover:border-red-400 hover:bg-red-400/15 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <Trash2 size={16} />
-            {saving ? "Deleting..." : "Yes, Cancel Order"}
-          </button>
-        </div>
-      </motion.div>
-    </div>
+      <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <Button variant="quiet" onClick={onClose} disabled={saving}>
+          Keep Order
+        </Button>
+        <Button variant="danger" onClick={onConfirm} disabled={saving}>
+          <Trash2 size={16} />
+          {saving ? "Deleting..." : "Yes, Cancel Order"}
+        </Button>
+      </div>
+    </Dialog>
   );
 }
 
@@ -883,128 +848,58 @@ function AdminActionConfirmationDialog({
   onClose,
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4 py-6 backdrop-blur-sm">
-      <motion.section
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="admin-action-confirmation-title"
-        initial={{ opacity: 0, y: 16, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.22 }}
-        className="w-full max-w-xl border border-[#2A2A2A] bg-[#101010] shadow-[0_24px_80px_rgba(0,0,0,0.55)]"
-      >
-        <div className="h-[2px] bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent" />
-
-        <div className="p-6 md:p-8">
-          <div className="border-l-2 border-[#D4AF37] pl-4">
-            <p className="flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-[#D4AF37]">
-              <CheckCircle2 size={16} />
-              {eyebrow}
-            </p>
-            <h2
-              id="admin-action-confirmation-title"
-              className="mt-3 font-serif text-3xl font-medium text-white"
-            >
-              {title}
-            </h2>
-            <p className="mt-3 text-sm leading-7 text-[#A0A0A0]">{message}</p>
-          </div>
-
-          {detail && (
-            <div className="mt-6 border border-white/10 bg-[#0A0A0A]/60 px-4 py-3">
-              <p className="text-xs uppercase tracking-[0.18em] text-[#797676]">
-                Summary
-              </p>
-              <p className="mt-2 text-sm font-medium text-white">{detail}</p>
-            </div>
-          )}
-
-          <div className="mt-6 flex justify-end">
-            <button
-              type="button"
-              onClick={onClose}
-              className="inline-flex h-11 items-center justify-center rounded-lg bg-[#D4AF37] px-5 text-sm font-semibold text-black transition hover:bg-[#e0bd4a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#101010]"
-            >
-              Back to dashboard
-            </button>
-          </div>
-        </div>
-
-        <div className="h-[2px] bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent" />
-      </motion.section>
-    </div>
-  );
-}
-
-function InfoPanel({ icon: Icon, eyebrow, title, children }) {
-  return (
-    <section className="rounded-2xl border border-[#1F1F1F] bg-white/5 p-6 backdrop-blur-md">
-      <div className="mb-5 flex items-start justify-between gap-4 border-b border-white/10 pb-5">
-        <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-[#A0A0A0]">
-            {eyebrow}
-          </p>
-          <h2 className="mt-2 text-xl font-semibold text-white">{title}</h2>
-        </div>
-        <div className="inline-flex rounded-xl bg-[#D4AF37]/10 p-3 text-[#D4AF37]">
-          <Icon size={21} />
-        </div>
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function DetailField({ label, value }) {
-  return (
-    <div className="border border-white/10 bg-[#0A0A0A]/50 px-4 py-3">
-      <p className="text-xs uppercase tracking-[0.18em] text-[#797676]">
-        {label}
-      </p>
-      <p className="mt-2 text-sm font-medium text-white">{value}</p>
-    </div>
-  );
-}
-
-function ContactRow({ icon: Icon, label, value }) {
-  return (
-    <div className="flex items-center gap-3 border border-white/10 bg-[#0A0A0A]/50 px-4 py-3">
-      <Icon size={16} className="text-[#D4AF37]" />
+    <Dialog
+      open
+      onOpenChange={(o) => {
+        if (!o) onClose();
+      }}
+      size="lg"
+      showClose={false}
+      dismissible={false}
+    >
       <div>
-        <p className="text-xs uppercase tracking-[0.18em] text-[#797676]">
-          {label}
+        <p className="flex items-center gap-2 text-label font-semibold uppercase text-mgh-dim">
+          <CheckCircle2 size={16} className="text-mgh-ok" />
+          {eyebrow}
         </p>
-        <p className="mt-1 text-sm text-white">{value}</p>
+        <DialogTitle asChild>
+          <h2 className="mt-2 font-serif text-title font-medium text-mgh-text">
+            {title}
+          </h2>
+        </DialogTitle>
+        <DialogDescription asChild>
+          <p className="mt-2 text-sm leading-relaxed text-mgh-muted">
+            {message}
+          </p>
+        </DialogDescription>
       </div>
-    </div>
+
+      {detail && (
+        <div className="mt-5 rounded-control border border-mgh-line bg-mgh-surface-2 px-4 py-3">
+          <p className="text-label font-semibold uppercase text-mgh-dim">
+            Summary
+          </p>
+          <p className="mt-1.5 text-sm font-medium text-mgh-text">{detail}</p>
+        </div>
+      )}
+
+      <div className="mt-6 flex justify-end">
+        <Button variant="primary" onClick={onClose} className="w-full sm:w-auto">
+          Back to dashboard
+        </Button>
+      </div>
+    </Dialog>
   );
 }
 
-function InputField({
-  id,
-  label,
-  placeholder,
-  type = "text",
-  value,
-  onChange,
-  className = "",
-}) {
+function DetailRow({ icon: Icon, label, value }) {
   return (
-    <div className={className}>
-      <label
-        htmlFor={id}
-        className="mb-2 block text-xs uppercase tracking-[0.18em] text-[#A0A0A0]"
-      >
+    <div className="grid grid-cols-[7.5rem_minmax(0,1fr)] gap-3 py-2.5 text-sm">
+      <dt className="flex items-center gap-2 text-mgh-dim">
+        {Icon && <Icon size={16} aria-hidden="true" className="text-mgh-dim" />}
         {label}
-      </label>
-      <input
-        id={id}
-        type={type}
-        placeholder={placeholder}
-        value={value}
-        onChange={onChange}
-        className="h-12 w-full rounded-xl border border-white/10 bg-[#101010] px-4 text-sm text-white outline-none transition placeholder:text-[#4F4F4F] focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20"
-      />
+      </dt>
+      <dd className="break-words text-mgh-text">{value}</dd>
     </div>
   );
 }

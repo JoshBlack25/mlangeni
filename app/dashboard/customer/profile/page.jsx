@@ -4,107 +4,30 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   BadgeCheck,
-  Bell,
   Check,
   ChevronRight,
-  CreditCard,
-  Eye,
-  EyeOff,
   LockKeyhole,
-  Mail,
-  MapPin,
   PencilLine,
-  Phone,
-  ShieldCheck,
   Trash2,
-  UserCircle2,
   X,
 } from "lucide-react";
 import { supabase } from "@/services/supabaseClient";
 import DashboardFooter from "@/app/components/dashboard/customer/home/DashboardFooter";
-
-
-const inputClassName =
-  "w-full rounded-xl border border-white/10 bg-[#101010] px-4 py-3 text-sm text-white outline-none transition focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20";
-
-const labelClassName =
-  "mb-2 block text-[11px] uppercase tracking-[0.18em] text-[#A0A0A0]";
-function CreditCardIcon(props) {
-  return (
-    <svg
-      width="24"
-      height="24"
-      viewBox="0 0 32 32"
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      aria-hidden="true"
-      {...props}
-    >
-      <g>
-        <path
-          d="M29,7H28V6a3,3,0,0,0-3-3H3A3,3,0,0,0,0,6V22a3,3,0,0,0,3,3H4v1a3,3,0,0,0,3,3H29a3,3,0,0,0,3-3V10A3,3,0,0,0,29,7Zm1,3v1H6V10A1,1,0,0,1,7,9H29A1,1,0,0,1,30,10Zm0,7H6V13H30ZM3,23a1,1,0,0,1-1-1V6A1,1,0,0,1,3,5H25a1,1,0,0,1,1,1V7H7a3,3,0,0,0-3,3V23Zm26,4H7a1,1,0,0,1-1-1V19H30v7A1,1,0,0,1,29,27Z"
-          stroke="currentColor"
-          fill="currentColor"
-        />
-        <path
-          d="M15,23H13a1,1,0,0,0,0,2h2a1,1,0,0,0,0-2Z"
-          fill="currentColor"
-        />
-        <path
-          d="M21,23H19a1,1,0,0,0,0,2h2a1,1,0,0,0,0-2Z"
-          fill="currentColor"
-        />
-        <path
-          d="M27,23H25a1,1,0,0,0,0,2h2a1,1,0,0,0,0-2Z"
-          fill="currentColor"
-        />
-      </g>
-    </svg>
-  );
-}
-
-function AddAddressIcon(props) {
-  return (
-    <svg
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      aria-hidden="true"
-      {...props}
-    >
-      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" />
-      <path
-        d="M15 12L12 12M12 12L9 12M12 12L12 9M12 12L12 15"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function ChevronRightIcon(props) {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      aria-hidden="true"
-      {...props}
-    >
-      <path
-        d="M9.5 7L14.5 12L9.5 17"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
+import Monogram from "@/app/components/dashboard/shared/Monogram";
+import {
+  Button,
+  Dialog,
+  EmptyState,
+  Field,
+  Input,
+  PageHeader,
+  Panel,
+  PanelHeader,
+  Skeleton,
+  focusRing,
+  Blank,
+} from "@/app/components/dashboard/ui";
+import { cn } from "@/lib/utils";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -302,9 +225,10 @@ export default function ProfilePage() {
     }, 2000);
   }
 
+  // Deleting an account removes its orders, invoices and payment history, so
+  // it is handled by staff on request rather than with one click here.
   function handleDeleteAccount() {
-    // TODO: trigger a confirmation, then call the delete-account flow.
-    console.log("delete account requested");
+    router.push("/dashboard/customer/support");
   }
 
   // Address handlers
@@ -365,189 +289,128 @@ export default function ProfilePage() {
   // Error screens
   if (loadingProfile) {
     return (
-      <main className="min-h-screen bg-[#0A0A0A] px-4 py-8 text-white md:px-8 lg:px-10">
-        <div className="mx-auto flex max-w-7xl items-center justify-center rounded-[28px] border border-white/10 bg-white/5 px-6 py-20 text-center backdrop-blur-md">
-          <div>
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#D4AF37]/30 bg-[#D4AF37]/10 text-[#D4AF37]">
-              <UserCircle2 size={28} />
-            </div>
-            <p className="text-sm uppercase tracking-[0.25em] text-[#D4AF37]">Profile</p>
-            <p className="mt-3 text-sm text-[#A0A0A0]">Loading your profile…</p>
+      <div>
+        <div role="status" className="flex flex-col gap-8 md:gap-10">
+          <span className="sr-only">Loading your profile…</span>
+          <div className="flex flex-col gap-3">
+            <Skeleton className="h-10 w-64 max-w-full" />
+            <Skeleton className="h-4 w-96 max-w-full" />
+          </div>
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.25fr_0.95fr]">
+            <Skeleton className="h-80 rounded-card" />
+            <Skeleton className="h-80 rounded-card" />
           </div>
         </div>
         <DashboardFooter />
-      </main>
+      </div>
     );
   }
 
   if (profileError) {
     return (
-      <main className="min-h-screen bg-[#0A0A0A] px-4 py-8 text-white md:px-8 lg:px-10">
-        <div className="mx-auto flex max-w-7xl items-center justify-center rounded-[28px] border border-red-400/20 bg-red-400/5 px-6 py-20 text-center backdrop-blur-md">
-          <div>
-            <p className="text-sm uppercase tracking-[0.25em] text-red-400">Profile unavailable</p>
-            <p className="mt-3 max-w-md text-sm text-[#A0A0A0]">{profileError}</p>
-          </div>
-        </div>
+      <div>
+        <Panel>
+          <EmptyState title="Profile unavailable">{profileError}</EmptyState>
+        </Panel>
         <DashboardFooter />
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[#0A0A0A] px-4 py-8 text-white md:px-8 lg:px-10">
-      <div className="mx-auto flex max-w-7xl flex-col gap-6">
-
-        {/* Hero banner */}
-        <section className="rounded-[28px] border border-white/10 bg-white/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.02)] backdrop-blur-md md:p-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="space-y-4">
-              <div className="inline-flex items-center gap-2 rounded-full border border-[#D4AF37]/30 bg-[#D4AF37]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-[#D4AF37]">
-                <UserCircle2 size={14} />
-                Profile
-              </div>
-              <div>
-                <h1 className="text-3xl font-semibold text-white sm:text-4xl lg:text-5xl">{displayName}</h1>
-                <p className="mt-2 max-w-2xl text-sm text-[#A0A0A0] sm:text-base">
-                  Manage your account details, notification preferences, saved address, and payment setup from one place.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4 rounded-2xl border border-white/10 bg-[#0A0A0A]/70 px-4 py-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#D4AF37]/30 bg-[#D4AF37]/10 text-sm font-semibold text-[#D4AF37]">
-                {initials}
-              </div>
-              <div>
-                <p className="text-sm font-medium text-white">{customerProfile.email}</p>
-                <p className="mt-1 text-xs text-[#A0A0A0]">{memberSince}</p>
-              </div>
+    <div>
+      <PageHeader
+        title={displayName}
+        lead="Manage your account details, notification preferences, saved address, and payment setup from one place."
+        actions={
+          <div className="flex items-center gap-4">
+            <Monogram initials={initials} size={64} />
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-mgh-text">{customerProfile.email}</p>
+              <p className="mt-1 text-caption text-mgh-dim">{memberSince}</p>
             </div>
           </div>
-        </section>
+        }
+      />
 
-        {/* Success banner */}
-        {profileSuccess && (
-          <div className="rounded-[24px] border border-[#D4AF37]/30 bg-[#D4AF37]/10 px-4 py-3 text-sm text-[#D4AF37]">
-            {profileSuccess}
-          </div>
-        )}
+      <div className="flex flex-col gap-8 md:gap-10">
+        {/* Account summary */}
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-6 border-y border-mgh-line py-5 md:grid-cols-4 md:gap-0 md:divide-x md:divide-mgh-line md:[&>*]:px-6 md:[&>*:first-child]:pl-0 md:[&>*:last-child]:pr-0">
+          <SummaryItem label="Account" value={displayName} caption="Profile identity" />
+          <SummaryItem label="Address" value={customerProfile.address ? "Saved" : "Not set"} caption={customerProfile.address || "No address saved"} />
+          <SummaryItem label="Payment" value={<Blank label="No card" />} caption="No card on file" />
+          <SummaryItem label="Alerts" value={notificationsOn ? "Enabled" : "Muted"} caption="Order notifications" />
+        </dl>
 
-        {/* Stat cards */}
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard icon={UserCircle2} label="Account" value={displayName} caption="Profile identity" />
-          <StatCard icon={MapPin}      label="Address" value={customerProfile.address ? "Saved" : "Not set"} caption={customerProfile.address || "No address saved"} />
-          <StatCard icon={CreditCard}  label="Payment" value="—" caption="No card on file" />
-          <StatCard icon={Bell}        label="Alerts"  value={notificationsOn ? "Enabled" : "Muted"} caption="Order notifications" />
-        </section>
-
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.25fr_0.95fr]">
+        <div className="grid grid-cols-1 items-start gap-8 md:gap-10 xl:grid-cols-[1.25fr_0.95fr]">
 
           {/* Personal information form */}
-          <section className="rounded-[28px] border border-white/10 bg-white/5 p-6 backdrop-blur-md md:p-8">
-            <div className="mb-6 flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-[#A0A0A0]">Account details</p>
-                <h2 className="mt-2 text-2xl font-semibold text-white">Personal information</h2>
-              </div>
-              <div className="rounded-2xl border border-[#D4AF37]/20 bg-[#D4AF37]/10 p-3 text-[#D4AF37]">
-                <ShieldCheck size={20} />
-              </div>
-            </div>
+          <Panel>
+            <PanelHeader title="Personal information" description="Account details" />
 
-            <form className="space-y-5" onSubmit={handleSubmit}>
+            <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
               <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-                <div>
-                  <label className={labelClassName} htmlFor="first-name">First name</label>
-                  <div className="relative">
-                    <UserCircle2 size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#D4AF37]" />
-                    <input id="first-name" className={`${inputClassName} pl-10`} type="text" value={customerProfile.firstName} onChange={handleChange("firstName")} />
-                  </div>
-                </div>
+                <Field label="First name">
+                  <Input id="first-name" type="text" autoComplete="given-name" value={customerProfile.firstName} onChange={handleChange("firstName")} />
+                </Field>
 
-                <div>
-                  <label className={labelClassName} htmlFor="last-name">Last name</label>
-                  <div className="relative">
-                    <UserCircle2 size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#D4AF37]" />
-                    <input id="last-name" className={`${inputClassName} pl-10`} type="text" value={customerProfile.lastName} onChange={handleChange("lastName")} />
-                  </div>
-                </div>
+                <Field label="Last name">
+                  <Input id="last-name" type="text" autoComplete="family-name" value={customerProfile.lastName} onChange={handleChange("lastName")} />
+                </Field>
               </div>
 
-              <div>
-                <label className={labelClassName} htmlFor="email">Email address</label>
-                <div className="relative">
-                  <Mail size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#D4AF37]" />
-                  <input id="email" className={`${inputClassName} pl-10`} type="email" value={customerProfile.email} onChange={handleChange("email")} />
-                </div>
-              </div>
+              <Field label="Email address">
+                <Input id="email" type="email" autoComplete="email" value={customerProfile.email} onChange={handleChange("email")} />
+              </Field>
 
-              <div>
-                <label className={labelClassName} htmlFor="phone">Phone number</label>
-                <div className="relative">
-                  <Phone size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#D4AF37]" />
-                  <input id="phone" className={`${inputClassName} pl-10`} type="tel" value={customerProfile.phone} onChange={handleChange("phone")} />
-                </div>
-              </div>
+              <Field label="Phone number">
+                <Input id="phone" type="tel" autoComplete="tel" value={customerProfile.phone} onChange={handleChange("phone")} />
+              </Field>
 
-              <div className="flex flex-col gap-3 border-t border-white/10 pt-5 sm:flex-row sm:items-center sm:justify-between">
-                <button
-                  type="button"
-                  onClick={handleDeleteAccount}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-[#A0A0A0] transition hover:border-red-400/30 hover:bg-red-400/10 hover:text-red-300"
-                >
-                  <Trash2 size={16} />
-                  Delete account
-                </button>
-
-                <button
-                  type="submit"
-                  disabled={savingProfile}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#D4AF37]/40 bg-[#D4AF37] px-5 py-3 text-sm font-semibold text-black transition hover:-translate-y-0.5 hover:bg-[#e3bf52] disabled:cursor-not-allowed disabled:opacity-70"
-                >
-                  <PencilLine size={16} />
-                  {savingProfile ? "Saving…" : "Update account"}
-                </button>
-              </div>
-            </form>
-          </section>
-
-          <div className="flex flex-col gap-6">
-
-            {/* ── Address section ── */}
-            <section className="rounded-[28px] border border-white/10 bg-white/5 p-6 backdrop-blur-md md:p-8">
-              <div className="mb-6 flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-[#A0A0A0]">Saved place</p>
-                  <h2 className="mt-2 text-xl font-semibold text-white">Address</h2>
-                </div>
-
-                {!editingAddress && (
-                  <button
-                    type="button"
-                    onClick={startEditAddress}
-                    aria-label="Edit address"
-                    className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#D4AF37]/30 bg-[#D4AF37]/10 text-[#D4AF37] transition hover:-translate-y-0.5 hover:bg-[#D4AF37]/20"
-                  >
-                    <PencilLine size={17} />
-                  </button>
-                )}
-              </div>
-
-              {addressError && (
-                <p className="mb-3 rounded-xl border border-red-400/20 bg-red-400/10 px-4 py-2 text-xs text-red-400">
-                  {addressError}
+              {profileSuccess && (
+                <p role="status" className="flex items-center gap-2 text-sm text-mgh-ok">
+                  <Check size={16} aria-hidden="true" />
+                  {profileSuccess}
                 </p>
               )}
 
+              <div className="mt-2 flex flex-col-reverse gap-3 border-t border-mgh-line pt-5 sm:flex-row sm:items-center sm:justify-between">
+                <Button variant="danger" onClick={handleDeleteAccount} className="w-full sm:w-auto">
+                  <Trash2 size={16} aria-hidden="true" />
+                  Request account deletion
+                </Button>
+
+                <Button type="submit" variant="primary" loading={savingProfile} className="w-full sm:w-auto">
+                  {savingProfile ? "Saving…" : "Update account"}
+                </Button>
+              </div>
+            </form>
+          </Panel>
+
+          <div className="flex flex-col gap-8 md:gap-10">
+
+            {/* ── Address section ── */}
+            <Panel>
+              <PanelHeader
+                title="Address"
+                description="Saved place"
+                action={
+                  !editingAddress && customerProfile.address ? (
+                    <Button variant="secondary" size="sm" onClick={startEditAddress} aria-label="Edit address">
+                      <PencilLine size={16} aria-hidden="true" />
+                      Edit
+                    </Button>
+                  ) : null
+                }
+              />
+
               {editingAddress ? (
-                <div className="space-y-3">
-                  <div className="relative">
-                    <MapPin size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#D4AF37]" />
-                    <input
+                <div className="flex flex-col gap-4">
+                  <Field label="Address" error={addressError}>
+                    <Input
                       ref={addressInputRef}
-                      className={`${inputClassName} pl-10`}
                       type="text"
+                      autoComplete="street-address"
                       placeholder="e.g. 12 Kloof St, Cape Town"
                       value={addressDraft}
                       onChange={(e) => setAddressDraft(e.target.value)}
@@ -556,242 +419,195 @@ export default function ProfilePage() {
                         if (e.key === "Escape") cancelEditAddress();
                       }}
                     />
-                  </div>
+                  </Field>
 
                   <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={saveAddress}
-                      disabled={savingAddress}
-                      className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-[#D4AF37]/40 bg-[#D4AF37] px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-[#e3bf52] disabled:opacity-70"
-                    >
-                      <Check size={15} />
+                    <Button variant="secondary" onClick={saveAddress} loading={savingAddress} className="flex-1 sm:flex-none">
+                      <Check size={16} aria-hidden="true" />
                       {savingAddress ? "Saving…" : "Save"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={cancelEditAddress}
-                      disabled={savingAddress}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-[#A0A0A0] transition hover:border-white/20"
-                    >
-                      <X size={15} />
+                    </Button>
+                    <Button variant="quiet" onClick={cancelEditAddress} disabled={savingAddress}>
+                      <X size={16} aria-hidden="true" />
                       Cancel
-                    </button>
+                    </Button>
                   </div>
                 </div>
               ) : customerProfile.address ? (
-                <div className="rounded-2xl border border-white/10 bg-[#0A0A0A]/70 p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-white">Saved address</p>
-                      <p className="mt-1 text-sm text-[#A0A0A0]">{customerProfile.address}</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={clearAddress}
-                      disabled={savingAddress}
-                      aria-label="Remove address"
-                      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-[#A0A0A0] transition hover:border-red-400/30 hover:text-red-300 disabled:opacity-50"
-                    >
-                      <Trash2 size={15} />
-                    </button>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="text-label font-semibold uppercase text-mgh-dim">Saved address</p>
+                    <p className="mt-1.5 text-sm text-mgh-text">{customerProfile.address}</p>
+                    {addressError && (
+                      <p role="alert" className="mt-2 text-caption text-mgh-danger">{addressError}</p>
+                    )}
                   </div>
+                  <Button
+                    variant="quiet"
+                    size="sm"
+                    onClick={clearAddress}
+                    disabled={savingAddress}
+                    aria-label="Remove address"
+                    className="size-10 px-0"
+                  >
+                    <Trash2 size={16} aria-hidden="true" />
+                  </Button>
                 </div>
               ) : (
-                <div className="rounded-2xl border border-dashed border-white/10 bg-[#0A0A0A]/40 p-6 text-center">
-                  <MapPin size={22} className="mx-auto mb-2 text-[#A0A0A0]" />
-                  <p className="text-sm text-[#A0A0A0]">No address saved yet.</p>
-                  <button
-                    type="button"
-                    onClick={startEditAddress}
-                    className="mt-3 text-xs font-medium text-[#D4AF37] underline-offset-2 hover:underline"
-                  >
-                    Add an address
-                  </button>
-                </div>
+                <EmptyState
+                  title="No address saved yet."
+                  align="start"
+                  className="py-2"
+                  action={
+                    <Button variant="secondary" size="sm" onClick={startEditAddress}>
+                      Add an address
+                    </Button>
+                  }
+                />
               )}
-            </section>
+              {!editingAddress && !customerProfile.address && addressError && (
+                <p role="alert" className="mt-3 text-caption text-mgh-danger">{addressError}</p>
+              )}
+            </Panel>
 
             {/* Payment Card for Customer */}
-            <section className="rounded-[28px] border border-white/10 bg-white/5 p-6 backdrop-blur-md md:p-8">
-              <div className="mb-6 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-2xl border border-[#D4AF37]/30 bg-[#D4AF37]/10 p-3 text-[#D4AF37]">
-                    <CreditCard size={18} />
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.2em] text-[#A0A0A0]">Payments</p>
-                    <h2 className="mt-2 text-xl font-semibold text-white">Card on file</h2>
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-dashed border-white/10 bg-[#0A0A0A]/40 p-6 text-center">
-                <CreditCard size={22} className="mx-auto mb-2 text-[#A0A0A0]" />
-                <p className="text-sm text-[#A0A0A0]">No card on file.</p>
-                <p className="mt-1 text-xs text-[#A0A0A0]/60">Payment methods will appear here.</p>
-              </div>
-            </section>
+            <Panel>
+              <PanelHeader title="Card on file" description="Payments" />
+              <EmptyState title="No card on file." align="start" className="py-2">
+                Payment methods will appear here.
+              </EmptyState>
+            </Panel>
 
             {/* ── Notifications / Security section ── */}
-            <section className="rounded-[28px] border border-white/10 bg-white/5 p-6 backdrop-blur-md md:p-8">
-              <div className="mb-6 flex items-center justify-between gap-4">
+            <Panel>
+              <PanelHeader title="Notifications" description="Preferences" />
+
+              <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-[#A0A0A0]">Preferences</p>
-                  <h2 className="mt-2 text-xl font-semibold text-white">Notifications</h2>
+                  <p id="order-notifications-label" className="text-sm font-medium text-mgh-text">Order notifications</p>
+                  <p className="mt-1 text-sm text-mgh-muted">Receive booking and order updates by email.</p>
                 </div>
-                <Bell size={18} className="text-[#D4AF37]" />
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-[#0A0A0A]/70 px-4 py-4">
-                  <div>
-                    <p className="text-sm font-medium text-white">Order notifications</p>
-                    <p className="mt-1 text-sm text-[#A0A0A0]">Receive booking and order updates by email.</p>
-                  </div>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={notificationsOn}
-                    aria-label="Toggle order notifications"
-                    onClick={() => setNotificationsOn((prev) => !prev)}
-                    className={`relative inline-flex h-7 w-12 items-center rounded-full border transition ${
-                      notificationsOn ? "border-[#D4AF37]/40 bg-[#D4AF37]/20" : "border-white/10 bg-white/10"
-                    }`}
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={notificationsOn}
+                  aria-label="Toggle order notifications"
+                  onClick={() => setNotificationsOn((prev) => !prev)}
+                  className={cn("-m-1.5 shrink-0 rounded-full p-1.5", focusRing)}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "relative flex h-7 w-12 items-center rounded-full border transition-colors duration-[var(--mgh-dur-fast)]",
+                      notificationsOn ? "border-mgh-gold/40 bg-mgh-gold/20" : "border-mgh-line-strong bg-mgh-surface-3",
+                    )}
                   >
-                    <span className={`absolute left-1 h-5 w-5 rounded-full bg-white transition ${notificationsOn ? "translate-x-5" : "translate-x-0"}`} />
-                  </button>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setShowPwModal(true)}
-                  className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-[#0A0A0A]/70 px-4 py-4 text-left transition hover:border-[#D4AF37]/30"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="rounded-xl border border-white/10 bg-white/5 p-2 text-[#D4AF37]">
-                      <LockKeyhole size={16} />
-                    </div>
-                    <span className="text-sm font-medium text-white">Change password</span>
-                  </div>
-                  <ChevronRight size={16} className="text-[#A0A0A0]" />
-                </button>
-
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-[#0A0A0A]/70 px-4 py-4 text-left transition hover:border-[#D4AF37]/30"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="rounded-xl border border-white/10 bg-white/5 p-2 text-[#D4AF37]">
-                      <BadgeCheck size={16} />
-                    </div>
-                    <span className="text-sm font-medium text-white">Two-factor authentication</span>
-                  </div>
-                  <ChevronRight size={16} className="text-[#A0A0A0]" />
+                    <span
+                      className={cn(
+                        "absolute left-1 size-5 rounded-full transition-transform duration-[var(--mgh-dur-fast)]",
+                        notificationsOn ? "translate-x-5 bg-mgh-gold" : "translate-x-0 bg-mgh-muted",
+                      )}
+                    />
+                  </span>
                 </button>
               </div>
-            </section>
+
+              <ul className="mt-6 divide-y divide-mgh-line-soft border-t border-mgh-line-soft">
+                <li>
+                  <SettingRow icon={LockKeyhole} label="Change password" onClick={() => setShowPwModal(true)} />
+                </li>
+                <li>
+                  <SettingRow icon={BadgeCheck} label="Two-factor authentication" />
+                </li>
+              </ul>
+            </Panel>
 
           </div>
         </div>
       </div>
 
       {/** Customer Change Password */}
-      {showPwModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-[28px] border border-white/10 bg-[#0A0A0A] p-6 shadow-2xl">
-            <div className="mb-6 flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-white">Change password</h2>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowPwModal(false);
-                  setPwError(null);
-                  setPwForm({ newPassword: "", confirmPassword: "" });
-                }}
-                className="rounded-full p-2 text-[#A0A0A0] transition hover:bg-white/10 hover:text-white"
-              >
-                <X size={20} />
-              </button>
-            </div>
+      <Dialog
+        open={showPwModal}
+        onOpenChange={(o) => {
+          if (!o) {
+            setShowPwModal(false);
+            setPwError(null);
+            setPwForm({ newPassword: "", confirmPassword: "" });
+          }
+        }}
+        title="Change password"
+        size="md"
+        dismissible={!savingPw}
+      >
+        <form onSubmit={handlePasswordChange} className="flex flex-col gap-5">
+          {pwError && (
+            <p role="alert" className="rounded-control border border-mgh-danger/30 bg-mgh-danger/5 px-4 py-3 text-sm text-mgh-danger">
+              {pwError}
+            </p>
+          )}
+          {pwSuccess && (
+            <p role="status" className="flex items-center gap-2 text-sm text-mgh-ok">
+              <Check size={16} aria-hidden="true" />
+              {pwSuccess}
+            </p>
+          )}
 
-            <form onSubmit={handlePasswordChange} className="space-y-4">
-              {pwError && (
-                <div className="rounded-xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-400">
-                  {pwError}
-                </div>
-              )}
-              {pwSuccess && (
-                <div className="rounded-xl border border-[#D4AF37]/30 bg-[#D4AF37]/10 px-4 py-3 text-sm text-[#D4AF37]">
-                  {pwSuccess}
-                </div>
-              )}
+          <Field label="New password" hint="At least 6 characters." required>
+            <Input
+              id="new-password"
+              type="password"
+              autoComplete="new-password"
+              value={pwForm.newPassword}
+              onChange={(e) => setPwForm({ ...pwForm, newPassword: e.target.value })}
+            />
+          </Field>
 
-              <div>
-                <label className={labelClassName} htmlFor="new-password">New password</label>
-                <div className="relative">
-                  <LockKeyhole size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#D4AF37]" />
-                  <input
-                    id="new-password"
-                    type="password"
-                    required
-                    className={`${inputClassName} pl-10`}
-                    value={pwForm.newPassword}
-                    onChange={(e) => setPwForm({ ...pwForm, newPassword: e.target.value })}
-                  />
-                </div>
-              </div>
+          <Field label="Confirm new password" required>
+            <Input
+              id="confirm-password"
+              type="password"
+              autoComplete="new-password"
+              value={pwForm.confirmPassword}
+              onChange={(e) => setPwForm({ ...pwForm, confirmPassword: e.target.value })}
+            />
+          </Field>
 
-              <div>
-                <label className={labelClassName} htmlFor="confirm-password">Confirm new password</label>
-                <div className="relative">
-                  <LockKeyhole size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#D4AF37]" />
-                  <input
-                    id="confirm-password"
-                    type="password"
-                    required
-                    className={`${inputClassName} pl-10`}
-                    value={pwForm.confirmPassword}
-                    onChange={(e) => setPwForm({ ...pwForm, confirmPassword: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="pt-2">
-                <button
-                  type="submit"
-                  disabled={savingPw}
-                  className="w-full rounded-xl border border-[#D4AF37]/40 bg-[#D4AF37] px-4 py-3.5 text-sm font-semibold text-black transition hover:bg-[#e3bf52] disabled:opacity-70"
-                >
-                  {savingPw ? "Saving…" : "Update password"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+          <Button type="submit" variant="primary" loading={savingPw} className="mt-1 w-full">
+            {savingPw ? "Saving…" : "Update password"}
+          </Button>
+        </form>
+      </Dialog>
 
       <DashboardFooter />
-    </main>
+    </div>
   );
 }
 
-function StatCard({ icon: Icon, label, value, caption }) {
+function SummaryItem({ label, value, caption }) {
   return (
-    <div className="rounded-[24px] border border-white/10 bg-white/5 p-4 backdrop-blur-md">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-[#A0A0A0]">
-            {label}
-          </p>
-          <p className="mt-2 text-sm font-semibold text-white">{value}</p>
-          <p className="mt-1 text-sm text-[#A0A0A0]">{caption}</p>
-        </div>
-
-        <div className="rounded-2xl border border-[#D4AF37]/20 bg-[#D4AF37]/10 p-3 text-[#D4AF37]">
-          <Icon size={18} />
-        </div>
-      </div>
+    <div className="min-w-0">
+      <dt className="text-label font-semibold uppercase text-mgh-dim">{label}</dt>
+      <dd className="mt-1.5 truncate text-sm font-medium text-mgh-text">{value}</dd>
+      <dd className="mt-0.5 truncate text-caption text-mgh-dim">{caption}</dd>
     </div>
+  );
+}
+
+function SettingRow({ icon: Icon, label, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex min-h-12 w-full items-center justify-between gap-3 rounded-control py-3 text-left transition-colors hover:text-mgh-text",
+        focusRing,
+      )}
+    >
+      <span className="flex items-center gap-3">
+        <Icon size={16} className="text-mgh-dim" aria-hidden="true" />
+        <span className="text-sm font-medium text-mgh-text">{label}</span>
+      </span>
+      <ChevronRight size={16} className="text-mgh-dim" aria-hidden="true" />
+    </button>
   );
 }

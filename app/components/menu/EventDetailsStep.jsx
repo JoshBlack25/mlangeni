@@ -87,7 +87,7 @@ export function EventDetailsStep() {
         return {
           ...opt,
           disabled: taken,
-          label: taken ? `${opt.label} — unavailable` : opt.label,
+          label: taken ? `${opt.label} (unavailable)` : opt.label,
         };
       }),
     [dayRanges, state.eventDate, unsupported],
@@ -245,7 +245,7 @@ export function EventDetailsStep() {
                 error={errors.session}
                 hint={
                   state.session && SESSION_WINDOWS[state.session]
-                    ? `${SESSION_WINDOWS[state.session].start} – ${SESSION_WINDOWS[state.session].end}`
+                    ? `${SESSION_WINDOWS[state.session].start} - ${SESSION_WINDOWS[state.session].end}`
                     : undefined
                 }
                 onBlur={() => handleBlur("session")}
@@ -292,7 +292,7 @@ export function EventDetailsStep() {
               placeholder="Dietary requirements, kitchen facilities on site, timing notes…"
               value={state.notes}
               error={errors.notes}
-              hint="Optional — allergies, service style, anything our chefs should know."
+              hint="Optional: allergies, service style, anything our chefs should know."
               onChange={(e) => set("SET_NOTES", e.target.value, "notes")}
             />
           </div>
@@ -301,7 +301,7 @@ export function EventDetailsStep() {
         {/* ── Contact ──────────────────────────────────────────────── */}
         <fieldset className={card}>
           <Legend icon={Users}>Contact Details</Legend>
-          <p className="mt-2 text-sm text-mgh-faint">
+          <p className="mt-2 text-sm text-mgh-dim">
             Who should we reach about this quote?
           </p>
 
@@ -335,7 +335,7 @@ export function EventDetailsStep() {
                 id="contactEmail"
                 label="Email"
                 value={state.contactEmail || state.authUser?.email}
-                hint="Your quote is sent here — it comes from your account."
+                hint="Your quote is sent here. It comes from your account."
               />
             </div>
           </div>

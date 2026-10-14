@@ -1,24 +1,68 @@
 "use client";
 
 import { useState } from "react";
-import { MessageCircle, User, UserCheck, Users, Calendar } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 import { supabase } from "@/services/supabaseClient";
+import { Button, formatDate, toDate, Blank, NOT_SET } from "@/app/components/dashboard/ui";
 import StatusDropdown from "./StatusDropdown";
-
-function formatDate(dateString) {
-  return new Date(dateString + "T00:00:00").toLocaleDateString("en-ZA", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
 
 function toWhatsAppLink(phone) {
   const digitsOnly = phone.replace(/[^\d+]/g, "").replace(/^\+/, "");
   return `https://wa.me/${digitsOnly}`;
 }
 
-export default function EnquiryRow({ enquiry, onStatusChange }) {
+const relativeFormatter = new Intl.RelativeTimeFormat("en-ZA", {
+  numeric: "auto",
+});
+
+const RELATIVE_STEPS = [
+  ["year", 60 * 60 * 24 * 365],
+  ["month", 60 * 60 * 24 * 30],
+  ["week", 60 * 60 * 24 * 7],
+  ["day", 60 * 60 * 24],
+  ["hour", 60 * 60],
+  ["minute", 60],
+];
+
+function formatRelative(value) {
+  const date = toDate(value);
+  if (!date) return NOT_SET;
+
+  const seconds = (date.getTime() - Date.now()) / 1000;
+  for (const [unit, size] of RELATIVE_STEPS) {
+    if (Math.abs(seconds) >= size) {
+      return relativeFormatter.format(Math.round(seconds / size), unit);
+    }
+  }
+  return "just now";
+}
+
+function Received({ value }) {
+  const date = toDate(value);
+  if (!date) return <Blank />;
+
+  return (
+    <time
+      dateTime={date.toISOString()}
+      title={formatDate(date, {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })}
+      className="whitespace-nowrap text-mgh-muted"
+    >
+      {formatRelative(date)}
+    </time>
+  );
+}
+
+/**
+ * One enquiry. `layout="table"` renders a <tr> for the md+ table;
+ * `layout="stacked"` renders an <li> for the phone list.
+ */
+export default function EnquiryRow({ enquiry, onStatusChange, layout = "table" }) {
   const [localError, setLocalError] = useState(null);
 
   const isCustomer = Boolean(enquiry.user_id);
@@ -40,72 +84,107 @@ export default function EnquiryRow({ enquiry, onStatusChange }) {
     onStatusChange(enquiry.id, newStatus);
   }
 
-  return (
-    <div className="rounded-xl border border-[#1F1F1F] bg-white/5 p-5 transition hover:border-[#2A2A2A]">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="font-medium text-white">{enquiry.name}</h3>
-
-            <span
-              className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${
-                isCustomer
-                  ? "border-[#D4AF37]/30 bg-[#D4AF37]/5 text-[#D4AF37]"
-                  : "border-[#1F1F1F] bg-white/5 text-[#A0A0A0]"
-              }`}
-            >
-              {isCustomer ? <UserCheck size={11} /> : <User size={11} />}
-              {isCustomer ? "Customer" : "Guest"}
-            </span>
-          </div>
-
-          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-[#A0A0A0]">
-            <span className="flex items-center gap-1.5">
-              <Calendar size={13} />
-              {formatDate(enquiry.event_date)} · {enquiry.session}
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Users size={13} />
-              {enquiry.guests} guests
-            </span>
-          </div>
-
-          {enquiry.message && (
-            <p className="mt-3 line-clamp-2 text-sm text-[#858585]">
-              {enquiry.message}
-            </p>
-          )}
-
-          <p className="mt-2 text-xs text-[#5F5F5F]">
-            {enquiry.email}
-            {enquiry.phone ? ` · ${enquiry.phone}` : ""}
-          </p>
-
-          {localError && (
-            <p className="mt-2 text-xs text-red-400">{localError}</p>
-          )}
-        </div>
-
-        <div className="flex shrink-0 items-center gap-2">
-          {/* phone is nullable — no number, no WhatsApp button. */}
-          {enquiry.phone && (
-            <a
-              href={toWhatsAppLink(enquiry.phone)}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Open WhatsApp chat"
-              className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#1F1F1F] text-emerald-400 transition hover:border-emerald-400"
-            >
-              <MessageCircle size={17} />
-            </a>
-          )}
-
-          <StatusDropdown
-            value={enquiry.status}
-            onChange={handleStatusChange}
-          />
-        </div>
+  const customer = (
+    <div className="min-w-0">
+      <div className="flex flex-wrap items-baseline gap-x-2">
+        <span className="font-medium text-mgh-text">{enquiry.name}</span>
+        <span className="text-label font-semibold uppercase text-mgh-dim">
+          {isCustomer ? "Customer" : "Guest"}
+        </span>
       </div>
+      <p className="truncate text-caption text-mgh-dim">
+        {enquiry.email}
+        {enquiry.phone ? ` · ${enquiry.phone}` : ""}
+      </p>
+      {enquiry.message && (
+        <p className="mt-0.5 line-clamp-1 max-w-md text-caption text-mgh-muted">
+          {enquiry.message}
+        </p>
+      )}
+      {localError && (
+        <p role="alert" className="mt-1 text-caption text-mgh-danger">
+          {localError}
+        </p>
+      )}
     </div>
+  );
+
+  const eventDate = (
+    <span className="whitespace-nowrap">
+      <span className="text-mgh-text">{formatDate(enquiry.event_date)}</span>
+      {enquiry.session && (
+        <span className="text-mgh-muted"> · {enquiry.session}</span>
+      )}
+    </span>
+  );
+
+  const guests = (
+    <span className="tabular-nums text-mgh-text">{enquiry.guests}</span>
+  );
+
+  const status = (
+    <StatusDropdown value={enquiry.status} onChange={handleStatusChange} />
+  );
+
+  // phone is nullable — no number, no WhatsApp button.
+  const whatsApp = enquiry.phone ? (
+    <Button
+      variant="quiet"
+      size="sm"
+      href={toWhatsAppLink(enquiry.phone)}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`Open WhatsApp chat with ${enquiry.name}`}
+    >
+      <MessageCircle size={16} aria-hidden="true" className="text-mgh-dim" />
+      WhatsApp
+    </Button>
+  ) : null;
+
+  if (layout === "stacked") {
+    return (
+      <li className="flex flex-col gap-3 py-4">
+        {customer}
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+          <div className="min-w-0">
+            <dt className="text-[10px] font-semibold uppercase tracking-[0.14em] text-mgh-dim">
+              Event date
+            </dt>
+            <dd className="truncate text-sm">{eventDate}</dd>
+          </div>
+          <div className="min-w-0">
+            <dt className="text-[10px] font-semibold uppercase tracking-[0.14em] text-mgh-dim">
+              Guests
+            </dt>
+            <dd className="text-sm">{guests}</dd>
+          </div>
+          <div className="min-w-0">
+            <dt className="text-[10px] font-semibold uppercase tracking-[0.14em] text-mgh-dim">
+              Received
+            </dt>
+            <dd className="text-sm">
+              <Received value={enquiry.created_at} />
+            </dd>
+          </div>
+        </dl>
+        <div className="flex items-center justify-between gap-3">
+          {status}
+          {whatsApp}
+        </div>
+      </li>
+    );
+  }
+
+  return (
+    <tr className="border-b border-mgh-line-soft transition-colors duration-(--mgh-dur-fast) hover:bg-mgh-surface-2">
+      <td className="h-11 py-2.5 pl-0 pr-3 align-middle">{customer}</td>
+      <td className="h-11 px-3 align-middle">{eventDate}</td>
+      <td className="h-11 px-3 text-right align-middle">{guests}</td>
+      <td className="h-11 px-3 align-middle">
+        <Received value={enquiry.created_at} />
+      </td>
+      <td className="h-11 px-3 align-middle">{status}</td>
+      <td className="h-11 pl-3 pr-0 text-right align-middle">{whatsApp}</td>
+    </tr>
   );
 }

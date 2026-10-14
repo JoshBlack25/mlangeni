@@ -3,19 +3,21 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  ArrowUpRight,
-  CalendarDays,
-  ClipboardList,
-  Clock3,
-  MapPin,
-} from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { supabase } from "@/services/supabaseClient";
-
-const currency = new Intl.NumberFormat("en-ZA", {
-  style: "currency",
-  currency: "ZAR",
-});
+import { cn } from "@/lib/utils";
+import {
+  Button,
+  EmptyState,
+  EngravedDate,
+  PageHeader,
+  Panel,
+  SkeletonRows,
+  StatusBadge,
+  focusRing,
+  formatCurrency,
+  statusLabel,
+} from "@/app/components/dashboard/ui";
 
 function formatDate(dateString) {
   if (!dateString) return "TBC";
@@ -44,32 +46,6 @@ function formatTime(value) {
       });
 }
 
-function statusLabel(status) {
-  if (!status) return "Pending";
-
-  return status
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-}
-
-function statusStyles(status) {
-  const normalized = status?.toLowerCase();
-
-  if (normalized === "confirmed") {
-    return "border-[#D4AF37]/40 bg-[#D4AF37]/10 text-[#D4AF37]";
-  }
-
-  if (normalized === "pending") {
-    return "border-white/20 bg-white/10 text-[#A0A0A0]";
-  }
-
-  if (normalized === "cancelled") {
-    return "border-white/10 bg-white/5 text-[#797676]";
-  }
-
-  return "border-white/20 bg-white/10 text-[#A0A0A0]";
-}
 
 export default function OrdersPage() {
   const router = useRouter();
@@ -160,128 +136,102 @@ export default function OrdersPage() {
   }, [router]);
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] px-4 py-8 text-white md:px-8 lg:px-10">
-      <div className="mx-auto flex max-w-7xl flex-col gap-6">
-        <div className="rounded-[28px] border border-white/10 bg-white/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.02)] backdrop-blur-md md:p-8">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div className="space-y-3">
-              <div className="inline-flex items-center gap-2 rounded-full border border-[#D4AF37]/30 bg-[#D4AF37]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-[#D4AF37]">
-                <ClipboardList size={14} />
-                Orders
-              </div>
-              <div>
-                <h1 className="text-3xl font-semibold text-white sm:text-4xl">
-                  Your orders
-                </h1>
-                <p className="mt-2 max-w-2xl text-sm text-[#A0A0A0] sm:text-base">
-                  Every booking you place through the website appears here with
-                  its current status and event details.
-                </p>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-[#0A0A0A]/70 px-4 py-3 text-sm text-[#A0A0A0]">
-              <p className="font-medium text-white">
+    <div>
+      <PageHeader
+        title="Your orders"
+        lead="Every booking you place through the website appears here with its current status and event details."
+        actions={
+          !loading && !error ? (
+            <p className="text-sm text-mgh-muted">
+              <span className="font-medium tabular-nums text-mgh-text">
                 {orders.length} {orders.length === 1 ? "order" : "orders"}
-              </p>
-              <p className="mt-1">Tracked from the customer dashboard</p>
-            </div>
-          </div>
-        </div>
+              </span>
+              <span className="text-mgh-dim"> · Tracked from the customer dashboard</span>
+            </p>
+          ) : null
+        }
+      />
 
-        <div className="rounded-[28px] border border-white/10 bg-white/5 p-4 shadow-[0_0_0_1px_rgba(255,255,255,0.02)] backdrop-blur-md sm:p-6">
-          {loading ? (
-            <div className="flex h-56 items-center justify-center rounded-2xl border border-white/10 bg-[#0A0A0A]/60">
-              <p className="text-sm text-[#A0A0A0]">Loading your orders…</p>
-            </div>
-          ) : error ? (
-            <div className="flex h-56 flex-col items-center justify-center rounded-2xl border border-red-400/20 bg-red-400/5 text-center">
-              <p className="text-sm font-medium text-red-400">
-                We couldn&apos;t load your orders
-              </p>
-              <p className="mt-2 max-w-md text-sm text-[#A0A0A0]">{error}</p>
-            </div>
-          ) : orders.length === 0 ? (
-            <div className="flex h-56 flex-col items-center justify-center rounded-2xl border border-white/10 bg-[#0A0A0A]/60 text-center">
-              <ClipboardList className="mb-4 text-[#D4AF37]" size={28} />
-              <h2 className="text-lg font-semibold text-white">
-                No orders yet
-              </h2>
-              <p className="mt-2 max-w-md text-sm text-[#A0A0A0]">
-                Your bookings will appear here as soon as they are submitted
-                through the website.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {orders.map((order) => (
-                <div
-                  key={order.order_id}
-                  className="rounded-2xl border border-white/10 bg-[#0A0A0A]/70 p-5 transition-all duration-200 hover:border-[#D4AF37]/40"
-                >
-                  <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="space-y-4">
-                      <div className="flex flex-wrap items-center gap-3">
-                        <span className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[#797676]">
-                          Order #{order.order_id}
-                        </span>
-                        <span
-                          className={`rounded-full border px-2.5 py-1 text-[11px] font-medium ${statusStyles(order.status)}`}
-                        >
-                          {statusLabel(order.status)}
-                        </span>
-                      </div>
+      {loading ? (
+        <SkeletonRows rows={4} label="Loading your orders…" />
+      ) : error ? (
+        <Panel>
+          <p className="font-serif text-xl text-mgh-text">
+            We couldn&apos;t load your orders
+          </p>
+          <p className="mt-2 max-w-md text-sm text-mgh-danger">{error}</p>
+        </Panel>
+      ) : orders.length === 0 ? (
+        <EmptyState
+          title="No orders yet"
+          action={
+            <Button variant="secondary" href="/dashboard/customer/booking">
+              Start a new booking
+            </Button>
+          }
+        >
+          Your bookings will appear here as soon as they are submitted through
+          the website.
+        </EmptyState>
+      ) : (
+        <ul className="divide-y divide-mgh-line-soft border-y border-mgh-line-soft">
+          {orders.map((order) => (
+            <li key={order.order_id}>
+              <Link
+                href={`/dashboard/customer/orders/${order.order_id}`}
+                className={cn(
+                  "group flex items-center gap-4 rounded-sm py-5 transition-colors duration-[var(--mgh-dur-fast)] hover:bg-mgh-surface-2 sm:gap-6 sm:px-3",
+                  focusRing,
+                )}
+              >
+                <EngravedDate date={order.event_date} size="md" />
 
-                      <div>
-                        <h3 className="text-lg font-semibold text-white">
-                          {order.event_type?.event_name ?? "Event booking"}
-                        </h3>
-                        <p className="mt-1 text-sm text-[#A0A0A0]">
-                          Placed on {formatDate(order.created_at)}
-                        </p>
-                      </div>
-
-                      <div className="grid gap-3 text-sm text-[#A0A0A0] sm:grid-cols-2 xl:grid-cols-3">
-                        <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
-                          <CalendarDays size={15} className="text-[#D4AF37]" />
-                          <span>{formatDate(order.event_date)}</span>
-                        </div>
-                        <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
-                          <Clock3 size={15} className="text-[#D4AF37]" />
-                          <span>
-                            {formatTime(order.start_time)} – {formatTime(order.end_time)}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
-                          <MapPin size={15} className="text-[#D4AF37]" />
-                          <span>{order.event_location || "Location to be confirmed"}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col items-start gap-3 lg:items-end">
-                      <div className="text-left lg:text-right">
-                        <p className="text-sm text-[#797676]">Total</p>
-                        <p className="mt-1 text-2xl font-semibold text-white">
-                          {currency.format(Number(order.total_price || 0))}
-                        </p>
-                      </div>
-
-                      <Link
-                        href={`/dashboard/customer/orders/${order.order_id}`}
-                        className="inline-flex items-center gap-2 rounded-lg border border-[#D4AF37]/30 bg-[#D4AF37]/10 px-3 py-2 text-sm font-medium text-[#D4AF37] transition-all duration-300 hover:bg-[#D4AF37]/20"
-                      >
-                        View details
-                        <ArrowUpRight size={15} />
-                      </Link>
-                    </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span className="text-label font-semibold uppercase text-mgh-dim">
+                      Order #{order.order_id}
+                    </span>
+                    <StatusBadge
+                      status={order.status ?? "pending"}
+                      label={statusLabel(order.status, "Pending")}
+                    />
                   </div>
+                  <h2 className="mt-1.5 truncate text-[15px] font-medium text-mgh-text sm:text-base">
+                    {order.event_type?.event_name ?? "Event booking"}
+                  </h2>
+                  <p className="mt-1 text-sm text-mgh-muted">
+                    <span>{order.event_location || "Location to be confirmed"}</span>
+                    <span className="text-mgh-dim"> · </span>
+                    <span className="tabular-nums">
+                      {formatTime(order.start_time)} - {formatTime(order.end_time)}
+                    </span>
+                  </p>
+                  <p className="mt-1 text-caption text-mgh-dim">
+                    Placed on {formatDate(order.created_at)}
+                  </p>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+
+                <div className="flex shrink-0 items-center gap-3 self-start pt-1 sm:self-center sm:pt-0">
+                  <div className="text-right">
+                    <p className="sr-only">Total</p>
+                    <p className="font-serif text-lg font-medium tabular-nums text-mgh-text sm:text-xl">
+                      {formatCurrency(Number(order.total_price || 0))}
+                    </p>
+                    <p className="mt-1 hidden text-caption text-mgh-dim sm:block">
+                      View details
+                    </p>
+                  </div>
+                  <ArrowUpRight
+                    size={16}
+                    aria-hidden="true"
+                    className="hidden text-mgh-dim transition-colors group-hover:text-mgh-text sm:block"
+                  />
+                </div>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

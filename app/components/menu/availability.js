@@ -49,7 +49,7 @@ export function formatTimeLabel(time) {
 
 export function formatRangeLabel(range) {
   if (!range) return "";
-  return `${toHHMM(range.start)} – ${toHHMM(range.end)}`;
+  return `${toHHMM(range.start)} - ${toHHMM(range.end)}`;
 }
 
 export function durationMinutes(start, end) {

@@ -2,11 +2,14 @@
 
 import { useState, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Star, ArrowUpRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import Monogram from "@/app/components/dashboard/shared/Monogram";
 import StarRating from "@/app/components/dashboard/shared/StarRating";
 import { fetchPublicTestimonials } from "@/services/testimonialsService";
+import { EASE } from "@/app/components/dashboard/shared/motion";
+import { Panel, Skeleton, focusRing } from "@/app/components/dashboard/ui";
+import { cn } from "@/lib/utils";
 
 export default function Testimonials() {
   // null = still loading. The component used to have static data and so had no
@@ -45,108 +48,107 @@ export default function Testimonials() {
     return () => clearInterval(timer);
   }, [testimonials]);
 
+  const reviewLink = (label) => (
+    <Link
+      href="/dashboard/customer/reviews"
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-sm text-sm text-mgh-muted transition-colors hover:text-mgh-text",
+        focusRing,
+      )}
+    >
+      {label}
+      <ArrowRight size={14} aria-hidden="true" />
+    </Link>
+  );
+
   if (testimonials === null) {
     return (
-      <div
-        className="flex h-full flex-col rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md"
-        aria-hidden
-      >
-        <div className="h-3 w-24 animate-pulse rounded bg-white/10" />
-        <div className="mt-8 flex flex-1 flex-col items-center justify-center gap-3">
-          <div className="h-14 w-14 animate-pulse rounded-full bg-white/10" />
-          <div className="h-3 w-3/4 animate-pulse rounded bg-white/10" />
-          <div className="h-3 w-2/3 animate-pulse rounded bg-white/10" />
-        </div>
-      </div>
+      <Panel aria-hidden>
+        <Skeleton className="h-4 w-3/4" />
+        <Skeleton className="mt-3 h-4 w-1/2" />
+      </Panel>
     );
   }
 
   if (testimonials.length === 0) {
     return (
-      <div className="flex h-full flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/5 p-6 text-center backdrop-blur-md">
-        <Star className="mb-4 text-[#D4AF37]" size={26} />
-        <h3 className="text-base font-semibold text-white">No reviews yet</h3>
-        <p className="mt-2 max-w-[16rem] text-sm text-[#A0A0A0]">
-          Guest reviews will appear here once they start coming in.
-        </p>
-        <Link
-          href="/dashboard/customer/reviews"
-          className="mt-5 text-sm font-medium text-[#D4AF37] transition-opacity hover:opacity-80"
-        >
-          Leave the first one
-        </Link>
-      </div>
+      <Panel className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h2 className="font-serif text-xl font-medium text-mgh-text">No reviews yet</h2>
+          <p className="mt-1 text-sm text-mgh-muted">
+            Guest reviews will appear here once they start coming in.
+          </p>
+        </div>
+        {reviewLink("Leave the first one")}
+      </Panel>
     );
   }
 
   const active = testimonials[index % testimonials.length];
 
   return (
-    <div
-      className="flex h-full flex-col rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md transition-colors duration-300 hover:border-[#D4AF37]"
+    <Panel
+      aria-labelledby="testimonials-title"
       onMouseEnter={() => (isAutoPlaying.current = false)}
       onMouseLeave={() => (isAutoPlaying.current = true)}
+      onFocus={() => (isAutoPlaying.current = false)}
+      onBlur={() => (isAutoPlaying.current = true)}
     >
-      {/* HEADER */}
-      <div className="px-6 pt-6">
-        <p className="text-xs uppercase tracking-[0.2em] text-[#A0A0A0]">
+      <div className="flex items-center justify-between gap-4">
+        <h2 id="testimonials-title" className="text-label font-semibold uppercase text-mgh-dim">
           Testimonials
-        </p>
+        </h2>
+        {testimonials.length > 1 && (
+          <div className="flex items-center gap-1">
+            {testimonials.map((t, i) => (
+              <button
+                key={t.testimonial_id}
+                type="button"
+                onClick={() => setIndex(i)}
+                aria-label={`Show review ${i + 1}`}
+                aria-current={i === index ? "true" : undefined}
+                className={cn("grid size-6 place-items-center rounded-full", focusRing)}
+              >
+                <span
+                  className={cn(
+                    "block h-1.5 rounded-full transition-all duration-300",
+                    i === index ? "w-4 bg-mgh-gold" : "w-1.5 bg-mgh-line-strong",
+                  )}
+                />
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* ROTATING REVIEW */}
-      <div className="flex flex-1 flex-col items-center justify-center px-6 py-8 text-center">
+      <div aria-live="polite" className="mt-5 min-h-28">
         <AnimatePresence mode="wait">
-          <motion.div
+          <motion.figure
             key={active.testimonial_id}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-            className="flex flex-col items-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4, ease: EASE }}
+            className="flex flex-col gap-5 md:flex-row md:items-start md:gap-8"
           >
-            <Monogram initials={active.initials} size={56} />
-
-            <StarRating value={active.rating} size={13} className="mt-3" />
-
-            <p className="mt-4 text-sm italic leading-relaxed text-white/80">
+            <blockquote className="max-w-2xl flex-1 font-serif text-lg leading-relaxed text-mgh-text md:text-xl">
               &ldquo;{active.message}&rdquo;
-            </p>
-
-            <p className="mt-4 text-sm font-medium text-[#D4AF37]">
-              {active.display_name}
-            </p>
-            <p className="text-xs text-[#797676]">
-              {active.event_name ?? "Verified Customer"}
-            </p>
-          </motion.div>
+            </blockquote>
+            <figcaption className="flex shrink-0 items-center gap-3 md:w-56">
+              <Monogram initials={active.initials} size={40} />
+              <span className="min-w-0">
+                <span className="block truncate text-sm text-mgh-text">{active.display_name}</span>
+                <span className="block truncate text-caption text-mgh-dim">
+                  {active.event_name ?? "Verified Customer"}
+                </span>
+                <StarRating value={active.rating} size={12} className="mt-1" />
+              </span>
+            </figcaption>
+          </motion.figure>
         </AnimatePresence>
       </div>
 
-      {/* DOTS */}
-      {testimonials.length > 1 && (
-        <div className="flex justify-center gap-1.5 pb-5">
-          {testimonials.map((t, i) => (
-            <button
-              key={t.testimonial_id}
-              onClick={() => setIndex(i)}
-              aria-label={`Show review ${i + 1}`}
-              className={`h-1.5 rounded-full transition-all duration-300 ${
-                i === index ? "w-4 bg-[#D4AF37]" : "w-1.5 bg-white/20"
-              }`}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* FOOTER */}
-      <Link
-        href="/dashboard/customer/reviews"
-        className="flex items-center justify-between border-t border-white/10 px-6 py-3 text-sm font-medium text-[#D4AF37] transition-all duration-300 hover:gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-inset"
-      >
-        Leave a review
-        <ArrowUpRight size={16} />
-      </Link>
-    </div>
+      <div className="mt-6 border-t border-mgh-line pt-4">{reviewLink("Leave a review")}</div>
+    </Panel>
   );
 }

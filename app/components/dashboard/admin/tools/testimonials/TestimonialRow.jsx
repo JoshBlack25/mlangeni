@@ -1,22 +1,15 @@
 "use client";
 
-import { Check, Loader2, Star, X, ArrowUp, ArrowDown } from "lucide-react";
+import { useState } from "react";
+import { Loader2, ArrowUp, ArrowDown } from "lucide-react";
 import Monogram from "@/app/components/dashboard/shared/Monogram";
 import StarRating from "@/app/components/dashboard/shared/StarRating";
+import { Button, StatusBadge, focusRing, Blank } from "@/app/components/dashboard/ui";
+import { cn } from "@/lib/utils";
 import {
   formatReviewDate,
   initialsFrom,
 } from "@/services/testimonialsService";
-
-const statusConfig = {
-  pending: { label: "Pending", dot: "bg-yellow-400", text: "text-yellow-400" },
-  approved: {
-    label: "Approved",
-    dot: "bg-emerald-400",
-    text: "text-emerald-400",
-  },
-  rejected: { label: "Rejected", dot: "bg-red-400", text: "text-red-400" },
-};
 
 function eventLabel(testimonial) {
   const order = testimonial.orders;
@@ -32,6 +25,10 @@ function eventLabel(testimonial) {
   return date ? `${name} · ${date}` : name;
 }
 
+/**
+ * One review. `layout="row"` renders a <tr> for the desktop table;
+ * `layout="item"` renders a stacked <li> for phones and tablets.
+ */
 export default function TestimonialRow({
   testimonial,
   busy = false,
@@ -40,140 +37,183 @@ export default function TestimonialRow({
   onMove,
   canMoveUp = false,
   canMoveDown = false,
+  layout = "row",
 }) {
-  const status = statusConfig[testimonial.status] ?? statusConfig.pending;
+  const [expanded, setExpanded] = useState(false);
   const customer = testimonial.customer;
   const fullName =
     [customer?.first_name, customer?.last_name].filter(Boolean).join(" ") ||
     "Unnamed customer";
   const isApproved = testimonial.status === "approved";
+  const isPending = testimonial.status === "pending";
   const event = eventLabel(testimonial);
+  const isLong = (testimonial.message ?? "").length > 140;
 
-  return (
-    <article className="rounded-2xl border border-[#1F1F1F] bg-white/5 p-5">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex min-w-0 items-start gap-3">
-          <Monogram
-            initials={initialsFrom(customer?.first_name, customer?.last_name)}
-            size={40}
-          />
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-white">{fullName}</p>
-            <p className="truncate text-xs text-[#797676]">{customer?.email}</p>
-            <div className="mt-1.5 flex flex-wrap items-center gap-2">
-              <StarRating value={testimonial.rating} size={12} />
-              {event && (
-                <span className="text-xs text-[#797676]">{event}</span>
-              )}
-            </div>
-          </div>
-        </div>
+  const customerCell = (
+    <div className="flex min-w-0 items-center gap-3">
+      <Monogram
+        initials={initialsFrom(customer?.first_name, customer?.last_name)}
+        size={32}
+      />
+      <div className="min-w-0">
+        <p className="truncate text-sm font-medium text-mgh-text">{fullName}</p>
+        <p className="truncate text-caption text-mgh-dim">{customer?.email}</p>
+      </div>
+    </div>
+  );
 
-        <div className="flex items-center gap-2">
-          {busy && <Loader2 size={14} className="animate-spin text-[#A0A0A0]" />}
-          <span className={`h-2 w-2 rounded-full ${status.dot}`} />
-          <span className={`text-xs font-medium ${status.text}`}>
-            {status.label}
-          </span>
-          {testimonial.featured && (
-            <span className="inline-flex items-center gap-1 rounded-md border border-[#D4AF37]/30 bg-[#D4AF37]/10 px-2 py-1 text-[11px] text-[#D4AF37]">
-              <Star size={10} className="fill-[#D4AF37]" />
-              On homepage
-            </span>
-          )}
-        </div>
-      </header>
-
-      <p className="mt-4 whitespace-pre-line text-sm leading-relaxed text-white/80">
+  const reviewCell = (
+    <div className="min-w-0">
+      <p
+        className={cn(
+          "whitespace-pre-line text-sm leading-relaxed text-mgh-muted",
+          !expanded && "line-clamp-2",
+        )}
+      >
         {testimonial.message}
       </p>
-
-      <p className="mt-3 text-xs text-[#797676]">
-        Submitted {formatReviewDate(testimonial.created_at)}
-      </p>
-
-      <div className="mt-5 flex flex-wrap items-center gap-2">
-        {testimonial.status !== "approved" && (
+      <p className="mt-1 text-caption text-mgh-dim">
+        {event && <>{event} · </>}Submitted{" "}
+        {formatReviewDate(testimonial.created_at)}
+        {isLong && (
           <>
-            {/* Primary action, because approving without featuring leaves the
-                homepage empty and the admin wondering why. */}
+            {" · "}
             <button
               type="button"
-              disabled={busy}
-              onClick={() => onModerate(testimonial, "approved", true)}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-[#D4AF37] px-3 py-2 text-xs font-semibold text-black transition hover:bg-[#c4a032] disabled:opacity-50"
+              onClick={() => setExpanded((v) => !v)}
+              aria-expanded={expanded}
+              className={cn(
+                "rounded-sm text-mgh-muted underline decoration-mgh-line-strong underline-offset-4 hover:text-mgh-text hover:decoration-mgh-gold",
+                focusRing,
+              )}
             >
-              <Star size={13} />
-              Approve &amp; show on site
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => onModerate(testimonial, "approved", false)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-[#1F1F1F] bg-white/5 px-3 py-2 text-xs text-white transition hover:border-emerald-400/50 disabled:opacity-50"
-            >
-              <Check size={13} />
-              Approve only
+              {expanded ? "Show less" : "Show full review"}
             </button>
           </>
         )}
+      </p>
+    </div>
+  );
 
-        {isApproved && (
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => onToggleFeature(testimonial)}
-            className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs transition disabled:opacity-50 ${
-              testimonial.featured
-                ? "border-[#D4AF37]/40 bg-[#D4AF37]/10 text-[#D4AF37]"
-                : "border-[#1F1F1F] bg-white/5 text-white hover:border-[#D4AF37]"
-            }`}
+  const statusCell = (
+    <span className="inline-flex items-center gap-2">
+      <StatusBadge status={testimonial.status} />
+      {busy && (
+        <Loader2
+          size={14}
+          className="animate-spin text-mgh-dim"
+          aria-label="Saving"
+        />
+      )}
+    </span>
+  );
+
+  // Featured flag and homepage order. Ordering lives on featured rows only —
+  // it has no meaning anywhere else.
+  const homepageCell = isApproved ? (
+    <div className="flex items-center gap-1">
+      <Button
+        size="sm"
+        variant={testimonial.featured ? "secondary" : "quiet"}
+        disabled={busy}
+        onClick={() => onToggleFeature(testimonial)}
+        aria-pressed={testimonial.featured}
+      >
+        {testimonial.featured ? "Remove from homepage" : "Show on homepage"}
+      </Button>
+      {testimonial.featured && onMove && (
+        <>
+          <Button
+            size="sm"
+            variant="quiet"
+            className="w-8 px-0"
+            disabled={busy || !canMoveUp}
+            onClick={() => onMove(testimonial, -1)}
+            aria-label={`Move ${fullName}'s review up`}
           >
-            <Star
-              size={13}
-              className={testimonial.featured ? "fill-[#D4AF37]" : ""}
-            />
-            {testimonial.featured ? "Remove from homepage" : "Show on homepage"}
-          </button>
-        )}
-
-        {testimonial.status !== "rejected" && (
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => onModerate(testimonial, "rejected", false)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-[#1F1F1F] bg-white/5 px-3 py-2 text-xs text-red-300 transition hover:border-red-400/50 disabled:opacity-50"
+            <ArrowUp size={14} />
+          </Button>
+          <Button
+            size="sm"
+            variant="quiet"
+            className="w-8 px-0"
+            disabled={busy || !canMoveDown}
+            onClick={() => onMove(testimonial, 1)}
+            aria-label={`Move ${fullName}'s review down`}
           >
-            <X size={13} />
-            Reject
-          </button>
-        )}
+            <ArrowDown size={14} />
+          </Button>
+        </>
+      )}
+    </div>
+  ) : (
+    <Blank label="No actions" />
+  );
 
-        {/* Ordering lives on featured rows only — it has no meaning anywhere
-            else, and the arrows are keyboard-reachable for free. */}
-        {testimonial.featured && onMove && (
-          <div className="ml-auto flex items-center gap-1">
-            <button
-              type="button"
-              disabled={busy || !canMoveUp}
-              onClick={() => onMove(testimonial, -1)}
-              aria-label={`Move ${fullName}'s review up`}
-              className="rounded-lg border border-[#1F1F1F] bg-white/5 p-2 text-white transition hover:border-[#D4AF37] disabled:cursor-not-allowed disabled:opacity-30"
-            >
-              <ArrowUp size={13} />
-            </button>
-            <button
-              type="button"
-              disabled={busy || !canMoveDown}
-              onClick={() => onMove(testimonial, 1)}
-              aria-label={`Move ${fullName}'s review down`}
-              className="rounded-lg border border-[#1F1F1F] bg-white/5 p-2 text-white transition hover:border-[#D4AF37] disabled:cursor-not-allowed disabled:opacity-30"
-            >
-              <ArrowDown size={13} />
-            </button>
-          </div>
-        )}
-      </div>
-    </article>
+  const actionsCell = (
+    <div className="flex flex-wrap items-center gap-1.5 lg:justify-end">
+      {testimonial.status !== "approved" && (
+        <>
+          {/* The row's primary action while pending, because approving without
+              featuring leaves the homepage empty and the admin wondering why. */}
+          <Button
+            size="sm"
+            variant={isPending ? "primary" : "secondary"}
+            disabled={busy}
+            onClick={() => onModerate(testimonial, "approved", true)}
+          >
+            Approve &amp; show on site
+          </Button>
+          <Button
+            size="sm"
+            variant="quiet"
+            disabled={busy}
+            onClick={() => onModerate(testimonial, "approved", false)}
+          >
+            Approve only
+          </Button>
+        </>
+      )}
+      {testimonial.status !== "rejected" && (
+        <Button
+          size="sm"
+          variant="danger"
+          disabled={busy}
+          onClick={() => onModerate(testimonial, "rejected", false)}
+        >
+          Reject
+        </Button>
+      )}
+    </div>
+  );
+
+  if (layout === "item") {
+    return (
+      <li className="py-4">
+        <div className="flex items-start justify-between gap-3">
+          {customerCell}
+          {statusCell}
+        </div>
+        <div className="mt-3">
+          <StarRating value={testimonial.rating} size={12} />
+        </div>
+        <div className="mt-2">{reviewCell}</div>
+        {isApproved && <div className="mt-3">{homepageCell}</div>}
+        <div className="mt-3">{actionsCell}</div>
+      </li>
+    );
+  }
+
+  return (
+    <tr className="border-b border-mgh-line-soft align-top">
+      <td className="py-3 pl-0 pr-3">{customerCell}</td>
+      <td className="px-3 py-3 pt-4">
+        <StarRating value={testimonial.rating} size={12} />
+      </td>
+      <td className="max-w-md px-3 py-3">{reviewCell}</td>
+      <td className="px-3 py-3 pt-4">{statusCell}</td>
+      <td className="px-3 py-3">{homepageCell}</td>
+      <td className="py-3 pl-3 pr-0">{actionsCell}</td>
+    </tr>
   );
 }

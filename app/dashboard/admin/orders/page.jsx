@@ -2,16 +2,23 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { ClipboardList, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "../../../../services/supabaseClient";
 import AdminOrderModal from "../../../components/dashboard/admin/orders/AdminOrderModal";
+import {
+    Button,
+    DataTable,
+    EmptyState,
+    PageHeader,
+    Panel,
+    SkeletonRows,
+    StatusBadge,
+    formatCurrency,
+    formatDate,
+  Blank,
+} from "@/app/components/dashboard/ui";
 
 const PAGE_SIZE = 5;
-
-const currency = new Intl.NumberFormat("en-ZA", {
-    style: "currency",
-    currency: "ZAR",
-});
 
 export default function AdminOrdersPage(){
     const router = useRouter();
@@ -102,91 +109,115 @@ export default function AdminOrdersPage(){
         router.push(`${pathname}?${params.toString()}`);
     }
 
- if (checkingAdmin) {
-    return <p className="p-8 text-white">Checking access...</p>;
+    const columns = [
+        {
+            key: "order",
+            header: "Order",
+            primary: true,
+            render: (order) => (
+                <span className="flex min-w-0 flex-col">
+                    <span className="font-medium text-mgh-text">
+                        {order.event_type?.event_name ?? "Event"}
+                    </span>
+                    <span className="text-caption tabular-nums text-mgh-dim">
+                        ORD-{String(order.order_id).slice(0, 8).toUpperCase()}
+                    </span>
+                </span>
+            ),
+        },
+        {
+            key: "event_date",
+            header: "Event date",
+            render: (order) => (
+                <span className="tabular-nums text-mgh-muted">{formatDate(order.event_date)}</span>
+            ),
+        },
+        {
+            key: "customer",
+            header: "Customer",
+            render: (order) => {
+                const name = [order.customer?.first_name, order.customer?.last_name]
+                    .filter(Boolean)
+                    .join(" ");
+                return <span className="text-mgh-muted">{name || <Blank />}</span>;
+            },
+        },
+        {
+            key: "status",
+            header: "Status",
+            render: (order) => <StatusBadge status={order.status} />,
+        },
+        {
+            key: "total",
+            header: "Total",
+            align: "right",
+            render: (order) => formatCurrency(order.total_price || 0),
+        },
+    ];
+
+  if (checkingAdmin) {
+    return (
+      <div role="status" className="text-sm text-mgh-muted">
+        Checking access...
+      </div>
+    );
   }
 
-     return (
-    <div className="min-h-screen bg-[#0A0A0A] px-4 py-8 text-white md:px-8 lg:px-10">
-      <div className="mx-auto flex max-w-7xl flex-col gap-6">
-        <div className="rounded-[28px] border border-white/10 bg-white/5 p-6 backdrop-blur-md md:p-8">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#D4AF37]/30 bg-[#D4AF37]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-[#D4AF37]">
-            <ClipboardList size={14} />
-            All Orders
-          </div>
-          <h1 className="mt-4 text-3xl font-semibold">Orders</h1>
-          <p className="mt-2 text-sm text-[#A0A0A0]">
-            {totalCount} total {totalCount === 1 ? "order" : "orders"}
+  return (
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        density="dense"
+        title="Orders"
+        lead={`${totalCount} total ${totalCount === 1 ? "order" : "orders"}`}
+      />
+
+      <Panel density="dense">
+        {loading ? (
+          <SkeletonRows rows={PAGE_SIZE} label="Loading orders..." />
+        ) : error ? (
+          <p role="alert" className="py-10 text-center text-sm text-mgh-danger">
+            {error}
           </p>
-        </div>
+        ) : (
+          <DataTable
+            density="dense"
+            caption="Orders"
+            columns={columns}
+            rows={orders}
+            getRowKey={(order) => order.order_id}
+            onRowClick={(order) => setSelectedOrder(order)}
+            empty={<EmptyState title="No orders found." />}
+          />
+        )}
 
-        <div className="rounded-[28px] border border-white/10 bg-white/5 p-4 sm:p-6">
-          {loading ? (
-            <div className="flex h-56 items-center justify-center text-[#A0A0A0]">
-              Loading orders...
-            </div>
-          ) : error ? (
-            <div className="flex h-56 items-center justify-center text-red-400">
-              {error}
-            </div>
-          ) : orders.length === 0 ? (
-            <div className="flex h-56 items-center justify-center text-[#A0A0A0]">
-              No orders found.
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {orders.map((order) => (
-                <button
-                  key={order.order_id}
-                  onClick={() => setSelectedOrder(order)}
-                  className="w-full rounded-2xl border border-white/10 bg-[#0A0A0A]/70 p-4 text-left transition hover:border-[#D4AF37]/40"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <p className="text-[11px] uppercase tracking-[0.25em] text-[#797676]">
-                        Order #{order.order_id}
-                      </p>
-                      <p className="mt-1 font-semibold">
-                        {order.customer?.first_name} {order.customer?.last_name} —{" "}
-                        {order.event_type?.event_name ?? "Event"}
-                      </p>
-                      <p className="mt-1 text-sm text-[#A0A0A0]">
-                        {order.event_date} · {order.event_location}
-                      </p>
-                    </div>
-                    <p className="font-semibold text-[#D4AF37]">
-                      {currency.format(Number(order.total_price || 0))}
-                    </p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
+        {/* pagination controls */}
+        <nav
+          aria-label="Orders pagination"
+          className="mt-4 flex items-center justify-between gap-3"
+        >
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => goToPage(currentPage - 1)}
+            disabled={currentPage <= 1}
+          >
+            <ChevronLeft size={16} aria-hidden="true" /> Prev
+          </Button>
 
-          {/* pagination controls */}
-          <div className="mt-6 flex items-center justify-between">
-            <button
-              onClick={() => goToPage(currentPage - 1)}
-              disabled={currentPage <= 1}
-              className="flex items-center gap-1 rounded-lg border border-white/10 px-3 py-2 text-sm disabled:opacity-30"
-            >
-              <ChevronLeft size={16} /> Prev
-            </button>
+          <p className="text-caption tabular-nums text-mgh-dim">
+            Page {currentPage} of {totalPages}
+          </p>
 
-            <p className="text-sm text-[#A0A0A0]">
-              Page {currentPage} of {totalPages}
-            </p>
-
-            <button
-              onClick={() => goToPage(currentPage + 1)}
-              disabled={currentPage >= totalPages}
-              className="flex items-center gap-1 rounded-lg border border-white/10 px-3 py-2 text-sm disabled:opacity-30"
-            >
-              Next <ChevronRight size={16} />
-            </button>
-          </div>
-        </div>
-      </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => goToPage(currentPage + 1)}
+            disabled={currentPage >= totalPages}
+          >
+            Next <ChevronRight size={16} aria-hidden="true" />
+          </Button>
+        </nav>
+      </Panel>
 
       {selectedOrder && (
         <AdminOrderModal

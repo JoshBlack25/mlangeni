@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/services/supabaseClient";
+import { getSupabase } from "@/services/lazySupabase";
 import {
   SESSION_OPTIONS,
   normalizeSession,
@@ -9,10 +9,13 @@ import {
 } from "@/app/components/constants/sessions";
 
 export default function SessionDropDown({
+  id,
   value,
   onChange,
   selectedDate,
   error,
+  describedBy,
+  className,
   showBadges = false,
   dark = false,
 }) {
@@ -36,6 +39,7 @@ export default function SessionDropDown({
       setLoading(true);
       // Via the RPC, not a table read — the public read policy this used to
       // rely on was dropped in db/006 and stays dropped. See db/007.
+      const supabase = await getSupabase();
       const { data, error: supabaseError } = await supabase.rpc(
         "get_booked_sessions",
         { p_date: isoDate },
@@ -66,23 +70,27 @@ export default function SessionDropDown({
     : [];
 
   const selectClass = dark
-    ? `w-full bg-transparent border-0 outline-none text-sm cursor-pointer transition-all
-       text-white disabled:text-[#444] disabled:cursor-not-allowed
-       ${error ? "border-red-500" : ""}`
+    ? className
     : `border rounded-lg px-3 py-2 text-sm bg-white outline-none transition-all
        focus:ring-2 focus:ring-blue-500 focus:border-blue-500
        disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed
        ${error ? "border-red-500" : "border-gray-300"}`;
 
-  const labelClass = dark ? "hidden" : "text-sm font-medium text-gray-700";
+  const labelClass = "text-sm font-medium text-gray-700";
 
   return (
     <div className="flex flex-col gap-1">
-      <label className={labelClass}>
-        Session <span className="text-red-500">*</span>
-      </label>
+      {!dark && (
+        <label className={labelClass}>
+          Session <span className="text-red-500">*</span>
+        </label>
+      )}
 
       <select
+        id={id}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={describedBy}
+        aria-busy={loading || undefined}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={!selectedDate || loading}
@@ -90,7 +98,7 @@ export default function SessionDropDown({
       >
         <option
           value=""
-          className={dark ? "bg-[#0A0A0A] text-white" : "text-black"}
+          className={dark ? "bg-mgh-bg text-mgh-text" : "text-black"}
         >
           {!selectedDate
             ? "Select a date first"
@@ -104,7 +112,7 @@ export default function SessionDropDown({
           <option
             key={session.value}
             value={session.value}
-            className={dark ? "bg-[#0A0A0A] text-white" : "text-black"}
+            className={dark ? "bg-mgh-bg text-mgh-text" : "text-black"}
           >
             {session.label}
           </option>

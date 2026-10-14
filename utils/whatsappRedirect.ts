@@ -1,4 +1,4 @@
-const WHATSAPP_BUSINESS_NUMBER = "27XXXXXXXXX"; // replace with your WhatsApp business number, e.g. 27821234567
+import { BUSINESS_PHONE } from "@/lib/site";
 
 export interface EnquiryData {
   name: string;
@@ -11,6 +11,10 @@ export interface EnquiryData {
 }
 
 export function redirectToWhatsApp(data: EnquiryData): void {
+  // No number configured (NEXT_PUBLIC_BUSINESS_PHONE): the enquiry has already
+  // been saved and emailed, so skip the hand-off rather than open a dead chat.
+  if (!BUSINESS_PHONE) return;
+
   const formattedDate = new Date(data.eventDate).toLocaleDateString("en-ZA", {
     weekday: "long",
     year: "numeric",
@@ -31,7 +35,7 @@ export function redirectToWhatsApp(data: EnquiryData): void {
   `.trim();
 
   const encodedMessage = encodeURIComponent(message);
-  const whatsappURL = `https://wa.me/${WHATSAPP_BUSINESS_NUMBER}?text=${encodedMessage}`;
+  const whatsappURL = `https://wa.me/${BUSINESS_PHONE}?text=${encodedMessage}`;
 
   window.open(whatsappURL, "_blank");
 }

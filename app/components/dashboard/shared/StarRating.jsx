@@ -31,8 +31,8 @@ export default function StarRating({
 
   const starClass = (index) =>
     index <= shown
-      ? "fill-[#D4AF37] text-[#D4AF37]"
-      : "fill-transparent text-white/20";
+      ? "fill-mgh-gold text-mgh-gold"
+      : "fill-transparent text-mgh-line-strong";
 
   if (!interactive) {
     return (
@@ -98,7 +98,7 @@ export default function StarRating({
             // but leave DOM focus on the button that was already focused, so a
             // focus-driven preview would pin the display to that button's value
             // and the stars would stop following the rating being chosen.
-            className="rounded transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A] active:scale-95"
+            className="rounded transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mgh-gold focus-visible:ring-offset-2 focus-visible:ring-offset-mgh-bg active:scale-95"
           >
             <Star size={size} className={starClass(starValue)} aria-hidden />
           </button>

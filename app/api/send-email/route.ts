@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { getEmailConfig } from "@/lib/email/config";
 import { deliverEmail } from "@/lib/email/send";
 import { clientIp, isRateLimited } from "@/lib/email/rateLimit";
+import { isCrossSiteRequest } from "@/lib/http/sameOrigin";
 import {
   button,
   detailTable,
@@ -24,9 +25,18 @@ import { firstName, sanitize } from "@/lib/email/theme";
 
 const VALID_SESSIONS = ["Morning", "Afternoon", "Evening/Night"];
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+// Generous for real enquiries, small enough that the form can't be used to
+// mail out pages of text.
+const MAX = { name: 120, email: 254, phone: 32, message: 2000 } as const;
 
 export async function POST(req: Request) {
   try {
+    if (isCrossSiteRequest(req)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     if (isRateLimited("enquiry", clientIp(req), { limit: 3, windowMs: 60_000 })) {
       return NextResponse.json(
         { error: "Too many requests. Please wait before trying again." },
@@ -43,12 +53,32 @@ export async function POST(req: Request) {
       );
     }
 
-    const body = await req.json();
+    const body = await req.json().catch(() => null);
+    if (!body || typeof body !== "object") {
+      return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    }
     const { name, email, phone, eventDate, session, guests, message } = body;
 
     if (!name || !email || !phone || !eventDate || !session || !guests) {
       return NextResponse.json(
         { error: "Missing required fields" },
+        { status: 400 },
+      );
+    }
+    if (
+      typeof name !== "string" || name.length > MAX.name ||
+      typeof email !== "string" || email.length > MAX.email ||
+      typeof phone !== "string" || phone.length > MAX.phone ||
+      (message != null && (typeof message !== "string" || message.length > MAX.message))
+    ) {
+      return NextResponse.json(
+        { error: "One or more fields are too long" },
+        { status: 400 },
+      );
+    }
+    if (typeof eventDate !== "string" || !DATE_RE.test(eventDate)) {
+      return NextResponse.json(
+        { error: "Invalid event date" },
         { status: 400 },
       );
     }
@@ -58,7 +88,7 @@ export async function POST(req: Request) {
         { status: 400 },
       );
     }
-    if (typeof guests !== "number" || guests < 1) {
+    if (typeof guests !== "number" || !Number.isInteger(guests) || guests < 1 || guests > 5000) {
       return NextResponse.json(
         { error: "Invalid number of guests" },
         { status: 400 },

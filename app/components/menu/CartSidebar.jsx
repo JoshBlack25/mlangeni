@@ -1,19 +1,12 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import {
-  Calendar,
-  ChevronUp,
-  Trash2,
-  Users,
-  UtensilsCrossed,
-  X,
-} from "lucide-react";
+import { useState } from "react";
+import { Calendar, ChevronUp, Trash2, Users } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { EmptyState, Sheet, focusRing } from "@/app/components/dashboard/ui";
 import { useMenu } from "./MenuContext";
 import { computeTotals, formatZAR, guestCount } from "./pricing";
 import { formatDateShort } from "./availability";
-import { useFocusTrap } from "./useFocusTrap";
 
 const CATEGORIES = [
   { label: "Starters", key: "starters" },
@@ -25,12 +18,6 @@ const CATEGORIES = [
 export function CartSidebar() {
   const { state, dispatch } = useMenu();
   const [sheetOpen, setSheetOpen] = useState(false);
-  const sheetRef = useRef(null);
-
-  useFocusTrap(sheetRef, {
-    active: sheetOpen,
-    onEscape: () => setSheetOpen(false),
-  });
 
   const categories = CATEGORIES.map((c) => ({
     ...c,
@@ -45,57 +32,33 @@ export function CartSidebar() {
   const remove = (key, id) =>
     dispatch({ type: "REMOVE_ITEM", payload: { category: key, id } });
 
-  const panel = (
-    <div className="rounded-2xl border border-mgh-line bg-mgh-surface p-6 shadow-2xl lg:sticky lg:top-6">
-      <div className="flex items-center justify-between border-b border-mgh-line-soft pb-4">
-        <div className="flex items-center gap-2">
-          <UtensilsCrossed
-            size={18}
-            className="text-mgh-gold"
-            aria-hidden="true"
-          />
-          <h2 className="font-serif text-xl font-medium text-mgh-text">
-            Your Menu
-          </h2>
-        </div>
-
-        {hasItems && (
-          <span className="rounded-full border border-mgh-gold/30 bg-mgh-gold/10 px-2.5 py-0.5 text-xs font-semibold text-mgh-gold">
-            {totalItems} {totalItems === 1 ? "Item" : "Items"}
-          </span>
-        )}
-      </div>
-
+  // The menu as it would be printed for the table: courses, dishes, then the
+  // bill. Shared by the desktop rail and the phone sheet.
+  const body = (
+    <>
       {!hasItems ? (
-        <div className="py-10 text-center">
-          <p className="text-sm leading-6 text-mgh-faint">
-            No items selected yet. Choose dishes from the menu to build your
-            custom catering package.
-          </p>
-        </div>
+        <EmptyState align="start" className="py-6" title="Nothing chosen yet">
+          Choose dishes from the menu to build your custom catering package.
+        </EmptyState>
       ) : (
-        <div className="mt-4 max-h-[420px] space-y-5 overflow-y-auto pr-1">
+        <div className="mt-2 max-h-[420px] space-y-6 overflow-y-auto pr-1">
           {categories.map(
             (cat) =>
               cat.items.length > 0 && (
-                <div key={cat.key} className="space-y-2">
-                  <h3 className="text-[10px] font-semibold uppercase tracking-[0.2em] text-mgh-gold">
+                <section key={cat.key} aria-label={cat.label}>
+                  <h3 className="text-label font-semibold uppercase text-mgh-muted">
                     {cat.label}
                   </h3>
 
-                  <ul className="space-y-2">
+                  <ul className="mt-2 divide-y divide-mgh-line-soft">
                     {cat.items.map((item) => (
-                      <li
-                        key={item.item_id}
-                        className="flex items-center justify-between rounded-lg border border-mgh-line-soft bg-mgh-surface-2 p-2.5 transition-colors hover:border-mgh-line-strong"
-                      >
-                        <div className="min-w-0 flex-1 pr-3">
-                          <p className="truncate text-sm font-medium text-mgh-text">
+                      <li key={item.item_id} className="flex items-center gap-3 py-2.5">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-serif text-[15px] text-mgh-text">
                             {item.name}
                           </p>
-                          <p className="text-xs tabular-nums text-mgh-gold">
-                            {formatZAR(item.price)}
-                            <span className="text-mgh-faint"> / guest</span>
+                          <p className="text-caption tabular-nums text-mgh-dim">
+                            {formatZAR(item.price)} per guest
                           </p>
                         </div>
 
@@ -103,136 +66,123 @@ export function CartSidebar() {
                           type="button"
                           onClick={() => remove(cat.key, item.item_id)}
                           aria-label={`Remove ${item.name}`}
-                          className="rounded p-1 text-mgh-faint transition-colors hover:text-mgh-danger focus:outline-none focus:ring-2 focus:ring-mgh-gold/40"
+                          className={cn(
+                            "grid size-9 shrink-0 place-items-center rounded-control text-mgh-dim transition-colors hover:bg-mgh-surface-2 hover:text-mgh-danger",
+                            focusRing,
+                          )}
                         >
                           <Trash2 size={15} aria-hidden="true" />
                         </button>
                       </li>
                     ))}
                   </ul>
-                </div>
+                </section>
               ),
           )}
         </div>
       )}
 
       {hasItems && (
-        <div className="mt-6 border-t border-mgh-line-soft pt-4">
-          <dl className="space-y-2 text-xs">
-            <div className="flex items-center justify-between text-mgh-dim">
+        <div className="mt-6 border-t border-mgh-line pt-4">
+          <dl className="space-y-1.5 text-sm">
+            <div className="flex items-center justify-between text-mgh-muted">
               <dt>Per guest</dt>
               <dd className="tabular-nums">{formatZAR(totals.perGuest)}</dd>
             </div>
-            <div className="flex items-center justify-between text-mgh-dim">
+            <div className="flex items-center justify-between text-mgh-muted">
               <dt>Guests</dt>
               <dd className="tabular-nums">× {guests}</dd>
             </div>
-            <div className="flex items-baseline justify-between pt-2 text-mgh-gold">
-              <dt className="text-[10px] font-semibold uppercase tracking-widest">
-                Estimated total
-              </dt>
-              <dd className="text-lg font-semibold tabular-nums">
+            <div className="flex items-baseline gap-2 pt-3">
+              <dt className="text-sm font-medium text-mgh-text">Estimated total</dt>
+              <span aria-hidden="true" className="flex-1 border-b border-dotted border-mgh-line-strong" />
+              <dd className="font-serif text-2xl font-medium tabular-nums lining-nums text-mgh-text">
                 {formatZAR(totals.total)}
               </dd>
             </div>
           </dl>
 
-          <div className="mt-4 space-y-2 border-t border-mgh-line-soft pt-4 text-xs text-mgh-dim">
-            {state.guests && (
-              <p className="flex items-center gap-2">
-                <Users size={13} className="text-mgh-gold" aria-hidden="true" />
-                {state.guests} guests planned
-              </p>
-            )}
-            {state.eventDate && (
-              <p className="flex items-center gap-2">
-                <Calendar
-                  size={13}
-                  className="text-mgh-gold"
-                  aria-hidden="true"
-                />
-                {formatDateShort(state.eventDate)}
-              </p>
-            )}
-          </div>
+          {(state.guests || state.eventDate) && (
+            <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1.5 text-caption text-mgh-muted">
+              {state.guests && (
+                <p className="flex items-center gap-1.5">
+                  <Users size={13} className="text-mgh-dim" aria-hidden="true" />
+                  {state.guests} guests planned
+                </p>
+              )}
+              {state.eventDate && (
+                <p className="flex items-center gap-1.5">
+                  <Calendar size={13} className="text-mgh-dim" aria-hidden="true" />
+                  {formatDateShort(state.eventDate)}
+                </p>
+              )}
+            </div>
+          )}
 
-          <p className="mt-4 text-xs leading-5 text-mgh-faint">
+          <p className="mt-4 text-caption leading-relaxed text-mgh-dim">
             An estimate for food and beverage. Staffing, transport and special
             arrangements are quoted separately.
           </p>
         </div>
       )}
-    </div>
+    </>
   );
 
   return (
     <>
       {/* Desktop rail */}
-      <aside className="hidden w-full lg:block lg:w-[360px] lg:shrink-0">
-        {panel}
+      <aside
+        aria-labelledby="cart-title"
+        className="hidden w-full rounded-card border border-mgh-line bg-mgh-surface p-6 lg:sticky lg:top-24 lg:block lg:w-[360px] lg:shrink-0"
+      >
+        <div className="flex items-baseline justify-between border-b border-mgh-line-soft pb-4">
+          <h2 id="cart-title" className="font-serif text-xl font-medium text-mgh-text">
+            Your Menu
+          </h2>
+          {hasItems && (
+            <span className="text-caption tabular-nums text-mgh-muted">
+              {totalItems} {totalItems === 1 ? "Item" : "Items"}
+            </span>
+          )}
+        </div>
+        {body}
       </aside>
 
-      {/* Mobile: a sticky summary bar that opens the same panel as a sheet. */}
+      {/* Phones: a summary bar above the tab bar that opens the same menu as a sheet. */}
       {hasItems && (
         <div className="lg:hidden">
-          <div className="fixed inset-x-0 bottom-0 z-40 border-t border-mgh-line bg-mgh-surface/95 px-4 py-3 backdrop-blur-md">
+          <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 border-t border-mgh-line bg-mgh-bg/95 px-4 py-2.5 backdrop-blur-md">
             <button
               type="button"
               onClick={() => setSheetOpen(true)}
-              className="flex w-full items-center justify-between gap-3 rounded-xl border border-mgh-gold/40 bg-mgh-gold/10 px-4 py-3 text-left focus:outline-none focus:ring-2 focus:ring-mgh-gold/40"
+              aria-haspopup="dialog"
+              aria-expanded={sheetOpen}
+              className={cn(
+                "flex h-12 w-full items-center justify-between gap-3 rounded-control border border-mgh-line-strong bg-mgh-surface px-4 text-left",
+                "transition-[border-color,transform] duration-[var(--mgh-dur-fast)] ease-mgh active:scale-[0.99]",
+                focusRing,
+              )}
             >
-              <span className="min-w-0">
-                <span className="block text-xs uppercase tracking-wider text-mgh-gold">
-                  {totalItems} {totalItems === 1 ? "item" : "items"}
-                </span>
-                <span className="block truncate text-sm font-semibold tabular-nums text-mgh-text">
+              <span className="flex min-w-0 items-baseline gap-2">
+                <span className="font-serif text-lg font-medium tabular-nums text-mgh-text">
                   {formatZAR(totals.total)}
                 </span>
+                <span className="truncate text-caption text-mgh-muted">
+                  {totalItems} {totalItems === 1 ? "item" : "items"}
+                </span>
               </span>
-              <span className="flex shrink-0 items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-mgh-gold">
-                View <ChevronUp size={14} aria-hidden="true" />
+              <span className="flex shrink-0 items-center gap-1 text-sm text-mgh-text">
+                View menu <ChevronUp size={15} aria-hidden="true" />
               </span>
             </button>
           </div>
 
-          {/* Keeps the sticky bar from covering the step's own buttons. */}
-          <div className="h-24" aria-hidden="true" />
+          {/* Keeps the summary bar from covering the step's own buttons. */}
+          <div className="h-20" aria-hidden="true" />
 
-          <AnimatePresence>
-            {sheetOpen && (
-              <div className="fixed inset-0 z-50 flex items-end">
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  onClick={() => setSheetOpen(false)}
-                  className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-                />
-
-                <motion.div
-                  ref={sheetRef}
-                  role="dialog"
-                  aria-modal="true"
-                  aria-label="Your menu"
-                  initial={{ y: "100%" }}
-                  animate={{ y: 0 }}
-                  exit={{ y: "100%" }}
-                  transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                  className="relative z-10 max-h-[85vh] w-full overflow-y-auto p-4"
-                >
-                  <button
-                    type="button"
-                    onClick={() => setSheetOpen(false)}
-                    aria-label="Close menu summary"
-                    className="mb-3 ml-auto flex h-9 w-9 items-center justify-center rounded-lg border border-mgh-line bg-mgh-surface text-mgh-muted focus:outline-none focus:ring-2 focus:ring-mgh-gold/40"
-                  >
-                    <X size={18} aria-hidden="true" />
-                  </button>
-                  {panel}
-                </motion.div>
-              </div>
-            )}
-          </AnimatePresence>
+          <Sheet open={sheetOpen} onOpenChange={setSheetOpen} title="Your menu">
+            <div className="px-5 pb-6">{body}</div>
+          </Sheet>
         </div>
       )}
     </>

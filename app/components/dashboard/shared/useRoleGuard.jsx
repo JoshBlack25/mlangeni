@@ -17,7 +17,9 @@ export function useRoleGuard(requiredRole) {
       } = await supabase.auth.getSession();
 
       if (!session) {
-        router.replace("/login");
+        // Remember the page so sign-in can return here (see app/login).
+        const next = encodeURIComponent(window.location.pathname);
+        router.replace(`/login?next=${next}`);
         return;
       }
 

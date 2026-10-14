@@ -27,7 +27,7 @@ export default function Monogram({
         src={src}
         alt={alt ?? ""}
         style={box}
-        className={`shrink-0 rounded-full border border-[#D4AF37]/30 object-cover ${className}`}
+        className={`shrink-0 rounded-full border border-mgh-gold/30 object-cover ${className}`}
       />
     );
   }
@@ -38,7 +38,7 @@ export default function Monogram({
       aria-hidden={!alt}
       aria-label={alt || undefined}
       role={alt ? "img" : undefined}
-      className={`flex shrink-0 items-center justify-center rounded-full border border-[#D4AF37]/30 bg-[#D4AF37]/10 font-semibold tracking-wide text-[#D4AF37] ${className}`}
+      className={`flex shrink-0 items-center justify-center rounded-full border border-mgh-gold/30 bg-mgh-gold/10 font-semibold tracking-wide text-mgh-gold ${className}`}
     >
       {initials || "?"}
     </div>

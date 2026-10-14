@@ -77,7 +77,7 @@ export function DateField({
               error
                 ? "border-mgh-danger/70 focus:ring-mgh-danger/30"
                 : "border-mgh-line hover:border-mgh-line-strong",
-              value ? "text-mgh-text" : "text-mgh-faint",
+              value ? "text-mgh-text" : "text-mgh-dim",
             )}
           >
             <span className="flex min-w-0 items-center gap-2.5">
@@ -92,7 +92,7 @@ export function DateField({
             </span>
             <ChevronDown
               size={16}
-              className="shrink-0 text-mgh-faint"
+              className="shrink-0 text-mgh-dim"
               aria-hidden="true"
             />
           </button>
@@ -127,7 +127,7 @@ export function DateField({
             }}
           />
 
-          <div className="flex items-center gap-4 border-t border-mgh-line-soft px-4 py-2.5 text-[10px] uppercase tracking-wider text-mgh-faint">
+          <div className="flex items-center gap-4 border-t border-mgh-line-soft px-4 py-2.5 text-[10px] uppercase tracking-wider text-mgh-dim">
             <span className="flex items-center gap-1.5">
               <span
                 className="inline-block h-1.5 w-1.5 rounded-full bg-mgh-gold"
@@ -146,7 +146,7 @@ export function DateField({
       </Popover>
 
       {hint && !error && (
-        <p id={`${id}-hint`} className="mt-1.5 text-xs text-mgh-faint">
+        <p id={`${id}-hint`} className="mt-1.5 text-xs text-mgh-dim">
           {hint}
         </p>
       )}

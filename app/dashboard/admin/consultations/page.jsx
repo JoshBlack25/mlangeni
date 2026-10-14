@@ -1,16 +1,19 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import { motion } from "framer-motion";
-import {
-  ArrowUpRight,
-  CalendarCheck,
-  CalendarDays,
-  ClipboardList,
-  UsersRound,
-} from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { supabase } from "@/services/supabaseClient";
+import {
+  PageHeader,
+  Panel,
+  PanelHeader,
+  DataTable,
+  StatusBadge,
+  Figure,
+  FigureRow,
+  EmptyState,
+  SkeletonRows,
+} from "@/app/components/dashboard/ui";
 
 function formatDate(dateString) {
   if (!dateString) return "TBC";
@@ -19,6 +22,20 @@ function formatDate(dateString) {
     day: "numeric",
     month: "short",
     year: "numeric",
+  });
+}
+
+function formatTime(dateString) {
+  if (!dateString) return null;
+
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return null;
+  // Date-only values carry no meeting time.
+  if (typeof dateString === "string" && !dateString.includes("T")) return null;
+
+  return date.toLocaleTimeString("en-ZA", {
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
@@ -133,222 +150,179 @@ export default function AdminConsultationsPage() {
       )[0];
   }, [consultations, statusFilter]);
 
+  const rows = (consultations ?? []).map((consultation, index) => ({
+    ...consultation,
+    requestNumber: index + 1,
+  }));
+
+  const columns = [
+    {
+      key: "customer",
+      header: "Client",
+      primary: true,
+      render: (row) => (
+        <span className="flex flex-col">
+          <span className="font-medium text-mgh-text">
+            {getCustomerName(row.customer)}
+          </span>
+          <span className="text-caption text-mgh-dim">
+            Request #{row.requestNumber}
+          </span>
+        </span>
+      ),
+    },
+    {
+      key: "event",
+      header: "Event Type",
+      render: (row) => (
+        <span className="text-mgh-muted">{getEventType(row)}</span>
+      ),
+    },
+    {
+      key: "date",
+      header: isMeetingView ? "Meeting Date" : "Event Date",
+      render: (row) => {
+        const date = getRelevantDate(row, statusFilter);
+        return (
+          <span className="whitespace-nowrap tabular-nums">
+            {formatDate(date)}
+            {isMeetingView && formatTime(date) && (
+              <span className="text-mgh-muted"> · {formatTime(date)}</span>
+            )}
+          </span>
+        );
+      },
+    },
+    {
+      key: "status",
+      header: "Status",
+      render: (row) => <StatusBadge status={row.status} />,
+    },
+    {
+      key: "review",
+      header: "Review",
+      render: (row) => (
+        <span className={row.admin_id ? "text-mgh-text" : "text-mgh-dim"}>
+          {getReviewStatus(row)}
+        </span>
+      ),
+    },
+    {
+      key: "action",
+      header: <span className="sr-only">Action</span>,
+      align: "right",
+      hideOnMobile: true,
+      render: () => (
+        <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-mgh-muted">
+          {isMeetingView ? "View Meeting" : "View Order"}
+          <ArrowUpRight size={16} aria-hidden="true" className="text-mgh-dim" />
+        </span>
+      ),
+    },
+  ];
+
   return (
-    <main className="min-h-screen bg-[#0A0A0A] px-6 py-10 text-white md:px-10 lg:px-14">
-      <div className="mx-auto max-w-[1300px]">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between"
-        >
-          <div>
-            <div className="mb-4 flex items-center gap-2 text-sm uppercase tracking-[0.25em] text-[#D4AF37]">
-              <CalendarCheck size={17} />
-              <span>{isMeetingView ? "Meetings" : "Consultations"}</span>
-            </div>
-
-            <h1 className="font-serif text-4xl font-medium tracking-tight text-white md:text-5xl">
-              {isMeetingView ? "Active Meetings" : "Consultation Requests"}
-            </h1>
-
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-[#A0A0A0] md:text-base">
-              {isMeetingView
-                ? "Review scheduled in-person meetings that were created from consultation requests."
-                : "Review customer orders that need an admin consultation before the client is contacted to discuss their event in more detail."}
-            </p>
-          </div>
-
-          <div className="border-l-2 border-[#D4AF37] bg-white/[0.03] px-4 py-3 text-sm text-[#D4AF37]">
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        density="dense"
+        className="mb-0 md:mb-0"
+        title={isMeetingView ? "Active Meetings" : "Consultation Requests"}
+        lead={
+          isMeetingView
+            ? "Review scheduled in-person meetings that were created from consultation requests."
+            : "Review customer orders that need an admin consultation before the client is contacted to discuss their event in more detail."
+        }
+        actions={
+          <p className="text-sm tabular-nums text-mgh-muted">
             {requestCount}{" "}
             {isMeetingView ? "meetings scheduled" : "requests awaiting review"}
-          </div>
-        </motion.div>
+          </p>
+        }
+      />
 
-        <motion.section
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, delay: 0.1 }}
-          className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-3"
-        >
-          <OverviewCard
-            icon={UsersRound}
-            label={isMeetingView ? "Meetings" : "Requests"}
-            value={consultations === null ? "..." : requestCount}
-            caption={
-              isMeetingView
-                ? "Consultations already scheduled"
-                : "Customer orders submitted"
-            }
+      <FigureRow>
+        <Figure
+          label={isMeetingView ? "Meetings" : "Requests"}
+          value={requestCount}
+          loading={consultations === null}
+          hint={
+            isMeetingView
+              ? "Consultations already scheduled"
+              : "Customer orders submitted"
+          }
+        />
+        <Figure
+          label={isMeetingView ? "Next Meeting" : "Next Event Date"}
+          value={
+            nextConsultation
+              ? formatDate(getRelevantDate(nextConsultation, statusFilter))
+              : "TBC"
+          }
+          loading={consultations === null}
+          hint={
+            nextConsultation
+              ? getEventType(nextConsultation)
+              : isMeetingView
+                ? "No meetings"
+                : "No requests"
+          }
+        />
+        <Figure
+          label={isMeetingView ? "Meeting Details" : "Order Review"}
+          value={isMeetingView ? "Scheduled" : "Pending"}
+          loading={consultations === null}
+          hint={
+            isMeetingView
+              ? "Open a meeting to view the order"
+              : "Open a request to view the order"
+          }
+        />
+      </FigureRow>
+
+      <Panel density="dense">
+        <PanelHeader
+          density="dense"
+          title={isMeetingView ? "Scheduled Meetings" : "Customer Order Requests"}
+        />
+
+        {error && (
+          <p
+            role="alert"
+            className="mb-4 rounded-control border border-mgh-danger/30 bg-mgh-danger/10 px-4 py-3 text-sm text-mgh-danger"
+          >
+            {error}
+          </p>
+        )}
+
+        {consultations === null ? (
+          <SkeletonRows
+            rows={4}
+            label={isMeetingView ? "Loading meetings" : "Loading consultation requests"}
           />
-          <OverviewCard
-            icon={CalendarDays}
-            label={isMeetingView ? "Next Meeting" : "Next Event Date"}
-            value={
-              nextConsultation
-                ? formatDate(getRelevantDate(nextConsultation, statusFilter))
-                : "TBC"
+        ) : (
+          <DataTable
+            density="dense"
+            caption={isMeetingView ? "Scheduled meetings" : "Customer order requests"}
+            columns={columns}
+            rows={rows}
+            getRowKey={(row) => row.consultations_id}
+            rowHref={(row) =>
+              `/dashboard/admin/consultations/${row.consultations_id}`
             }
-            caption={
-              nextConsultation
-                ? getEventType(nextConsultation)
-                : isMeetingView
-                  ? "No meetings"
-                  : "No requests"
-            }
-          />
-          <OverviewCard
-            icon={ClipboardList}
-            label={isMeetingView ? "Meeting Details" : "Order Review"}
-            value={
-              consultations === null
-                ? "..."
-                : isMeetingView
-                  ? "Scheduled"
-                  : "Pending"
-            }
-            caption={
-              isMeetingView
-                ? "Open a meeting to view the order"
-                : "Open a request to view the order"
-            }
-          />
-        </motion.section>
-
-        <motion.section
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, delay: 0.2 }}
-          className="mt-8 rounded-2xl border border-[#1F1F1F] bg-white/5 p-5 backdrop-blur-md md:p-6"
-        >
-          <div className="mb-5 flex flex-col gap-3 border-b border-white/10 pb-5 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-[#A0A0A0]">
-                {isMeetingView ? "Meeting List" : "Consultation List"}
-              </p>
-              <h2 className="mt-2 text-xl font-semibold text-white">
-                {isMeetingView ? "Scheduled Meetings" : "Customer Order Requests"}
-              </h2>
-            </div>
-
-            <p className="border-l border-white/10 pl-3 text-xs uppercase tracking-[0.16em] text-[#797676]">
-              {isMeetingView ? "Scheduled meetings" : "Requested orders"}
-            </p>
-          </div>
-
-          <div className="hidden grid-cols-[1fr_0.8fr_0.9fr_0.7fr_0.5fr] gap-4 border-b border-white/10 px-4 pb-3 text-xs uppercase tracking-[0.18em] text-[#797676] md:grid">
-            <span>Client</span>
-            <span>{isMeetingView ? "Meeting Date" : "Event Date"}</span>
-            <span>Event Type</span>
-            <span>Review</span>
-            <span className="text-right">Action</span>
-          </div>
-
-          {error && (
-            <div className="mt-5 border border-red-400/20 bg-red-400/5 px-4 py-4 text-sm text-red-300">
-              {error}
-            </div>
-          )}
-
-          {consultations === null ? (
-            <div className="mt-5 space-y-3">
-              {[...Array(4)].map((_, index) => (
-                <div
-                  key={index}
-                  className="h-20 animate-pulse rounded-xl border border-[#1F1F1F] bg-[#0A0A0A]/40"
-                />
-              ))}
-            </div>
-          ) : consultations.length === 0 ? (
-            <div className="mt-5 flex min-h-56 flex-col items-center justify-center rounded-xl border border-[#1F1F1F] bg-[#0A0A0A]/40 px-6 text-center">
-              <CalendarCheck className="text-[#D4AF37]" size={28} />
-              <h3 className="mt-4 text-lg font-semibold text-white">
-                {isMeetingView ? "No active meetings" : "No consultation requests"}
-              </h3>
-              <p className="mt-2 max-w-md text-sm leading-6 text-[#A0A0A0]">
+            empty={
+              <EmptyState
+                title={
+                  isMeetingView ? "No active meetings" : "No consultation requests"
+                }
+              >
                 {isMeetingView
                   ? "Scheduled meetings will appear here after an admin sets them up."
                   : "Customer orders that need admin consultation will appear here."}
-              </p>
-            </div>
-          ) : (
-            <div className="mt-3 space-y-3">
-              {consultations.map((consultation, index) => (
-                <motion.article
-                  key={consultation.consultations_id}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: 0.25 + index * 0.04 }}
-                  className="grid grid-cols-1 gap-4 rounded-xl border border-[#1F1F1F] bg-[#0A0A0A]/40 p-4 transition-all duration-300 hover:border-[#D4AF37]/70 hover:bg-white/[0.04] md:grid-cols-[1fr_0.8fr_0.9fr_0.7fr_0.5fr] md:items-center"
-                >
-                  <div>
-                    <p className="text-sm font-semibold text-white md:text-base">
-                      {getCustomerName(consultation.customer)}
-                    </p>
-                    <p className="mt-1 text-xs text-[#797676]">
-                      Request #{index + 1}
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-sm font-medium text-white">
-                      {formatDate(getRelevantDate(consultation, statusFilter))}
-                    </p>
-                    <p className="mt-1 text-xs text-[#797676]">
-                      {isMeetingView ? "Meeting date" : "Event date"}
-                    </p>
-                  </div>
-
-                  <p className="text-sm text-[#A0A0A0]">
-                    {getEventType(consultation)}
-                  </p>
-
-                  <div className="border-l border-white/10 pl-3">
-                    <p
-                      className={`text-sm font-medium ${
-                        consultation.admin_id
-                          ? "text-[#D4AF37]"
-                          : "text-[#797676]"
-                      }`}
-                    >
-                      {getReviewStatus(consultation)}
-                    </p>
-                    <p className="mt-1 text-xs text-[#797676]">
-                      Review status
-                    </p>
-                  </div>
-
-                  <div className="flex md:justify-end">
-                    <Link
-                      href={`/dashboard/admin/consultations/${consultation.consultations_id}`}
-                      className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[#D4AF37]/40 px-4 text-sm font-medium text-[#D4AF37] transition-all duration-300 hover:border-[#D4AF37] hover:bg-[#D4AF37] hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A]"
-                    >
-                      {isMeetingView ? "View Meeting" : "View Order"}
-                      <ArrowUpRight size={15} />
-                    </Link>
-                  </div>
-                </motion.article>
-              ))}
-            </div>
-          )}
-        </motion.section>
-      </div>
-    </main>
-  );
-}
-
-function OverviewCard({ icon: Icon, label, value, caption }) {
-  return (
-    <div className="group rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-[#D4AF37] hover:bg-white/10 hover:shadow-[0_0_30px_rgba(212,175,55,0.15)]">
-      <div className="mb-5 inline-flex rounded-xl bg-[#D4AF37]/10 p-3 text-[#D4AF37] transition-all duration-300 group-hover:bg-[#D4AF37] group-hover:text-black">
-        <Icon size={22} />
-      </div>
-
-      <p className="text-xs uppercase tracking-[0.2em] text-[#A0A0A0]">
-        {label}
-      </p>
-      <p className="mt-3 text-2xl font-bold text-white">{value}</p>
-      <p className="mt-2 text-sm text-[#797676]">{caption}</p>
+              </EmptyState>
+            }
+          />
+        )}
+      </Panel>
     </div>
   );
 }

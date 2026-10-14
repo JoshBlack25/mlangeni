@@ -47,7 +47,7 @@ export function AvailabilityPanel({
     return (
       <div className={shell} aria-live="polite">
         <Header icon={CalendarClock} title="Availability" />
-        <p className="mt-3 text-sm leading-relaxed text-mgh-faint">
+        <p className="mt-3 text-sm leading-relaxed text-mgh-dim">
           Choose a date and we&apos;ll show you what&apos;s already booked that
           day.
         </p>
@@ -79,7 +79,7 @@ export function AvailabilityPanel({
         <Header icon={Info} title="Availability" />
         <p className="mt-3 text-sm leading-relaxed text-mgh-muted">
           {unsupported
-            ? "Live availability isn't connected yet. Your date is still fine to submit — we'll confirm the slot when we review your request."
+            ? "Live availability isn't connected yet. Your date is still fine to submit, and we'll confirm the slot when we review your request."
             : "We couldn't check availability just now. Your date is still fine to submit."}
         </p>
         {onRefresh && (
@@ -118,7 +118,7 @@ export function AvailabilityPanel({
         tone={conflicts.length > 0 ? "danger" : "default"}
       />
 
-      <p className="mt-3 text-xs uppercase tracking-wider text-mgh-faint">
+      <p className="mt-3 text-xs uppercase tracking-wider text-mgh-dim">
         Already booked on {formatDateLong(date)}
       </p>
 
@@ -145,8 +145,8 @@ export function AvailabilityPanel({
 
       {gaps.length > 0 && (
         <>
-          <p className="mt-5 text-xs uppercase tracking-wider text-mgh-faint">
-            Still open {onPickWindow && "— tap to use"}
+          <p className="mt-5 text-xs uppercase tracking-wider text-mgh-dim">
+            Still open {onPickWindow && "(tap to use)"}
           </p>
           <ul className="mt-2.5 flex flex-wrap gap-2">
             {gaps.map((gap) => (

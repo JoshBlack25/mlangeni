@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { Check, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { focusRing } from "@/app/components/dashboard/ui";
 import { useMenu } from "./MenuContext";
 import { STEPS } from "./constants";
 
@@ -21,7 +22,7 @@ export function ProgressBar() {
           <p className="text-xs font-medium uppercase tracking-widest text-mgh-gold">
             {STEPS[state.step]}
           </p>
-          <p className="text-[10px] uppercase tracking-wider text-mgh-faint">
+          <p className="text-caption tabular-nums text-mgh-muted">
             Step {state.step + 1} of {STEPS.length}
           </p>
         </div>
@@ -57,23 +58,21 @@ export function ProgressBar() {
                 aria-current={active ? "step" : undefined}
                 aria-disabled={!done && !active}
                 className={cn(
-                  "group relative flex items-center gap-2.5 rounded-full border px-4 py-2",
-                  "text-xs uppercase tracking-[0.15em] transition-all duration-300",
-                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-mgh-gold/50",
-                  active && "border-mgh-gold bg-mgh-gold/10 text-mgh-gold",
+                  "group relative flex items-center gap-2.5 rounded-control border px-3.5 py-2 text-sm",
+                  "transition-colors duration-[var(--mgh-dur-fast)] ease-mgh",
+                  focusRing,
+                  active && "border-mgh-gold/60 text-mgh-text",
                   done &&
-                    "border-mgh-line-strong bg-mgh-surface-2 text-mgh-text hover:border-mgh-gold hover:text-mgh-gold",
-                  !active &&
-                    !done &&
-                    "cursor-not-allowed border-mgh-line-soft bg-black/40 text-mgh-disabled",
+                    "border-mgh-line-strong text-mgh-muted hover:border-mgh-muted hover:text-mgh-text",
+                  !active && !done && "cursor-not-allowed border-mgh-line-soft text-mgh-dim",
                 )}
               >
                 <span
                   className={cn(
                     "flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold transition-colors",
                     active && "bg-mgh-gold text-mgh-gold-ink",
-                    done && "bg-mgh-line-strong text-mgh-gold",
-                    !active && !done && "bg-mgh-surface-3 text-mgh-disabled",
+                    done && "bg-mgh-surface-3 text-mgh-text",
+                    !active && !done && "border border-mgh-line-strong text-mgh-dim",
                   )}
                 >
                   {done ? <Check size={12} aria-hidden="true" /> : i + 1}
