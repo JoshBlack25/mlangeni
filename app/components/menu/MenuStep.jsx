@@ -48,7 +48,7 @@ export function MenuStep({ category, title, subtitle, items = [], groups }) {
             {title}
           </h2>
           {totalItems > 0 && (
-            <span className="text-xs uppercase tracking-wider text-mgh-faint">
+            <span className="text-xs uppercase tracking-wider text-mgh-dim">
               {selected.length} of {totalItems} selected
             </span>
           )}
@@ -141,8 +141,8 @@ function EmptyCourse({ title }) {
       <p className="mt-4 text-sm text-mgh-muted">
         Nothing is on the {title.toLowerCase()} menu at the moment.
       </p>
-      <p className="mt-1.5 text-xs text-mgh-faint">
-        Continue to the next course — you can note any special requests later.
+      <p className="mt-1.5 text-xs text-mgh-dim">
+        Continue to the next course. You can note any special requests later.
       </p>
     </div>
   );

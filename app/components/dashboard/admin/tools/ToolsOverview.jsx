@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowUpRight, MessageSquareQuote, UtensilsCrossed } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { PageHeader, Panel, focusRing } from "@/app/components/dashboard/ui";
+import { cn } from "@/lib/utils";
 
 // This page rendered an empty <div> before, which made /dashboard/admin/tools a
 // dead end — the menu editor and the testimonials queue were only reachable by
@@ -12,51 +14,53 @@ const tools = [
     description:
       "Add, edit, price and archive the dishes and drinks customers can choose from.",
     href: "/dashboard/admin/tools/menu-editor",
-    icon: UtensilsCrossed,
   },
   {
     title: "Testimonials",
     description:
       "Approve or reject customer reviews, and choose which ones appear on the homepage.",
     href: "/dashboard/admin/tools/testimonials",
-    icon: MessageSquareQuote,
   },
 ];
 
 export default function ToolsOverview() {
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6">
-      <header className="mb-8">
-        <h1 className="text-2xl font-semibold text-white sm:text-3xl">Tools</h1>
-        <p className="mt-2 max-w-2xl text-sm text-[#A0A0A0]">
-          Everything that changes what customers see on the website.
-        </p>
-      </header>
+    <div>
+      <PageHeader
+        density="dense"
+        title="Tools"
+        lead="Everything that changes what customers see on the website."
+      />
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        {tools.map((tool) => {
-          const Icon = tool.icon;
-          return (
-            <Link
-              key={tool.href}
-              href={tool.href}
-              className="group rounded-2xl border border-white/10 bg-white/5 p-6 transition-colors hover:border-[#D4AF37] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37]"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <Icon className="text-[#D4AF37]" size={24} />
-                <ArrowUpRight
+      <Panel density="dense" className="py-1 md:py-1">
+        <ul className="divide-y divide-mgh-line-soft">
+          {tools.map((tool) => (
+            <li key={tool.href}>
+              <Link
+                href={tool.href}
+                className={cn(
+                  "group -mx-2 flex min-h-14 items-center justify-between gap-4 rounded-control px-2 py-3 transition-colors hover:bg-mgh-surface-2",
+                  focusRing,
+                )}
+              >
+                <span className="min-w-0">
+                  <span className="block text-[15px] font-semibold text-mgh-text">
+                    {tool.title}
+                  </span>
+                  <span className="mt-0.5 block text-sm text-mgh-muted">
+                    {tool.description}
+                  </span>
+                </span>
+                <ArrowRight
                   size={16}
-                  className="text-[#A0A0A0] transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-[#D4AF37]"
+                  aria-hidden="true"
+                  className="shrink-0 text-mgh-dim transition-colors group-hover:text-mgh-text"
                 />
-              </div>
-              <h2 className="mt-4 text-base font-semibold text-white">
-                {tool.title}
-              </h2>
-              <p className="mt-1.5 text-sm text-[#A0A0A0]">{tool.description}</p>
-            </Link>
-          );
-        })}
-      </div>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </Panel>
     </div>
   );
 }

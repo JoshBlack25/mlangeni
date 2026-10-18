@@ -1,16 +1,21 @@
 "use client";
 
-import { useState } from "react";
-import { ChevronDown, Check, X, Loader2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ChevronDown, Check, Loader2 } from "lucide-react";
+import {
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogDescription,
+  StatusBadge,
+  focusRing,
+} from "@/app/components/dashboard/ui";
+import { cn } from "@/lib/utils";
 
 const statusConfig = {
-  pending: { label: "Pending", dot: "bg-yellow-400", text: "text-yellow-400" },
-  confirmed: {
-    label: "Confirmed",
-    dot: "bg-emerald-400",
-    text: "text-emerald-400",
-  },
-  cancelled: { label: "Cancelled", dot: "bg-red-400", text: "text-red-400" },
+  pending: { label: "Pending" },
+  confirmed: { label: "Confirmed" },
+  cancelled: { label: "Cancelled" },
 };
 
 const options = ["pending", "confirmed", "cancelled"];
@@ -19,8 +24,50 @@ export default function StatusDropdown({ value, onChange, disabled }) {
   const [open, setOpen] = useState(false);
   const [pendingValue, setPendingValue] = useState(null); // value awaiting confirmation
   const [saving, setSaving] = useState(false);
+  const rootRef = useRef(null);
+  const triggerRef = useRef(null);
+  const menuRef = useRef(null);
 
-  const current = statusConfig[value] ?? statusConfig.pending;
+  const currentKey = statusConfig[value] ? value : "pending";
+  const current = statusConfig[currentKey];
+
+  // Close the menu on outside click or Escape.
+  useEffect(() => {
+    if (!open) return;
+
+    function onPointerDown(e) {
+      if (!rootRef.current?.contains(e.target)) setOpen(false);
+    }
+    function onKeyDown(e) {
+      if (e.key === "Escape") {
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
+    }
+
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    // Open on the current status, the way a native select does.
+    const frame = requestAnimationFrame(() => {
+      const items = menuRef.current?.querySelectorAll('[role="menuitemradio"]');
+      const checked = menuRef.current?.querySelector('[aria-checked="true"]');
+      (checked ?? items?.[0])?.focus();
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  function handleMenuKeyDown(e) {
+    const items = [...(menuRef.current?.querySelectorAll('[role="menuitemradio"]') ?? [])];
+    const index = items.indexOf(document.activeElement);
+    const moves = { ArrowDown: index + 1, ArrowUp: index - 1, Home: 0, End: items.length - 1 };
+    if (!(e.key in moves) || !items.length) return;
+    e.preventDefault();
+    items[(moves[e.key] + items.length) % items.length].focus();
+  }
 
   function handleSelect(newStatus) {
     setOpen(false);
@@ -44,35 +91,60 @@ export default function StatusDropdown({ value, onChange, disabled }) {
   }
 
   return (
-    <div className="relative">
+    <div ref={rootRef} className="relative inline-block">
       <button
+        ref={triggerRef}
         type="button"
         disabled={disabled || saving}
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-2 rounded-lg border border-[#1F1F1F] bg-white/5 px-3 py-2 text-sm text-white transition hover:border-[#D4AF37] disabled:opacity-50"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={`Status: ${current.label}. Change status`}
+        className={cn(
+          "inline-flex h-8 items-center gap-2 rounded-control border border-mgh-line bg-mgh-surface-2 pl-2.5 pr-2",
+          "transition-colors duration-(--mgh-dur-fast) hover:border-mgh-line-strong disabled:opacity-50",
+          focusRing,
+        )}
       >
         {saving ? (
-          <Loader2 size={14} className="animate-spin text-[#A0A0A0]" />
+          <span className="inline-flex items-center gap-1.5 text-label font-semibold uppercase text-mgh-muted">
+            <Loader2 size={12} aria-hidden="true" className="animate-spin" />
+            {current.label}
+          </span>
         ) : (
-          <span className={`h-2 w-2 rounded-full ${current.dot}`} />
+          <StatusBadge status={currentKey} label={current.label} />
         )}
-        <span className={current.text}>{current.label}</span>
-        <ChevronDown size={14} className="text-[#A0A0A0]" />
+        <ChevronDown size={14} aria-hidden="true" className="text-mgh-dim" />
       </button>
 
       {open && (
-        <div className="absolute left-0 z-20 mt-2 w-40 overflow-hidden rounded-lg border border-[#1F1F1F] bg-[#0B0A09] shadow-xl">
+        <div
+          ref={menuRef}
+          role="menu"
+          aria-label="Change status"
+          onKeyDown={handleMenuKeyDown}
+          className="absolute left-0 z-20 mt-1 w-40 overflow-hidden rounded-control border border-mgh-line-strong bg-mgh-surface py-1 shadow-modal"
+        >
           {options.map((opt) => {
             const cfg = statusConfig[opt];
+            const selected = opt === currentKey;
             return (
               <button
                 key={opt}
                 type="button"
+                role="menuitemradio"
+                aria-checked={selected}
                 onClick={() => handleSelect(opt)}
-                className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-white transition hover:bg-white/5"
+                className={cn(
+                  "flex h-9 w-full items-center justify-between gap-2 px-3 text-left transition-colors hover:bg-mgh-surface-2",
+                  focusRing,
+                  "focus-visible:ring-offset-0",
+                )}
               >
-                <span className={`h-2 w-2 rounded-full ${cfg.dot}`} />
-                {cfg.label}
+                <StatusBadge status={opt} label={cfg.label} />
+                {selected && (
+                  <Check size={14} aria-hidden="true" className="text-mgh-dim" />
+                )}
               </button>
             );
           })}
@@ -80,41 +152,41 @@ export default function StatusDropdown({ value, onChange, disabled }) {
       )}
 
       {/* CONFIRM DIALOG — only for pending/cancelled → confirmed */}
-      {pendingValue && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-5"
-          onClick={() => setPendingValue(null)}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-sm rounded-xl border border-[#2A2A2A] bg-[#0B0A09] p-6 shadow-2xl"
-          >
-            <p className="text-sm text-white">
-              Confirming this enquiry will mark that date and session as
-              unavailable for everyone else. Continue?
-            </p>
+      <Dialog
+        open={!!pendingValue}
+        onOpenChange={(o) => {
+          if (!o) setPendingValue(null);
+        }}
+        size="sm"
+        dismissible={!saving}
+        showClose={false}
+      >
+        <DialogTitle className="sr-only">Confirm enquiry</DialogTitle>
+        <DialogDescription asChild>
+          <p className="text-sm leading-relaxed text-mgh-text">
+            Confirming this enquiry will mark that date and session as
+            unavailable for everyone else. Continue?
+          </p>
+        </DialogDescription>
 
-            <div className="mt-5 flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setPendingValue(null)}
-                className="flex items-center gap-1.5 rounded-lg border border-[#1F1F1F] px-4 py-2 text-sm text-[#A0A0A0] transition hover:text-white"
-              >
-                <X size={14} />
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => commitChange(pendingValue)}
-                className="flex items-center gap-1.5 rounded-lg bg-[#D4AF37] px-4 py-2 text-sm font-semibold text-black transition hover:bg-[#c4a132]"
-              >
-                <Check size={14} />
-                Confirm
-              </button>
-            </div>
-          </div>
+        <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button
+            variant="quiet"
+            onClick={() => setPendingValue(null)}
+            disabled={saving}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            onClick={() => commitChange(pendingValue)}
+            loading={saving}
+          >
+            <Check size={16} aria-hidden="true" />
+            Confirm
+          </Button>
         </div>
-      )}
+      </Dialog>
     </div>
   );
 }

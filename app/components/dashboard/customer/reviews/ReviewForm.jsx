@@ -1,11 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, Loader2, Send } from "lucide-react";
+import { Loader2, Send } from "lucide-react";
 import StarRating from "@/app/components/dashboard/shared/StarRating";
+import {
+  Button,
+  Field,
+  Panel,
+  PanelHeader,
+  Select,
+  Textarea,
+} from "@/app/components/dashboard/ui";
 
-const inputStyles =
-  "w-full rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-[#797676] outline-none transition focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37]";
+// Matches the label style inside Field, for rows that are not form controls.
+const labelClass = "text-[13px] font-medium text-mgh-muted";
 
 // Mirrors testimonials_message_check in db/005, so the form can say what is
 // wrong before the database has to.
@@ -54,134 +62,124 @@ export default function ReviewForm({
   const selectedOrder = orders.find((o) => o.order_id === orderId);
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md"
-    >
-      <h2 className="text-lg font-semibold text-white">
-        {editing ? "Edit your review" : "Leave a review"}
-      </h2>
-      <p className="mt-1 text-sm text-[#A0A0A0]">
-        {editing
-          ? "You can change this until one of our team has looked at it."
-          : "Tell other guests how it went. We read every one before it goes on the site."}
-      </p>
+    <Panel as="form" onSubmit={handleSubmit}>
+      <PanelHeader
+        title={editing ? "Edit your review" : "Leave a review"}
+        description={
+          editing
+            ? "You can change this until one of our team has looked at it."
+            : "Tell other guests how it went. We read every one before it goes on the site."
+        }
+        className="mb-6"
+      />
 
-      {/* Which event */}
-      <div className="mt-6">
-        <label
-          htmlFor="review-order"
-          className="mb-2 block text-sm font-medium text-white"
-        >
-          Which event?
-        </label>
-
-        {editing ? (
-          <p className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-[#A0A0A0]">
-            {initial.orderLabel ?? "Your event"}
-          </p>
-        ) : orders.length === 1 ? (
-          <p className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white">
-            {selectedOrder?.label}
-          </p>
+      <div className="flex flex-col gap-6">
+        {/* Which event */}
+        {editing || orders.length === 1 ? (
+          <div className="flex flex-col gap-1.5">
+            <span className={labelClass}>Which event?</span>
+            <p className="text-[15px] text-mgh-text">
+              {editing
+                ? (initial.orderLabel ?? "Your event")
+                : selectedOrder?.label}
+            </p>
+          </div>
         ) : (
-          <div className="relative">
-            <select
+          <Field label="Which event?">
+            <Select
               id="review-order"
               value={orderId}
               onChange={(e) => setOrderId(e.target.value)}
-              className={`${inputStyles} appearance-none pr-10`}
             >
               {orders.map((order) => (
                 <option
                   key={order.order_id}
                   value={order.order_id}
-                  className="bg-[#0F0F0F]"
+                  className="bg-mgh-surface-2"
                 >
                   {order.label}
                 </option>
               ))}
-            </select>
-            <ChevronDown
-              size={16}
-              className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#A0A0A0]"
-            />
-          </div>
+            </Select>
+          </Field>
         )}
-      </div>
 
-      {/* Rating */}
-      <div className="mt-6">
-        <span className="mb-2 block text-sm font-medium text-white">
-          Your rating
-        </span>
-        <StarRating
-          value={rating}
-          onChange={setRating}
-          size={30}
-          label="Your rating"
-        />
-      </div>
+        {/* Rating */}
+        <div className="flex flex-col gap-1.5">
+          <span className={labelClass}>Your rating</span>
+          <StarRating
+            value={rating}
+            onChange={setRating}
+            size={30}
+            label="Your rating"
+          />
+        </div>
 
-      {/* Message */}
-      <div className="mt-6">
-        <label
-          htmlFor="review-message"
-          className="mb-2 block text-sm font-medium text-white"
-        >
-          Your review
-        </label>
-        <textarea
-          id="review-message"
-          rows={5}
-          value={message}
-          maxLength={MESSAGE_MAX + 200}
-          onChange={(e) => setMessage(e.target.value)}
-          placeholder="What did we get right? What should other guests know?"
-          className={`${inputStyles} resize-y`}
-        />
-        <div className="mt-2 flex items-center justify-between text-xs">
-          <span className={tooShort ? "text-amber-400" : "text-[#797676]"}>
-            {tooShort
-              ? `A little more — at least ${MESSAGE_MIN} characters.`
-              : " "}
-          </span>
-          <span className={tooLong ? "text-red-400" : "text-[#797676]"}>
-            {trimmed.length}/{MESSAGE_MAX}
-          </span>
+        {/* Message */}
+        <div>
+          <Field label="Your review">
+            <Textarea
+              id="review-message"
+              rows={5}
+              value={message}
+              maxLength={MESSAGE_MAX + 200}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="What did we get right? What should other guests know?"
+              className="resize-y"
+            />
+          </Field>
+          <div className="mt-2 flex items-center justify-between gap-3 text-caption">
+            <span
+              aria-live="polite"
+              className={tooShort ? "text-mgh-warn" : "text-mgh-dim"}
+            >
+              {tooShort
+                ? `A little more: at least ${MESSAGE_MIN} characters.`
+                : " "}
+            </span>
+            <span
+              className={`tabular-nums ${tooLong ? "text-mgh-danger" : "text-mgh-dim"}`}
+            >
+              {trimmed.length}/{MESSAGE_MAX}
+            </span>
+          </div>
         </div>
       </div>
 
       {error && (
-        <p className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+        <p role="alert" className="mt-5 text-sm text-mgh-danger">
           {error}
         </p>
       )}
 
-      <div className="mt-6 flex items-center gap-3">
-        <button
+      <div className="mt-7 flex flex-col gap-2 border-t border-mgh-line-soft pt-6 sm:flex-row sm:items-center">
+        <Button
           type="submit"
+          variant="primary"
+          size="lg"
           disabled={!canSubmit}
-          className="inline-flex items-center gap-2 rounded-lg bg-[#D4AF37] px-5 py-3 text-sm font-semibold text-black transition hover:bg-[#c4a032] disabled:cursor-not-allowed disabled:opacity-50"
+          aria-busy={submitting || undefined}
+          className="w-full sm:w-auto"
         >
           {submitting ? (
-            <Loader2 size={16} className="animate-spin" />
+            <Loader2 size={16} aria-hidden="true" className="animate-spin" />
           ) : (
-            <Send size={16} />
+            <Send size={16} aria-hidden="true" />
           )}
           {editing ? "Save changes" : "Submit review"}
-        </button>
+        </Button>
 
         {onCancel && (
-          <button
-            type="button"
+          <Button
+            variant="quiet"
+            size="lg"
             onClick={onCancel}
-            className="rounded-lg border border-white/10 px-5 py-3 text-sm text-[#A0A0A0] transition hover:border-white/30 hover:text-white"
+            className="w-full sm:w-auto"
           >
             Cancel
-          </button>
+          </Button>
         )}
       </div>
-    </form>
+    </Panel>
   );
 }

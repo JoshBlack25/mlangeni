@@ -2,10 +2,19 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { MessageSquareQuote, Search, Star } from "lucide-react";
 import { supabase } from "@/services/supabaseClient";
 import { useNotifications } from "@/app/components/dashboard/shared/notifications/hooks/useNotifications";
 import { isSetupMissing } from "@/services/testimonialsService";
+import {
+  EmptyState,
+  PageHeader,
+  Panel,
+  PanelHeader,
+  SkeletonRows,
+  Tabs,
+  Field,
+  SearchInput,
+} from "@/app/components/dashboard/ui";
 import TestimonialRow from "./TestimonialRow";
 
 // Plain table names for the embeds, the form used everywhere else in this app.
@@ -279,7 +288,7 @@ export default function TestimonialsContent() {
               : "Review: yours wasn't published",
           message:
             status === "approved"
-              ? "Thank you — your review is now live on our website."
+              ? "Thank you. Your review is now live on our website."
               : "Thanks for writing in. We weren't able to publish this one.",
           linkUrl: "/dashboard/customer/reviews",
         });
@@ -369,22 +378,32 @@ export default function TestimonialsContent() {
 
   const loading = testimonials === null;
 
+  const rowProps = (testimonial) => {
+    const featuredIndex = featured.findIndex(
+      (t) => t.testimonial_id === testimonial.testimonial_id,
+    );
+    return {
+      testimonial,
+      busy: busyId === testimonial.testimonial_id,
+      onModerate: handleModerate,
+      onToggleFeature: handleToggleFeature,
+      onMove: handleMove,
+      canMoveUp: featuredIndex > 0,
+      canMoveDown: featuredIndex >= 0 && featuredIndex < featured.length - 1,
+    };
+  };
+
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6">
-      <header className="mb-8">
-        <h1 className="text-2xl font-semibold text-white sm:text-3xl">
-          Testimonials
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm text-[#A0A0A0]">
-          Reviews written by customers whose events have already happened.
-          Approving one lets the customer see it as published; showing it on the
-          homepage is a separate choice, and only reviews on the homepage appear
-          on the public site.
-        </p>
-      </header>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        density="dense"
+        className="mb-0 md:mb-0"
+        title="Testimonials"
+        lead="Reviews written by customers whose events have already happened. Approving one lets the customer see it as published; showing it on the homepage is a separate choice, and only reviews on the homepage appear on the public site."
+      />
 
       {setupMissing && (
-        <p className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+        <p className="rounded-card border border-mgh-warn/30 bg-mgh-warn/10 px-4 py-3 text-sm text-mgh-warn">
           Reviews aren&rsquo;t set up in the database yet. Run{" "}
           <code className="font-mono text-xs">
             db/005_testimonials_curation.sql
@@ -394,145 +413,140 @@ export default function TestimonialsContent() {
       )}
 
       {error && (
-        <p className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+        <p
+          role="alert"
+          className="rounded-card border border-mgh-danger/30 bg-mgh-danger/10 px-4 py-3 text-sm text-mgh-danger"
+        >
           {error}
         </p>
       )}
 
       {/* On the homepage, in order */}
       {!setupMissing && !loading && (
-        <section className="mb-8 rounded-2xl border border-white/10 bg-white/5 p-5">
-          <h2 className="flex items-center gap-2 text-sm font-medium uppercase tracking-[0.2em] text-[#A0A0A0]">
-            <Star size={13} className="text-[#D4AF37]" />
-            On the homepage
-          </h2>
+        <Panel density="dense">
+          <PanelHeader density="dense" title="On the homepage" />
 
           {featured.length === 0 ? (
-            <p className="mt-3 text-sm text-[#797676]">
+            <p className="text-sm text-mgh-muted">
               Nothing is on the homepage yet, so the testimonial section on the
               public site is showing an invitation instead of reviews. Approve a
               review below and choose &ldquo;Show on homepage&rdquo;.
             </p>
           ) : (
-            <ol className="mt-3 space-y-1.5">
+            <ol className="divide-y divide-mgh-line-soft">
               {featured.map((t, i) => (
                 <li
                   key={t.testimonial_id}
-                  className="flex items-baseline gap-3 text-sm"
+                  className="flex items-baseline gap-3 py-2 text-sm first:pt-0 last:pb-0"
                 >
-                  <span className="w-5 shrink-0 text-xs text-[#D4AF37]">
+                  <span className="w-5 shrink-0 text-caption tabular-nums text-mgh-dim">
                     {i + 1}.
                   </span>
-                  <span className="shrink-0 text-white">
+                  <span className="shrink-0 font-medium text-mgh-text">
                     {[t.customer?.first_name, t.customer?.last_name]
                       .filter(Boolean)
                       .join(" ") || "Unnamed"}
                   </span>
-                  <span className="truncate text-[#797676]">{t.message}</span>
+                  <span className="truncate text-mgh-muted">{t.message}</span>
                 </li>
               ))}
             </ol>
           )}
-        </section>
+        </Panel>
       )}
 
-      {/* Filters */}
-      <div className="mb-5 flex flex-wrap items-center gap-1">
-        {FILTERS.map((item) => (
-          <button
-            key={item}
-            type="button"
-            onClick={() => setFilter(item)}
-            className={`relative px-4 py-2 text-sm transition-colors ${
-              filter === item ? "text-[#D4AF37]" : "text-[#A0A0A0] hover:text-white"
-            }`}
-          >
-            {item}
-            <span className="ml-1.5 text-xs opacity-60">{counts[item] ?? 0}</span>
-            {filter === item && (
-              <motion.span
-                // Must differ from the enquiries screen's layoutId, or the two
-                // underlines animate into each other when both are mounted.
-                layoutId="testimonial-filter"
-                className="absolute inset-x-2 -bottom-px h-px bg-[#D4AF37]"
-              />
-            )}
-          </button>
-        ))}
-
-        <div className="relative ml-auto">
-          <Search
-            size={14}
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#797676]"
+      <Panel density="dense">
+        {/* Toolbar: filters + search */}
+        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <Tabs
+            label="Filter reviews"
+            className="lg:flex-1"
+            items={FILTERS.map((item) => ({
+              value: item,
+              label: item,
+              count: counts[item] ?? 0,
+            }))}
+            value={filter}
+            onChange={setFilter}
           />
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search reviews"
-            aria-label="Search reviews"
-            className="w-56 rounded-lg border border-[#1F1F1F] bg-white/5 py-2 pl-9 pr-3 text-sm text-white placeholder:text-[#797676] outline-none transition focus:border-[#D4AF37]"
-          />
-        </div>
-      </div>
-
-      {/* List */}
-      {loading ? (
-        <div className="space-y-4" aria-hidden>
-          {[0, 1, 2].map((i) => (
-            <div
-              key={i}
-              className="h-28 animate-pulse rounded-xl border border-[#1F1F1F] bg-white/5"
+          <Field label="Search reviews" className="w-full lg:mb-2 lg:w-64">
+            <SearchInput
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Name, event or words"
             />
-          ))}
+          </Field>
         </div>
-      ) : visible.length === 0 ? (
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-10 text-center">
-          <MessageSquareQuote className="mx-auto mb-4 text-[#D4AF37]" size={26} />
-          <h2 className="text-base font-semibold text-white">
-            {query ? "Nothing matches that search" : `No ${filter.toLowerCase()} reviews`}
-          </h2>
-          <p className="mx-auto mt-2 max-w-md text-sm text-[#A0A0A0]">
+
+        {/* List */}
+        {loading ? (
+          <SkeletonRows rows={4} label="Loading reviews…" />
+        ) : visible.length === 0 ? (
+          <EmptyState
+            title={
+              query
+                ? "Nothing matches that search"
+                : `No ${filter.toLowerCase()} reviews`
+            }
+          >
             {query
               ? "Try a different name or phrase."
               : "Reviews appear here once customers whose events have happened write them."}
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <AnimatePresence initial={false} mode="popLayout">
-            {visible.map((testimonial) => {
-              const featuredIndex = featured.findIndex(
-                (t) => t.testimonial_id === testimonial.testimonial_id,
-              );
-              return (
-                <motion.div
-                  key={testimonial.testimonial_id}
-                  layout
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.98 }}
-                >
+          </EmptyState>
+        ) : (
+          <>
+            <table className="hidden w-full border-collapse text-left text-body-dense lg:table">
+              <caption className="sr-only">Reviews</caption>
+              <thead>
+                <tr className="border-b border-mgh-line">
+                  {[
+                    ["Customer", ""],
+                    ["Rating", ""],
+                    ["Review", ""],
+                    ["Status", ""],
+                    ["Homepage", ""],
+                    ["Actions", "text-right"],
+                  ].map(([header, align]) => (
+                    <th
+                      key={header}
+                      scope="col"
+                      className={`h-10 px-3 text-label font-semibold uppercase text-mgh-dim first:pl-0 last:pr-0 ${align}`}
+                    >
+                      {header}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {visible.map((testimonial) => (
                   <TestimonialRow
-                    testimonial={testimonial}
-                    busy={busyId === testimonial.testimonial_id}
-                    onModerate={handleModerate}
-                    onToggleFeature={handleToggleFeature}
-                    onMove={handleMove}
-                    canMoveUp={featuredIndex > 0}
-                    canMoveDown={
-                      featuredIndex >= 0 && featuredIndex < featured.length - 1
-                    }
+                    key={testimonial.testimonial_id}
+                    layout="row"
+                    {...rowProps(testimonial)}
                   />
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
-        </div>
-      )}
+                ))}
+              </tbody>
+            </table>
+
+            <ul className="divide-y divide-mgh-line-soft border-y border-mgh-line-soft lg:hidden">
+              {visible.map((testimonial) => (
+                <TestimonialRow
+                  key={testimonial.testimonial_id}
+                  layout="item"
+                  {...rowProps(testimonial)}
+                />
+              ))}
+            </ul>
+          </>
+        )}
+      </Panel>
 
       {/* Toasts */}
-      <div className="pointer-events-none fixed bottom-6 right-6 z-50 flex flex-col gap-2">
+      <div
+        role="status"
+        aria-live="polite"
+        className="pointer-events-none fixed bottom-6 right-4 z-50 flex flex-col gap-2 sm:right-6"
+      >
         <AnimatePresence>
           {toasts.map((toast) => (
             <motion.div
@@ -540,10 +554,10 @@ export default function TestimonialsContent() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 12 }}
-              className={`pointer-events-auto rounded-lg border px-4 py-3 text-sm shadow-lg ${
+              className={`pointer-events-auto max-w-sm rounded-control border bg-mgh-surface-2 px-4 py-3 text-sm shadow-modal ${
                 toast.variant === "error"
-                  ? "border-red-500/30 bg-[#1a0f0f] text-red-200"
-                  : "border-[#D4AF37]/30 bg-[#12100a] text-[#D4AF37]"
+                  ? "border-mgh-danger/40 text-mgh-danger"
+                  : "border-mgh-line-strong text-mgh-text"
               }`}
             >
               {toast.message}

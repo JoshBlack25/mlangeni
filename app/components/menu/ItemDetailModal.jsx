@@ -1,21 +1,16 @@
 "use client";
 
-import { useId, useRef } from "react";
-import { createPortal } from "react-dom";
-import { AnimatePresence, motion } from "framer-motion";
-import { Check, Plus, X } from "lucide-react";
+import { useState } from "react";
+import { Check, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Dialog, DialogDescription, DialogTitle, focusRing } from "@/app/components/dashboard/ui";
 import { FoodImage } from "./FoodImage";
 import { formatZAR } from "./pricing";
-import { useFocusTrap } from "./useFocusTrap";
 
 /**
- * Full detail view for one dish.
- *
- * Portalled to <body> so it escapes any transformed ancestor, with a focus
- * trap, Escape handling and a scroll lock — none of which the inline version
- * inside MenuStep had. It also carries the add/remove action, which previously
- * meant opening the modal was a dead end you had to back out of.
+ * Full detail view for one dish, on the kit Dialog (focus trap, Escape,
+ * scroll lock and focus return come from there). It also carries the
+ * add/remove action, so opening it is never a dead end.
  */
 export function ItemDetailModal({
   item,
@@ -24,107 +19,72 @@ export function ItemDetailModal({
   onToggle,
   onClose,
 }) {
-  const panelRef = useRef(null);
-  const titleId = useId();
-  const descId = useId();
+  // Keep showing the last dish while the dialog animates closed.
+  const [shown, setShown] = useState(item);
+  if (item && item !== shown) setShown(item);
+  const dish = item ?? shown;
 
-  useFocusTrap(panelRef, { active: !!item, onEscape: onClose });
+  return (
+    <Dialog
+      open={Boolean(item)}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      size="md"
+      className="sm:p-0"
+    >
+      {dish && (
+        <>
+          <div className="relative -mx-6 -mt-6 aspect-video overflow-hidden sm:mx-0 sm:mt-0 sm:rounded-t-sheet">
+            <FoodImage src={dish.image_url} alt={dish.name} />
+          </div>
 
-  // No portal target on the server. Safe for hydration because `item` is
-  // always null on the first client render too — the modal only opens from a
-  // click — so both passes render nothing.
-  if (typeof document === "undefined") return null;
-
-  return createPortal(
-    <AnimatePresence>
-      {item && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            onClick={onClose}
-            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-          />
-
-          <motion.div
-            ref={panelRef}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby={titleId}
-            aria-describedby={descId}
-            initial={{ opacity: 0, scale: 0.96, y: 12 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: 12 }}
-            transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-            onClick={(e) => e.stopPropagation()}
-            className="relative z-10 max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl border border-mgh-line bg-mgh-surface p-6 text-mgh-text shadow-2xl"
-          >
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Close details"
-              className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-lg border border-white/15 bg-black/60 text-mgh-text backdrop-blur-sm transition-colors hover:border-mgh-gold hover:text-mgh-gold focus:outline-none focus:ring-2 focus:ring-mgh-gold/50"
-            >
-              <X size={18} aria-hidden="true" />
-            </button>
-
-            <div className="relative aspect-[16/9] w-full overflow-hidden rounded-xl border border-mgh-line-soft">
-              <FoodImage src={item.image_url} alt={item.name} />
-            </div>
-
-            <div className="mt-5">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-mgh-gold">
-                {item.category_name || categoryLabel}
-              </p>
-              <h3
-                id={titleId}
-                className="mt-1.5 font-serif text-2xl font-medium text-mgh-text"
-              >
-                {item.name}
-              </h3>
-              <p id={descId} className="mt-3 text-sm leading-7 text-mgh-muted">
-                {item.description ||
-                  "Our chefs prepare this to order — ask us for the full detail when we confirm your quote."}
-              </p>
-              <p className="mt-4 text-lg font-semibold tabular-nums text-mgh-gold">
-                {formatZAR(item.price)}{" "}
-                <span className="text-xs font-normal text-mgh-faint">
-                  per guest
-                </span>
-              </p>
-            </div>
+          <div className="pt-5 sm:px-7 sm:pb-7">
+            <p className="text-label font-semibold uppercase text-mgh-muted">
+              {dish.category_name || categoryLabel}
+            </p>
+            <DialogTitle className="mt-2 font-serif text-title font-medium text-mgh-text">
+              {dish.name}
+            </DialogTitle>
+            <DialogDescription className="mt-3 text-sm leading-7 text-mgh-muted">
+              {dish.description ||
+                "Our chefs prepare this to order. Ask us for the full detail when we confirm your quote."}
+            </DialogDescription>
+            <p className="mt-5 flex items-baseline gap-2">
+              <span className="font-serif text-2xl font-medium tabular-nums lining-nums text-mgh-text">
+                {formatZAR(dish.price)}
+              </span>
+              <span className="text-caption text-mgh-dim">per guest</span>
+            </p>
 
             {onToggle && (
               <button
                 type="button"
                 aria-pressed={selected}
-                onClick={() => onToggle(item, selected)}
+                onClick={() => onToggle(dish, selected)}
                 className={cn(
-                  "mt-6 flex w-full items-center justify-center gap-2 rounded-xl border py-3",
-                  "text-xs font-semibold uppercase tracking-widest transition-all duration-300",
-                  "focus:outline-none focus:ring-2 focus:ring-mgh-gold/40",
+                  "mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-control border text-[15px] font-medium",
+                  "transition-[background-color,border-color,color,transform] duration-[var(--mgh-dur-fast)] ease-mgh active:scale-[0.98]",
+                  focusRing,
                   selected
-                    ? "border-mgh-gold bg-mgh-gold text-mgh-gold-ink hover:bg-transparent hover:text-mgh-gold"
-                    : "border-mgh-line-strong bg-mgh-surface-2 text-mgh-text hover:border-mgh-gold hover:text-mgh-gold",
+                    ? "border-mgh-gold bg-mgh-gold text-mgh-gold-ink hover:bg-mgh-gold-hover"
+                    : "border-mgh-line-strong text-mgh-text hover:border-mgh-muted hover:bg-mgh-surface-2",
                 )}
               >
                 {selected ? (
                   <>
-                    <Check size={15} aria-hidden="true" /> Remove from menu
+                    <Check size={16} aria-hidden="true" /> Remove from menu
                   </>
                 ) : (
                   <>
-                    <Plus size={15} aria-hidden="true" /> Add to menu
+                    <Plus size={16} aria-hidden="true" /> Add to menu
                   </>
                 )}
               </button>
             )}
-          </motion.div>
-        </div>
+          </div>
+        </>
       )}
-    </AnimatePresence>,
-    document.body,
+    </Dialog>
   );
 }

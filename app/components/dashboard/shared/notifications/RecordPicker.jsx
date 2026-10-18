@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/services/supabaseClient";
+import { Field, Select, Skeleton } from "@/app/components/dashboard/ui";
 
 const categoryConfig = {
   order: {
@@ -15,7 +16,7 @@ const categoryConfig = {
         .eq("customer_id", customerId)
         .order("event_date", { ascending: false }),
     formatLabel: (row) =>
-      `${row.event_type?.event_name ?? "Event"} — ${new Date(row.event_date).toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" })}`,
+      `${row.event_type?.event_name ?? "Event"}, ${new Date(row.event_date).toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" })}`,
     linkPrefix: "/orders",
   },
   consultation: {
@@ -29,7 +30,7 @@ const categoryConfig = {
         .eq("customer_id", customerId)
         .order("meeting_date", { ascending: false }),
     formatLabel: (row) =>
-      `${new Date(row.meeting_date).toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" })} — ${row.status}`,
+      `${new Date(row.meeting_date).toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" })}, ${row.status}`,
     linkPrefix: "/consultations",
   },
   invoice: {
@@ -45,7 +46,7 @@ const categoryConfig = {
         .eq("consultations.customer_id", customerId)
         .order("due_date", { ascending: false }),
     formatLabel: (row) =>
-      `R${row.total_amount} — ${row.status} (due ${new Date(row.due_date).toLocaleDateString("en-ZA", { day: "numeric", month: "short" })})`,
+      `R${row.total_amount}, ${row.status} (due ${new Date(row.due_date).toLocaleDateString("en-ZA", { day: "numeric", month: "short" })})`,
     linkPrefix: "/invoices",
   },
   enquiry: {
@@ -59,10 +60,7 @@ const categoryConfig = {
         .eq("user_id", userId)
         .order("created_at", { ascending: false }),
     formatLabel: (row) =>
-      `${new Date(row.event_date).toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" })} — ${row.status}`,
-    // Admin's route is plural (/enquiries), customer's is singular (/enquiry).
-    // linkPrefix here always means the ADMIN path; the onChange above swaps
-    // in the customer path directly since it has no per-record view.
+      `${new Date(row.event_date).toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" })}, ${row.status}`,
     linkPrefix: "/enquiries",
   },
 };
@@ -108,19 +106,15 @@ export default function RecordPicker({
   const config = categoryConfig[category];
 
   return (
-    <div>
-      <label className="mb-2 block text-sm font-medium text-[#A0A0A0]">
-        {config.label}
-      </label>
-
+    <Field label={config.label}>
       {records === null ? (
-        <div className="h-11 animate-pulse rounded-lg border border-[#1F1F1F] bg-white/5" />
+        <Skeleton className="h-10 w-full" />
       ) : records.length === 0 ? (
-        <p className="rounded-lg border border-[#1F1F1F] bg-white/5 px-4 py-3 text-sm text-[#666666]">
+        <p className="rounded-control border border-dashed border-mgh-line px-3 py-2.5 text-sm text-mgh-muted">
           No {category} records found.
         </p>
       ) : (
-        <select
+        <Select
           value={value ?? ""}
           onChange={(e) => {
             const record = records.find(
@@ -130,14 +124,21 @@ export default function RecordPicker({
               onChange(null);
               return;
             }
-            // Notifications never navigate — the modal is the only place
-            // they're read — so we no longer build a link, just the label.
+            const id = record[config.idField];
+            // Enquiry has no per-record customer view; use the enquiry list page.
+            // When basePath points at the admin dashboard, use the deep-link param.
+            const linkUrl =
+              category === "enquiry"
+                ? basePath.includes("/admin")
+                  ? `${basePath}/enquiries?enquiryId=${id}`
+                  : `${basePath}/enquiry`
+                : `${basePath}${config.linkPrefix}`;
             onChange({
-              id: record[config.idField],
+              id,
               label: config.formatLabel(record),
+              linkUrl,
             });
           }}
-          className="w-full rounded-lg border border-[#1F1F1F] bg-[#0A0A0A] px-4 py-3 text-sm text-white focus:border-[#D4AF37] focus:outline-none"
         >
           <option value="">Select a {category}...</option>
           {records.map((r) => (
@@ -145,8 +146,8 @@ export default function RecordPicker({
               {config.formatLabel(r)}
             </option>
           ))}
-        </select>
+        </Select>
       )}
-    </div>
+    </Field>
   );
 }

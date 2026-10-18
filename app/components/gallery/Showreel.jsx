@@ -1,83 +1,90 @@
-"use client"
+"use client";
+
 import React from "react";
+import Image from "next/image";
+import { ArrowLeft, Play } from "lucide-react";
+import { cn } from "@/lib/utils";
 import IMAGES from "../constants/image.js";
 
+const focusRing =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mgh-gold focus-visible:ring-offset-2 focus-visible:ring-offset-mgh-bg";
+
 function Showreel() {
-    const [playing, setPlaying] = React.useState(false);
-    return (
-        <section className="relative h-[716px] w-full overflow-hidden bg-surface">
+  const [playing, setPlaying] = React.useState(false);
+  const backRef = React.useRef(null);
 
-            {/* ── THUMBNAIL STATE ── */}
-            {!playing && (
-                <>
-                    <img
-                        src={IMAGES.showreel}
-                        alt="Luxury event space with dramatic shadows and golden lighting"
-                        className="w-full h-full object-cover"
-                    />
-                    {/* Gradient */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-transparent" />
-                    {/* Centred play button */}
-                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                        <h2 className="font-headline text-6xl text-white mb-8">
-                            A Night in Motion
-                        </h2>
-                        <div className="flex items-center gap-6">
-                            <div className="h-[1px] w-32 bg-primary" />
-                            <button
-                                onClick={() => setPlaying(true)}
-                                aria-label="Watch the reel"
-                                className="flex items-center gap-4 group cursor-pointer"
-                            >
-                                <span
-                                    className="w-16 h-16 rounded-full border border-primary
-                             flex items-center justify-center
-                             group-hover:bg-primary transition-all duration-300"
-                                >
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        viewBox="0 0 24 24"
-                                        className="w-6 h-6 fill-primary group-hover:fill-on-primary transition-colors duration-300"
-                                    >
-                                        <path d="M8 5v14l11-7z" />
-                                    </svg>
-                                </span>
-                                <span className="font-label uppercase tracking-widest text-white text-sm">
-                                    Watch the Reel
-                                </span>
-                            </button>
-                            <div className="h-[1px] w-32 bg-primary" />
-                        </div>
-                    </div>
-                </>
-            )}
+  // Hand focus to the reel's own controls once it starts.
+  React.useEffect(() => {
+    if (playing) backRef.current?.focus();
+  }, [playing]);
 
-            {/* ── VIDEO STATE ── */}
-            {playing && (
-                <>
-                    <video
-                        src="/videos/showreel.mp4"
-                        className="w-full h-full object-cover"
-                        autoPlay
-                        controls
-                    />
-                    {/* Back button so user can return to thumbnail */}
-                    <button
-                        onClick={() => setPlaying(false)}
-                        className="absolute top-6 right-6 flex items-center gap-2
-                       text-white font-label text-xs uppercase tracking-widest
-                       border border-white/40 px-4 py-2
-                       hover:border-primary hover:text-primary transition-colors cursor-pointer"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4 fill-current">
-                            <path d="M19 11H7.83l4.88-4.88c.39-.39.39-1.03 0-1.42-.39-.39-1.02-.39-1.41 0l-6.59 6.59c-.39.39-.39 1.02 0 1.41l6.59 6.59c.39.39 1.02.39 1.41 0 .39-.39.39-1.02 0-1.41L7.83 13H19c.55 0 1-.45 1-1s-.45-1-1-1z" />
-                        </svg>
-                        Back
-                    </button>
-                </>
-            )}
-        </section>
-    )
+  return (
+    <section
+      id="showreel"
+      aria-labelledby="showreel-title"
+      className="relative mx-auto aspect-[4/5] w-full max-w-[1440px] overflow-hidden bg-mgh-bg sm:aspect-video md:px-10"
+    >
+      <div className="relative h-full w-full overflow-hidden md:rounded-card">
+        {!playing ? (
+          <>
+            <Image
+              src={IMAGES.candlelitTable}
+              alt=""
+              fill
+              sizes="(min-width: 1440px) 1360px, 100vw"
+              className="object-cover object-[60%_55%]"
+            />
+            <div aria-hidden="true" className="absolute inset-0 bg-mgh-bg/45" />
+            <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center">
+              <h2
+                id="showreel-title"
+                className="font-serif text-[2.5rem] font-normal leading-tight text-mgh-text sm:text-6xl"
+              >
+                A Night in Motion
+              </h2>
+              <button
+                type="button"
+                onClick={() => setPlaying(true)}
+                className={cn("group mt-8 flex items-center gap-4 rounded-full py-1 pl-1 pr-3", focusRing)}
+              >
+                <span className="grid size-16 place-items-center rounded-full border border-mgh-gold text-mgh-gold transition-colors duration-300 group-hover:bg-mgh-gold group-hover:text-mgh-gold-ink">
+                  <Play size={20} aria-hidden="true" className="translate-x-px fill-current" />
+                </span>
+                <span className="text-[0.72rem] font-medium uppercase tracking-[0.28em] text-mgh-text">
+                  Watch the Reel
+                </span>
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <h2 id="showreel-title" className="sr-only">
+              A Night in Motion
+            </h2>
+            <video
+              src="/videos/showreel.mp4"
+              className="h-full w-full bg-mgh-bg object-cover"
+              autoPlay
+              controls
+              playsInline
+            />
+            <button
+              ref={backRef}
+              type="button"
+              onClick={() => setPlaying(false)}
+              className={cn(
+                "absolute right-4 top-4 flex h-10 items-center gap-2 rounded-control border border-mgh-text/30 bg-mgh-bg/60 px-4 text-[0.72rem] font-medium uppercase tracking-[0.2em] text-mgh-text backdrop-blur-sm transition-colors hover:border-mgh-gold",
+                focusRing,
+              )}
+            >
+              <ArrowLeft size={14} aria-hidden="true" />
+              Back
+            </button>
+          </>
+        )}
+      </div>
+    </section>
+  );
 }
 
 export default Showreel;

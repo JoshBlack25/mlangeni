@@ -15,7 +15,7 @@ import { isDummyOrderConfirmed } from "@/app/utils/dummyInvoicePayments";
  * here is the only change needed either way.
  */
 export const ADVANCE_BOOKING_ENABLED = true;
-export const ONE_ACTIVE_BOOKING_ENABLED = false;
+export const ONE_ACTIVE_BOOKING_ENABLED = true;
 
 export const BLOCKING_ORDER_STATUSES = ["pending"];
 export const BOOKED_ORDER_STATUSES = ["confirmed", "in_progress"];

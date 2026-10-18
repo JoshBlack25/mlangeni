@@ -3,9 +3,20 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { UtensilsCrossed, X } from "lucide-react";
+import { motion } from "framer-motion";
+import { UtensilsCrossed } from "lucide-react";
 import { supabase } from "@/services/supabaseClient";
-import "./menu.css";
+import {
+  Dialog,
+  EmptyState,
+  PageHeader,
+  Skeleton,
+  Tabs,
+  focusRing,
+  formatCurrency,
+} from "@/app/components/dashboard/ui";
+import { EASE } from "@/app/components/dashboard/shared/motion";
+import { cn } from "@/lib/utils";
 
 export default function MenuPage() {
   const router = useRouter();
@@ -17,6 +28,9 @@ export default function MenuPage() {
   const [activeCategory, setActiveCategory] = useState("All");
   const [menuItems, setMenuItems] = useState([]);
   const [selectedItem, setSelectedItem] = useState(null);
+  // Kept separate from the item so the title stays put while the dialog
+  // animates closed.
+  const [itemOpen, setItemOpen] = useState(false);
 
   const [error, setError] = useState(null);
 
@@ -65,105 +79,132 @@ export default function MenuPage() {
 
   if (checkingAuth || loadingData) {
     return (
-      <div className="mgh-menu-page">
-        <div className="mgh-spinner-wrap">
-          <div className="mgh-spinner"></div>
-          <p>Loading menu...</p>
+      <div role="status">
+        <span className="sr-only">Loading menu...</span>
+        <Skeleton className="h-10 w-48 md:h-12" />
+        <Skeleton className="mt-8 h-8 w-full md:mt-12" />
+        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <Skeleton key={i} className="h-72 rounded-card" />
+          ))}
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="mgh-menu-page">
-      <h1>Our Menu</h1>
-      <div className="mgh-menu-line"></div>
+  const tabItems = [
+    { value: "All", label: "All" },
+    ...categories.map((cat) => ({ value: cat.name, label: cat.name })),
+  ];
 
-      {error && <p className="mgh-menu-error">{error}</p>}
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.2, ease: EASE }}
+      className="flex flex-col gap-8"
+    >
+      <PageHeader title="Our Menu" className="mb-0 md:mb-0" />
+
+      {error && (
+        <p role="alert" className="text-sm text-mgh-danger">
+          {error}
+        </p>
+      )}
 
       {/* CATEGORY TABS */}
-      <div className="mgh-menu-tabs">
-        <div className="mgh-menu-tabs-inner">
-          <button
-            className={`mgh-menu-tab${activeCategory === "All" ? " active" : ""}`}
-            onClick={() => setActiveCategory("All")}
-          >
-            All
-          </button>
-          {categories.map((cat) => (
-            <button
-              key={cat.category_id}
-              className={`mgh-menu-tab${activeCategory === cat.name ? " active" : ""}`}
-              onClick={() => setActiveCategory(cat.name)}
-            >
-              {cat.name}
-            </button>
-          ))}
-        </div>
-      </div>
+      <Tabs
+        items={tabItems}
+        value={activeCategory}
+        onChange={setActiveCategory}
+        label="Menu categories"
+      />
 
       {/* LIVE ITEM GRID */}
       {filteredItems.length === 0 ? (
-        <p style={{ color: "rgba(255,255,255,0.6)" }}>
-          No items in this category yet.
-        </p>
+        <EmptyState title="No items in this category yet." align="start" />
       ) : (
-        <div className="mgh-item-grid">
+        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredItems.map((item) => (
-            <div
-              key={item.item_id}
-              className="mgh-item-card"
-              onClick={() => setSelectedItem(item)}
-            >
-              <div className="mgh-item-image">
-                {item.image_url ? (
-                  <Image
-                    src={item.image_url}
-                    alt={item.name}
-                    fill
-                    sizes="240px"
-                    style={{ objectFit: "cover" }}
-                  />
-                ) : (
-                  <UtensilsCrossed size={28} />
+            <li key={item.item_id}>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedItem(item);
+                  setItemOpen(true);
+                }}
+                aria-haspopup="dialog"
+                className={cn(
+                  "flex h-full w-full flex-col overflow-hidden rounded-card border border-mgh-line bg-mgh-surface text-left",
+                  "transition-colors duration-(--mgh-dur-fast) ease-mgh hover:border-mgh-line-strong hover:bg-mgh-surface-2",
+                  focusRing,
                 )}
-              </div>
-              <div className="mgh-item-body">
-                <h3>{item.name}</h3>
-                <p>{item.description}</p>
-                <span className="mgh-item-price">
-                  R{Number(item.price).toFixed(2)}
-                  {item.is_alcoholic && " · Alcoholic"}
+              >
+                <span className="relative grid aspect-[4/3] w-full place-items-center border-b border-mgh-line-soft bg-mgh-surface-2">
+                  {item.image_url ? (
+                    <Image
+                      src={item.image_url}
+                      alt={item.name}
+                      fill
+                      sizes="(min-width: 1024px) 360px, (min-width: 640px) 50vw, 100vw"
+                      className="object-cover"
+                    />
+                  ) : (
+                    <UtensilsCrossed
+                      size={16}
+                      aria-hidden="true"
+                      className="text-mgh-dim"
+                    />
+                  )}
                 </span>
-              </div>
-            </div>
+                <span className="flex flex-1 flex-col p-5">
+                  <span className="text-[15px] font-medium text-mgh-text">
+                    {item.name}
+                  </span>
+                  {item.description && (
+                    <span className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-mgh-muted">
+                      {item.description}
+                    </span>
+                  )}
+                  <span className="mt-auto flex items-baseline justify-between gap-3 pt-4">
+                    <span className="font-serif text-xl font-medium tabular-nums text-mgh-text">
+                      {formatCurrency(item.price)}
+                    </span>
+                    {item.is_alcoholic && (
+                      <span className="text-label font-semibold uppercase text-mgh-dim">
+                        Alcoholic
+                      </span>
+                    )}
+                  </span>
+                </span>
+              </button>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
 
       {/* ITEM MODAL */}
-      {selectedItem && (
-        <div
-          className="mgh-modal-backdrop"
-          onClick={() => setSelectedItem(null)}
-        >
-          <div className="mgh-modal" onClick={(e) => e.stopPropagation()}>
-            <button
-              className="mgh-modal-close"
-              onClick={() => setSelectedItem(null)}
-              aria-label="Close"
-            >
-              <X size={20} />
-            </button>
-            <h3>{selectedItem.name}</h3>
-            <p>{selectedItem.description}</p>
-            <span className="mgh-modal-price">
-              R{Number(selectedItem.price).toFixed(2)}
-              {selectedItem.is_alcoholic && " · Alcoholic"}
+      <Dialog
+        open={itemOpen}
+        onOpenChange={setItemOpen}
+        title={selectedItem?.name ?? "Menu item"}
+        description={selectedItem?.description}
+        describe={Boolean(selectedItem?.description)}
+        size="sm"
+      >
+        {selectedItem && (
+          <p className="flex items-baseline gap-3">
+            <span className="font-serif text-2xl font-medium tabular-nums text-mgh-text">
+              {formatCurrency(selectedItem.price)}
             </span>
-          </div>
-        </div>
-      )}
-    </div>
+            {selectedItem.is_alcoholic && (
+              <span className="text-label font-semibold uppercase text-mgh-dim">
+                Alcoholic
+              </span>
+            )}
+          </p>
+        )}
+      </Dialog>
+    </motion.div>
   );
 }

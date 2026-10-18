@@ -2,8 +2,20 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { CalendarDays, MapPin, ArrowUpRight } from "lucide-react";
+import { MapPin, ArrowRight } from "lucide-react";
 import { supabase } from "@/services/supabaseClient";
+import {
+  Panel,
+  Button,
+  StatusBadge,
+  EngravedDate,
+  EmptyState,
+  Skeleton,
+  formatDate,
+  focusRing,
+  statusLabel,
+} from "@/app/components/dashboard/ui";
+import { cn } from "@/lib/utils";
 import {
   BOOKED_ORDER_STATUSES,
   getCustomerForUser,
@@ -14,22 +26,6 @@ import {
   subscribeDummyInvoicePayments,
 } from "@/app/utils/dummyInvoicePayments";
 
-// Static placeholder — orders don't have a per-event photo in the schema yet
-const PLACEHOLDER_IMAGE = "/images/gallery_images/food_1.jpg";
-
-function statusLabel(status) {
-  return status
-    .split("_")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
-}
-
-function statusStyles(status) {
-  if (status === "confirmed" || status === "in_progress") {
-    return "border-[#D4AF37]/40 bg-[#D4AF37]/10 text-[#D4AF37]";
-  }
-  return "border-white/20 bg-white/10 text-[#A0A0A0]"; // pending, completed
-}
 
 function getDaysUntil(dateStr) {
   const target = new Date(dateStr);
@@ -40,14 +36,6 @@ function getDaysUntil(dateStr) {
 
   const diffMs = target.getTime() - today.getTime();
   return Math.round(diffMs / (1000 * 60 * 60 * 24));
-}
-
-function formatDate(dateStr) {
-  return new Date(dateStr).toLocaleDateString("en-ZA", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
 }
 
 export default function UpcomingEvents() {
@@ -130,18 +118,33 @@ export default function UpcomingEvents() {
 
   if (error) {
     return (
-      <div className="flex h-full flex-col items-center justify-center rounded-2xl border border-red-400/20 bg-red-400/5 p-8 text-center backdrop-blur-md">
-        <p className="text-sm text-red-400">Couldn&apos;t load your events</p>
-        <p className="mt-1 text-xs text-[#797676]">{error}</p>
-      </div>
+      <Panel variant="feature" aria-labelledby="next-event-title">
+        <h2 id="next-event-title" className="text-label font-semibold uppercase text-mgh-dim">
+          Your next event
+        </h2>
+        <p role="alert" className="mt-4 text-sm text-mgh-danger">
+          Couldn&apos;t load your events
+        </p>
+        <p className="mt-1 text-caption text-mgh-dim">{error}</p>
+      </Panel>
     );
   }
 
   if (events === null) {
     return (
-      <div className="flex h-full items-center justify-center rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-md">
-        <p className="text-sm text-[#797676]">Loading booked events...</p>
-      </div>
+      <Panel variant="feature" aria-busy="true">
+        <span className="sr-only" role="status">
+          Loading booked events…
+        </span>
+        <div className="flex gap-6">
+          <Skeleton className="h-24 w-20" />
+          <div className="flex flex-1 flex-col gap-3 pt-2">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-7 w-2/3" />
+            <Skeleton className="h-4 w-1/2" />
+          </div>
+        </div>
+      </Panel>
     );
   }
 
@@ -149,21 +152,20 @@ export default function UpcomingEvents() {
 
   if (!next) {
     return (
-      <div className="flex h-full flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/5 p-8 text-center backdrop-blur-md">
-        <CalendarDays className="mb-4 text-[#D4AF37]" size={28} />
-        <h3 className="text-lg font-semibold text-white">
-          No booked events yet
-        </h3>
-        <p className="mt-2 max-w-xs text-sm text-[#A0A0A0]">
-          Once your booking is fully booked, it&apos;ll show up right here.
-        </p>
-        <Link
-          href="/dashboard/customer/booking"
-          className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[#D4AF37] px-4 py-2 text-sm font-semibold text-black transition hover:bg-[#e0bd4a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A]"
+      <Panel variant="feature">
+        <EmptyState
+          align="start"
+          className="py-2"
+          title="No booked events yet"
+          action={
+            <Button href="/dashboard/customer/booking" variant="secondary">
+              Start a new booking
+            </Button>
+          }
         >
-          Start a new booking
-        </Link>
-      </div>
+          Once your booking is fully booked, it&apos;ll show up right here.
+        </EmptyState>
+      </Panel>
     );
   }
 
@@ -176,96 +178,68 @@ export default function UpcomingEvents() {
         : `in ${daysUntil} days`;
 
   return (
-    <div className="group flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md transition-all duration-300 hover:border-[#D4AF37]">
-      {/* HERO SLOT — links to the individual next event */}
+    <Panel variant="feature" className="flex flex-col" aria-labelledby="next-event-title">
+      <div className="flex items-center justify-between gap-4">
+        <h2 id="next-event-title" className="text-label font-semibold uppercase text-mgh-dim">
+          Your next event
+        </h2>
+        <span className="font-serif text-base italic text-mgh-muted">{countdownLabel}</span>
+      </div>
+
       <Link
-        href={`/dashboard/customer/order?orderId=${next.order_id}`}
-        className="relative flex min-h-[220px] flex-1 flex-col justify-end overflow-hidden p-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37]"
+        href={`/dashboard/customer/orders/${next.order_id}`}
+        className={cn("group -mx-2 mt-6 flex gap-5 rounded-control px-2 py-1 sm:gap-8", focusRing)}
       >
-        <img
-          src={PLACEHOLDER_IMAGE}
-          alt=""
-          className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/60 to-[#0A0A0A]/10" />
-
-        <div className="relative z-10">
-          <div className="mb-3 flex items-center justify-between">
-            <span
-              className={`rounded-full border px-3 py-1 text-xs font-medium ${statusStyles(
-                next.status,
-              )}`}
-            >
-              {statusLabel(next.status)}
-            </span>
-
-            <span className="text-xs font-medium uppercase tracking-[0.2em] text-[#D4AF37]">
-              {countdownLabel}
-            </span>
-          </div>
-
-          <p className="text-xs uppercase tracking-[0.2em] text-[#A0A0A0]">
-            Booked event
-          </p>
-
-          <h3 className="mt-1 text-xl font-semibold leading-snug text-white">
+        <EngravedDate date={next.event_date} size="lg" next />
+        <div className="min-w-0 flex-1 pt-1">
+          <p className="text-balance font-serif text-[1.625rem] font-medium leading-tight text-mgh-text decoration-mgh-line-strong underline-offset-[6px] group-hover:underline md:text-[2rem]">
             {next.event_type?.event_name ?? "Event"}
-          </h3>
-
-          <div className="mt-3 flex items-center gap-4 text-sm text-[#A0A0A0]">
-            <span className="flex items-center gap-1.5">
-              <CalendarDays size={14} />
-              {formatDate(next.event_date)}
-            </span>
-            <span className="flex min-w-0 items-center gap-1.5">
-              <MapPin size={14} className="shrink-0" />
+          </p>
+          <p className="mt-3 text-sm text-mgh-muted">{formatDate(next.event_date, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</p>
+          {next.event_location && (
+            <p className="mt-1 flex min-w-0 items-center gap-1.5 text-sm text-mgh-muted">
+              <MapPin size={14} aria-hidden="true" className="shrink-0 text-mgh-dim" />
               <span className="truncate">{next.event_location}</span>
-            </span>
-          </div>
+            </p>
+          )}
+          <StatusBadge className="mt-4" status={next.status} label={statusLabel(next.status)} />
         </div>
       </Link>
 
-      {/* MINI LIST — the events after that, each links to its own order */}
       {upNext.length > 0 && (
-        <div className="border-t border-white/10 bg-[#0A0A0A]/40">
+        <ul className="mt-6 divide-y divide-mgh-line-soft border-t border-mgh-line">
           {upNext.map((event) => (
-            <Link
-              key={event.order_id}
-              href={`/dashboard/customer/order?orderId=${event.order_id}`}
-              className="flex items-center justify-between gap-3 border-b border-white/5 px-6 py-3 last:border-b-0 transition-colors hover:bg-white/5"
-            >
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-white">
-                  {event.event_type?.event_name ?? "Event"}
-                </p>
-                <p className="text-xs text-[#797676]">
-                  {formatDate(event.event_date)}
-                </p>
-              </div>
-
-              <span
-                className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${statusStyles(
-                  event.status,
-                )}`}
+            <li key={event.order_id}>
+              <Link
+                href={`/dashboard/customer/orders/${event.order_id}`}
+                className={cn(
+                  "-mx-2 flex items-center gap-4 rounded-control px-2 py-3 transition-colors hover:bg-mgh-surface-2",
+                  focusRing,
+                )}
               >
-                {statusLabel(event.status)}
-              </span>
-            </Link>
+                <EngravedDate date={event.event_date} size="sm" />
+                <span className="min-w-0 flex-1 truncate text-sm text-mgh-text">
+                  {event.event_type?.event_name ?? "Event"}
+                </span>
+                <StatusBadge status={event.status} label={statusLabel(event.status)} />
+              </Link>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
 
-      {/* FOOTER — separate link, goes to the full orders list */}
-      <Link
-        href="/dashboard/customer/orders"
-        className="flex items-center justify-between border-t border-white/10 px-6 py-3 text-sm font-medium text-[#D4AF37] transition-all duration-300 hover:gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37]"
-      >
-        View all booked events
-        <ArrowUpRight
-          size={16}
-          className="transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-        />
-      </Link>
-    </div>
+      <div className="mt-auto pt-5">
+        <Link
+          href="/dashboard/customer/orders"
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-sm text-sm text-mgh-muted transition-colors hover:text-mgh-text",
+            focusRing,
+          )}
+        >
+          View all booked events
+          <ArrowRight size={14} aria-hidden="true" />
+        </Link>
+      </div>
+    </Panel>
   );
 }

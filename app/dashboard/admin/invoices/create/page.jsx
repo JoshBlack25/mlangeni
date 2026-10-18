@@ -1,22 +1,20 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { motion } from "framer-motion";
-import {
-  ArrowLeft,
-  CalendarDays,
-  Mail,
-  MapPin,
-  Phone,
-  Plus,
-  Receipt,
-  Send,
-  Trash2,
-  UsersRound,
-} from "lucide-react";
+import { ArrowLeft, Plus, Send, Trash2 } from "lucide-react";
 import { supabase } from "@/services/supabaseClient";
+import {
+  Button,
+  Field,
+  Figure,
+  Input,
+  PageHeader,
+  Panel,
+  PanelHeader,
+  Skeleton,
+  Textarea,
+} from "@/app/components/dashboard/ui";
 import {
   getDueDateTimestamp,
   getInvoiceDueDateValidationMessage,
@@ -375,163 +373,122 @@ function AdminCreateInvoiceContent() {
     invoiceData && getInvoiceDueDateValidationMessage(dueDate, order.eventDate);
 
   return (
-    <main className="min-h-screen bg-[#0A0A0A] px-6 py-10 text-white md:px-10 lg:px-14">
-      <div className="mx-auto max-w-[1400px]">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between"
-        >
-          <div>
-            <Link
-              href="/dashboard/admin/active-meetings"
-              className="mb-5 inline-flex items-center gap-2 text-sm font-medium text-[#A0A0A0] transition hover:text-[#D4AF37]"
-            >
-              <ArrowLeft size={16} />
-              Back to active meetings
-            </Link>
-
-            <div className="mb-4 flex items-center gap-2 text-sm uppercase tracking-[0.25em] text-[#D4AF37]">
-              <Receipt size={17} />
-              <span>Create Invoice</span>
-            </div>
-
-            <h1 className="font-serif text-4xl font-medium tracking-tight text-white md:text-5xl">
-              Invoice Draft
-            </h1>
-
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-[#A0A0A0] md:text-base">
-              Review the customer order, adjust invoice items, and prepare the
-              note that will be sent with the payment request.
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        density="dense"
+        title="Invoice Draft"
+        lead="Review the customer order, adjust invoice items, and prepare the note that will be sent with the payment request."
+        actions={
+          <>
+            <p className="text-sm tabular-nums text-mgh-muted">
+              {reference} invoice pending
             </p>
-          </div>
+            <Button
+              variant="quiet"
+              size="sm"
+              href="/dashboard/admin/active-meetings"
+            >
+              <ArrowLeft size={16} aria-hidden="true" />
+              Back to active meetings
+            </Button>
+          </>
+        }
+      />
 
-          <div className="border-l-2 border-[#D4AF37] bg-white/[0.03] px-4 py-3 text-sm text-[#D4AF37]">
-            {reference} invoice pending
-          </div>
-        </motion.div>
-
-        {loading ? (
-          <div className="mt-10 grid gap-6 xl:grid-cols-[0.95fr_1.3fr]">
-            <div className="h-80 animate-pulse rounded-2xl border border-[#1F1F1F] bg-white/5" />
-            <div className="h-80 animate-pulse rounded-2xl border border-[#1F1F1F] bg-white/5" />
-          </div>
-        ) : error ? (
-          <div className="mt-10 flex min-h-64 flex-col items-center justify-center border border-red-400/20 bg-red-400/5 px-6 text-center">
-            <p className="text-sm font-semibold text-red-300">
+      {loading ? (
+        <DraftSkeleton />
+      ) : error ? (
+        <Panel density="dense">
+          <div role="alert" className="flex min-h-48 flex-col items-center justify-center text-center">
+            <p className="text-sm font-semibold text-mgh-danger">
               We could not load this invoice draft
             </p>
-            <p className="mt-2 max-w-lg text-sm leading-6 text-[#A0A0A0]">
+            <p className="mt-2 max-w-lg text-sm leading-6 text-mgh-muted">
               {error}
             </p>
           </div>
-        ) : (
-          <>
-            <motion.section
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45, delay: 0.1 }}
-              className="mt-10 grid grid-cols-1 gap-6 xl:grid-cols-[0.95fr_1.3fr]"
-            >
-              <section className="rounded-2xl border border-[#1F1F1F] bg-white/5 p-6 backdrop-blur-md">
-                <div className="border-b border-white/10 pb-5">
-                  <p className="text-xs uppercase tracking-[0.2em] text-[#A0A0A0]">
-                    Customer
-                  </p>
-                  <h2 className="mt-2 text-xl font-semibold text-white">
-                    Billing Details
-                  </h2>
-                </div>
+        </Panel>
+      ) : (
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] xl:grid-cols-[minmax(0,1fr)_22rem]">
+          <div className="flex min-w-0 flex-col gap-6">
+            <Panel density="dense">
+              <PanelHeader density="dense" title="Billing Details" />
 
-                <div className="mt-5 grid grid-cols-1 gap-3">
-                  <DetailRow
-                    icon={UsersRound}
-                    label="Customer"
-                    value={customer.name}
-                  />
-                  <DetailRow icon={Mail} label="Email" value={customer.email} />
-                  <DetailRow
-                    icon={Phone}
-                    label="Phone"
-                    value={customer.phone}
-                  />
-                </div>
+              <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-3">
+                <DetailItem label="Customer" value={customer.name} />
+                <DetailItem label="Email" value={customer.email} />
+                <DetailItem label="Phone" value={customer.phone} />
+              </dl>
 
-                <div className="mt-6 border-t border-white/10 pt-5">
-                  <p className="text-xs uppercase tracking-[0.2em] text-[#A0A0A0]">
-                    Order
-                  </p>
-                  <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <DetailBlock label="Event Type" value={order.eventType} />
-                    <DetailBlock
-                      label="Event Date"
-                      value={formatDate(order.eventDate)}
-                    />
-                    <DetailBlock
-                      label="Meeting Date"
-                      value={formatDate(order.meetingDate)}
-                    />
-                    <DetailBlock label="Guests" value={order.guests} />
-                  </div>
+              <p className="mt-5 border-t border-mgh-line-soft pt-4 text-label font-semibold uppercase text-mgh-dim">
+                Order
+              </p>
+              <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
+                <DetailItem label="Event Type" value={order.eventType} />
+                <DetailItem
+                  label="Event Date"
+                  value={formatDate(order.eventDate)}
+                />
+                <DetailItem
+                  label="Meeting Date"
+                  value={formatDate(order.meetingDate)}
+                />
+                <DetailItem label="Guests" value={order.guests} />
+                <DetailItem
+                  label="Location"
+                  value={order.location}
+                  className="col-span-2 sm:col-span-4"
+                />
+              </dl>
+            </Panel>
 
-                  <div className="mt-4 flex items-center gap-2 border border-white/10 bg-[#0A0A0A]/50 px-4 py-3 text-sm text-[#A0A0A0]">
-                    <MapPin size={16} className="text-[#D4AF37]" />
-                    <span>{order.location}</span>
-                  </div>
-                </div>
-              </section>
-
-              <section className="rounded-2xl border border-[#1F1F1F] bg-white/5 p-6 backdrop-blur-md">
-                <div className="mb-5 flex flex-col gap-3 border-b border-white/10 pb-5 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.2em] text-[#A0A0A0]">
-                      Invoice Items
-                    </p>
-                    <h2 className="mt-2 text-xl font-semibold text-white">
-                      Order Charges
-                    </h2>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={addItem}
-                    className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[#D4AF37]/40 px-4 text-sm font-medium text-[#D4AF37] transition hover:border-[#D4AF37] hover:bg-[#D4AF37] hover:text-black"
-                  >
-                    <Plus size={15} />
+            <Panel density="dense">
+              <PanelHeader
+                density="dense"
+                title="Order Charges"
+                action={
+                  <Button variant="secondary" size="sm" onClick={addItem}>
+                    <Plus size={16} aria-hidden="true" />
                     Add Item
-                  </button>
-                </div>
+                  </Button>
+                }
+              />
 
-                <div className="hidden grid-cols-[1fr_0.45fr_0.55fr_0.55fr_0.2fr] gap-3 border-b border-white/10 px-3 pb-3 text-xs uppercase tracking-[0.16em] text-[#797676] lg:grid">
-                  <span>Item</span>
-                  <span>Qty</span>
-                  <span>Unit Price</span>
-                  <span>Total</span>
-                  <span />
-                </div>
+              <div
+                aria-hidden="true"
+                className="hidden grid-cols-[minmax(0,1fr)_5rem_7.5rem_7rem_2rem] gap-3 border-b border-mgh-line pb-2 text-label font-semibold uppercase text-mgh-dim lg:grid"
+              >
+                <span>Item</span>
+                <span>Qty</span>
+                <span>Unit Price</span>
+                <span className="text-right">Total</span>
+                <span />
+              </div>
 
-                <div className="space-y-3">
-                  {items.length === 0 ? (
-                    <div className="border border-white/10 bg-[#0A0A0A]/40 px-4 py-8 text-center text-sm text-[#A0A0A0]">
-                      No order items were found. Add invoice items manually.
-                    </div>
-                  ) : (
-                    items.map((item) => (
-                      <div
-                        key={item.id}
-                        className="grid grid-cols-1 gap-3 rounded-xl border border-[#1F1F1F] bg-[#0A0A0A]/40 p-3 lg:grid-cols-[1fr_0.45fr_0.55fr_0.55fr_0.2fr] lg:items-center"
-                      >
-                        <div className="grid grid-cols-1 gap-2">
-                          <input
+              {items.length === 0 ? (
+                <p className="border-y border-mgh-line-soft py-8 text-center text-sm text-mgh-muted lg:border-t-0">
+                  No order items were found. Add invoice items manually.
+                </p>
+              ) : (
+                <ul className="divide-y divide-mgh-line-soft border-b border-mgh-line-soft">
+                  {items.map((item) => (
+                    <li
+                      key={item.id}
+                      className="grid grid-cols-2 gap-3 py-3 lg:grid-cols-[minmax(0,1fr)_5rem_7.5rem_7rem_2rem] lg:items-start"
+                    >
+                      <div className="col-span-2 grid grid-cols-1 gap-2 lg:col-span-1">
+                        <CellLabel label="Item">
+                          <Input
                             type="text"
                             value={item.name}
                             onChange={(event) =>
                               updateItem(item.id, "name", event.target.value)
                             }
-                            className="h-10 w-full rounded-lg border border-white/10 bg-[#101010] px-3 text-sm font-medium text-white outline-none transition focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20"
+                            className="h-9 font-medium"
                           />
-                          <input
+                        </CellLabel>
+                        <CellLabel label="Description">
+                          <Input
                             type="text"
                             value={item.description}
                             onChange={(event) =>
@@ -541,246 +498,192 @@ function AdminCreateInvoiceContent() {
                                 event.target.value,
                               )
                             }
-                            className="h-10 w-full rounded-lg border border-white/10 bg-[#101010] px-3 text-xs text-[#A0A0A0] outline-none transition focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20"
+                            className="h-9 text-[13px] text-mgh-muted"
                           />
-                        </div>
-
-                        <NumberField
-                          label="Qty"
-                          value={item.quantity}
-                          min="0"
-                          onChange={(event) =>
-                            updateItem(item.id, "quantity", event.target.value)
-                          }
-                        />
-
-                        <NumberField
-                          label="Unit Price"
-                          value={item.unitPrice}
-                          min="0"
-                          onChange={(event) =>
-                            updateItem(item.id, "unitPrice", event.target.value)
-                          }
-                        />
-
-                        <div className="border-l border-white/10 pl-3">
-                          <p className="text-xs uppercase tracking-[0.16em] text-[#797676] lg:hidden">
-                            Total
-                          </p>
-                          <p className="mt-1 text-sm font-semibold text-white lg:mt-0">
-                            {toMoney(getLineTotal(item))}
-                          </p>
-                        </div>
-
-                        <div className="flex lg:justify-end">
-                          <button
-                            type="button"
-                            onClick={() => removeItem(item.id)}
-                            className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-red-400/30 text-red-400 transition hover:border-red-400 hover:bg-red-400/10"
-                            aria-label={`Remove ${item.name}`}
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                        </div>
+                        </CellLabel>
                       </div>
-                    ))
+
+                      <NumberField
+                        label="Qty"
+                        value={item.quantity}
+                        min="0"
+                        onChange={(event) =>
+                          updateItem(item.id, "quantity", event.target.value)
+                        }
+                      />
+
+                      <NumberField
+                        label="Unit Price"
+                        value={item.unitPrice}
+                        min="0"
+                        onChange={(event) =>
+                          updateItem(item.id, "unitPrice", event.target.value)
+                        }
+                      />
+
+                      <div className="flex items-center justify-between gap-2 lg:block lg:pt-2 lg:text-right">
+                        <span className="text-label font-semibold uppercase text-mgh-dim lg:hidden">
+                          Total
+                        </span>
+                        <span className="text-sm tabular-nums text-mgh-text">
+                          {toMoney(getLineTotal(item))}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-end lg:pt-0.5">
+                        <Button
+                          variant="quiet"
+                          size="sm"
+                          onClick={() => removeItem(item.id)}
+                          aria-label={`Remove ${item.name}`}
+                          className="size-10 px-0 hover:text-mgh-danger lg:size-8"
+                        >
+                          <Trash2 size={16} aria-hidden="true" />
+                        </Button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Panel>
+
+            <Panel density="dense">
+              <PanelHeader density="dense" title="Invoice Message" />
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-[14rem_minmax(0,1fr)]">
+                <div className="flex flex-col gap-1.5">
+                  <Field label="Due Date" error={dueDateError || undefined}>
+                    <Input
+                      id="invoice-due-date"
+                      type="date"
+                      value={dueDate}
+                      max={latestAllowedDueDate || undefined}
+                      onChange={(event) => setDueDate(event.target.value)}
+                    />
+                  </Field>
+                  {latestAllowedDueDate && (
+                    <p className="text-caption leading-5 text-mgh-dim">
+                      Latest due date: {formatDate(latestAllowedDueDate)}.
+                      Payment must be due at least one week before the event.
+                    </p>
                   )}
                 </div>
-              </section>
-            </motion.section>
 
-            <motion.section
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45, delay: 0.18 }}
-              className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[1.25fr_0.75fr]"
+                <Field label="Note Under Invoice">
+                  <Textarea
+                    id="invoice-note"
+                    rows={5}
+                    value={invoiceNote}
+                    onChange={(event) => setInvoiceNote(event.target.value)}
+                    className="resize-none"
+                  />
+                </Field>
+              </div>
+            </Panel>
+          </div>
+
+          <Panel density="dense" className="lg:sticky lg:top-6">
+            <PanelHeader density="dense" title="Invoice Total" />
+
+            <div className="flex items-center justify-between gap-4 text-sm">
+              <span className="text-mgh-muted">Subtotal</span>
+              <span className="tabular-nums text-mgh-text">
+                {toMoney(subtotal)}
+              </span>
+            </div>
+
+            <div className="mt-4 border-t border-mgh-line-soft pt-4">
+              <Figure label="Total Due" value={toMoney(total)} emphasis />
+            </div>
+
+            {draftMessage && (
+              <p
+                role="status"
+                className="mt-4 rounded-control border border-mgh-line bg-mgh-surface-2 px-3 py-2.5 text-sm text-mgh-text"
+              >
+                {draftMessage}
+              </p>
+            )}
+
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={handleSendInvoice}
+              disabled={
+                sending || loading || !invoiceData || Boolean(dueDateError)
+              }
+              className="mt-5 w-full"
             >
-              <section className="rounded-2xl border border-[#1F1F1F] bg-white/5 p-6 backdrop-blur-md">
-                <div className="border-b border-white/10 pb-5">
-                  <p className="text-xs uppercase tracking-[0.2em] text-[#A0A0A0]">
-                    Customer Note
-                  </p>
-                  <h2 className="mt-2 text-xl font-semibold text-white">
-                    Invoice Message
-                  </h2>
-                </div>
+              <Send size={16} aria-hidden="true" />
+              {sending ? "Sending Invoice..." : "Send Invoice"}
+            </Button>
+          </Panel>
+        </div>
+      )}
+    </div>
+  );
+}
 
-                <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-[0.35fr_1fr]">
-                  <div>
-                    <label
-                      htmlFor="invoice-due-date"
-                      className="mb-2 block text-xs uppercase tracking-[0.18em] text-[#A0A0A0]"
-                    >
-                      Due Date
-                    </label>
-                    <div className="relative">
-                      <CalendarDays
-                        size={16}
-                        className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#D4AF37]"
-                      />
-                      <input
-                        id="invoice-due-date"
-                        type="date"
-                        value={dueDate}
-                        max={latestAllowedDueDate || undefined}
-                        onChange={(event) => setDueDate(event.target.value)}
-                        className="h-12 w-full rounded-lg border border-white/10 bg-[#101010] pl-11 pr-4 text-sm text-white outline-none transition focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20"
-                      />
-                    </div>
-                    {latestAllowedDueDate && (
-                      <p className="mt-2 text-xs leading-5 text-[#797676]">
-                        Latest due date: {formatDate(latestAllowedDueDate)}.
-                        Payment must be due at least one week before the event.
-                      </p>
-                    )}
-                    {dueDateError && (
-                      <p className="mt-2 text-xs leading-5 text-red-300">
-                        {dueDateError}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="invoice-note"
-                      className="mb-2 block text-xs uppercase tracking-[0.18em] text-[#A0A0A0]"
-                    >
-                      Note Under Invoice
-                    </label>
-                    <textarea
-                      id="invoice-note"
-                      rows={5}
-                      value={invoiceNote}
-                      onChange={(event) => setInvoiceNote(event.target.value)}
-                      className="w-full resize-none rounded-lg border border-white/10 bg-[#101010] px-4 py-3 text-sm leading-6 text-white outline-none transition placeholder:text-[#4F4F4F] focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20"
-                    />
-                  </div>
-                </div>
-              </section>
-
-              <section className="rounded-2xl border border-[#1F1F1F] bg-white/5 p-6 backdrop-blur-md">
-                <div className="border-b border-white/10 pb-5">
-                  <p className="text-xs uppercase tracking-[0.2em] text-[#A0A0A0]">
-                    Summary
-                  </p>
-                  <h2 className="mt-2 text-xl font-semibold text-white">
-                    Invoice Total
-                  </h2>
-                </div>
-
-                <div className="mt-5 space-y-3">
-                  <SummaryRow label="Subtotal" value={toMoney(subtotal)} />
-                  <div className="border-t border-white/10 pt-4">
-                    <SummaryRow
-                      label="Total Due"
-                      value={toMoney(total)}
-                      strong
-                    />
-                  </div>
-                </div>
-
-                {draftMessage && (
-                  <div className="mt-5 border border-[#D4AF37]/20 bg-[#D4AF37]/5 px-4 py-3 text-sm text-[#D4AF37]">
-                    {draftMessage}
-                  </div>
-                )}
-
-                <button
-                  type="button"
-                  onClick={handleSendInvoice}
-                  disabled={
-                    sending || loading || !invoiceData || Boolean(dueDateError)
-                  }
-                  className="mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#D4AF37] px-5 text-sm font-semibold text-black transition hover:bg-[#e0bd4a] disabled:cursor-not-allowed disabled:bg-[#6f5c1e] disabled:text-black/60"
-                >
-                  <Send size={16} />
-                  {sending ? "Sending Invoice..." : "Send Invoice"}
-                </button>
-              </section>
-            </motion.section>
-          </>
-        )}
+function DraftSkeleton() {
+  return (
+    <div
+      role="status"
+      className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] xl:grid-cols-[minmax(0,1fr)_22rem]"
+    >
+      <span className="sr-only">Loading invoice draft...</span>
+      <div className="flex flex-col gap-6">
+        <Skeleton className="h-40 rounded-card" />
+        <Skeleton className="h-64 rounded-card" />
       </div>
-    </main>
+      <Skeleton className="h-56 rounded-card" />
+    </div>
   );
 }
 
 function InvoicePageFallback() {
   return (
-    <main className="min-h-screen bg-[#0A0A0A] px-6 py-10 text-white md:px-10 lg:px-14">
-      <div className="mx-auto max-w-[1400px]">
-        <div className="h-5 w-40 animate-pulse rounded bg-white/10" />
-        <div className="mt-8 h-12 w-72 animate-pulse rounded bg-white/10" />
-        <div className="mt-10 grid gap-6 xl:grid-cols-[0.95fr_1.3fr]">
-          <div className="h-80 animate-pulse rounded-2xl border border-[#1F1F1F] bg-white/5" />
-          <div className="h-80 animate-pulse rounded-2xl border border-[#1F1F1F] bg-white/5" />
-        </div>
+    <div className="flex flex-col gap-6">
+      <div className="mb-6 md:mb-8">
+        <Skeleton className="h-9 w-64" />
+        <Skeleton className="mt-3 h-4 w-96 max-w-full" />
       </div>
-    </main>
-  );
-}
-
-function DetailRow({ icon: Icon, label, value }) {
-  return (
-    <div className="flex items-center gap-3 border border-white/10 bg-[#0A0A0A]/50 px-4 py-3">
-      <Icon size={16} className="text-[#D4AF37]" />
-      <div>
-        <p className="text-xs uppercase tracking-[0.18em] text-[#797676]">
-          {label}
-        </p>
-        <p className="mt-1 text-sm text-white">{value}</p>
-      </div>
+      <DraftSkeleton />
     </div>
   );
 }
 
-function DetailBlock({ label, value }) {
+function DetailItem({ label, value, className }) {
   return (
-    <div className="border border-white/10 bg-[#0A0A0A]/50 px-4 py-3">
-      <p className="text-xs uppercase tracking-[0.18em] text-[#797676]">
+    <div className={`min-w-0 ${className ?? ""}`}>
+      <dt className="text-label font-semibold uppercase text-mgh-dim">
         {label}
-      </p>
-      <p className="mt-2 text-sm font-medium text-white">{value}</p>
+      </dt>
+      <dd className="mt-0.5 break-words text-sm text-mgh-text">{value}</dd>
     </div>
+  );
+}
+
+function CellLabel({ label, children }) {
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="text-[13px] font-medium text-mgh-muted lg:sr-only">
+        {label}
+      </span>
+      {children}
+    </label>
   );
 }
 
 function NumberField({ label, value, min, onChange }) {
   return (
-    <div>
-      <label className="mb-1 block text-xs uppercase tracking-[0.16em] text-[#797676] lg:hidden">
-        {label}
-      </label>
-      <input
+    <CellLabel label={label}>
+      <Input
         type="number"
         min={min}
         value={value}
         onChange={onChange}
-        className="h-10 w-full rounded-lg border border-white/10 bg-[#101010] px-3 text-sm text-white outline-none transition focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20"
+        className="h-9 tabular-nums"
       />
-    </div>
-  );
-}
-
-function SummaryRow({ label, value, strong = false }) {
-  return (
-    <div className="flex items-center justify-between gap-4">
-      <p
-        className={
-          strong ? "text-sm font-semibold text-white" : "text-sm text-[#A0A0A0]"
-        }
-      >
-        {label}
-      </p>
-      <p
-        className={
-          strong
-            ? "text-lg font-semibold text-[#D4AF37]"
-            : "text-sm font-medium text-white"
-        }
-      >
-        {value}
-      </p>
-    </div>
+    </CellLabel>
   );
 }

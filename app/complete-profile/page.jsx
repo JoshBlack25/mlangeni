@@ -77,19 +77,19 @@ export default function CompleteProfilePage(){
     }
 
     if(checking){    
-        return <p>Loading...</p>;
+        return <p role="status">Loading…</p>;
     }
 
     return(
     <main className="mgh-auth-page">
         <section className="mgh-auth-right" style={{gridColumn: "1/ -1"}}>
             <div className="mgh-auth-box">
-            <h2>Complete Your Profile</h2>
+            <h1>Complete Your Profile</h1>
 
             <form className="mgh-auth-form" onSubmit={handleSave}>
                 <div className="mgh-input-box no-icon">
                     <input type="text"
-                    placeholder="Fist Name" 
+                    placeholder="First Name" 
                     required 
                     value={firstName} 
                     onChange={(e)=> setFirstName(e.target.value)}/>

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import BlurText from "@/app/components/dashboard/shared/BlurText";
-import ActionCardsRow from "./ActionCardsRow";
+import Image from "next/image";
+import { Button } from "@/app/components/dashboard/ui";
 import { supabase } from "@/services/supabaseClient";
 
 export default function Hero() {
@@ -40,48 +40,48 @@ export default function Hero() {
   };
 
   return (
-    <section className="relative isolate mt-8 overflow-hidden">
-      {/* Background image layer — same shot used behind the gallery hero */}
-      <div className="absolute inset-0 z-0">
-        <img
-          src="/images/gallery_images/gallery-hero.png"
-          alt=""
-          className="h-full w-full object-cover"
-        />
+    // The same candlelit table the guest saw at sign-in, so arriving here
+    // feels like stepping further into the room, not into a different app.
+    <header className="relative isolate -mx-4 overflow-hidden sm:mx-0 sm:rounded-sheet sm:border sm:border-mgh-line">
+      <Image
+        src="/images/auth-bg.png"
+        alt=""
+        fill
+        preload
+        sizes="(min-width: 1120px) 1120px, 100vw"
+        className="-z-10 object-cover object-[70%_60%]"
+      />
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 -z-10 bg-mgh-bg/70 md:bg-transparent md:bg-linear-to-r md:from-mgh-bg md:via-mgh-bg/85 md:to-mgh-bg/10"
+      />
+      <div
+        aria-hidden="true"
+        className="absolute inset-x-0 bottom-0 -z-10 h-1/2 bg-linear-to-t from-mgh-bg/80 to-transparent"
+      />
 
-        {/* Overlay so the greeting + cards stay legible over the photo */}
-        <div className="absolute inset-0 bg-[#0A0A0A]/80" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/50 to-[#0A0A0A]/70" />
-      </div>
-
-      <div className="relative z-10 flex flex-col gap-10 p-10">
-        {/* GREETING */}
-        <div>
-          <p className="mb-3 text-lg font-medium text-[#D4AF37]">
+      <div className="flex min-h-[15rem] flex-col justify-end gap-7 px-5 py-8 sm:px-8 md:min-h-[17rem] md:flex-row md:items-end md:justify-between md:px-10 md:py-10">
+        <div className="max-w-xl">
+          <h1 className="text-balance font-serif text-display-sm font-medium text-mgh-text md:text-display">
             {getGreeting()}
             {firstName ? `, ${firstName}` : ""}
-          </p>
-
-          <p className="text-lg text-[#A0A0A0]">Welcome back to</p>
-
-          <BlurText
-            text="Mlangeni Grand Hospitality"
-            delay={120}
-            animateBy="words"
-            direction="top"
-            className="mt-2 text-5xl font-bold leading-tight text-white"
-          />
-
-          <p className="mt-6 max-w-2xl text-lg leading-8 text-[#A0A0A0]">
-            Everything you need to manage your catering experience is right
-            here. Track bookings, monitor booked events, review invoices and
-            stay connected with our hospitality team.
+          </h1>
+          <p className="mt-3 max-w-[46ch] text-pretty text-body text-mgh-muted">
+            Welcome back to Mlangeni Group Holdings. Track bookings, monitor
+            booked events, review invoices and stay connected with our
+            hospitality team.
           </p>
         </div>
 
-        {/* ACTION CARDS — icon strip that expands to full cards on hover/click */}
-        <ActionCardsRow />
+        <Button
+          href="/dashboard/customer/booking"
+          variant="secondary"
+          size="lg"
+          className="w-full border-mgh-text/25 bg-mgh-bg/40 backdrop-blur-sm hover:bg-mgh-bg/70 md:w-auto"
+        >
+          Plan an event
+        </Button>
       </div>
-    </section>
+    </header>
   );
 }

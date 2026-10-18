@@ -2,21 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Playfair_Display } from "next/font/google";
-import { supabase } from "@/services/supabaseClient";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { getSupabase } from "@/services/lazySupabase";
+import { cn } from "@/lib/utils";
 import {
   getDummyConfirmedOrders,
   mergeOrdersById,
   subscribeDummyInvoicePayments,
 } from "@/app/utils/dummyInvoicePayments";
 
-const playfair = Playfair_Display({
-  subsets: ["latin"],
-  weight: ["400", "500"],
-  display: "swap",
-});
-
-const BOOKED_EVENT_COLOR = "#c5a637";
+const focusRing =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mgh-gold focus-visible:ring-offset-2 focus-visible:ring-offset-mgh-bg";
 
 // Names for months used in headers and sidebar
 const MONTH_NAMES = [
@@ -81,7 +77,6 @@ function mapOrderToEvent(order) {
     time: formatEventTime(order.start_time, order.end_time),
     location: order.event_location,
     guests: order.number_of_guest,
-    color: BOOKED_EVENT_COLOR,
   };
 }
 
@@ -130,116 +125,135 @@ function buildCells(year, month) {
   return cells;
 }
 
-// CalendarCell: renders one day square, its events, and "today" marker
-function CalendarCell({ cell, index, eventsByDate }) {
+// CalendarCell: one day, its booked events, and the "today" marker
+function CalendarCell({ cell, eventsByDate, monthName }) {
   const events = eventsByDate[cell.key] || [];
   const isToday = cell.key === TODAY_KEY;
   const visible = events.slice(0, PILL_MAX);
   const extra = events.length - PILL_MAX;
+  const booked = events.length > 0 && cell.active;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, delay: (index % 7) * 0.03 }}
-      className={`flex min-h-[90px] flex-col overflow-hidden border border-white/5 p-2 ${
-        cell.active ? "bg-[#111111] text-white" : "bg-[#0e0e0e] text-white/35"
-      } ${events.length && cell.active ? "ring-1 ring-[#D4AF37]/20" : ""}`}
-    >
-      {isToday ? (
-        <div className="mx-auto mb-2 flex h-6 w-6 items-center justify-center rounded-full bg-[#D4AF37] text-[0.7rem] font-bold text-[#0A0A0A]">
-          {cell.day}
-        </div>
-      ) : (
-        <span className="mb-2 block text-center text-[0.7rem]">
-          {cell.day}
-        </span>
+    <div
+      role="gridcell"
+      aria-label={
+        cell.active
+          ? `${cell.day} ${monthName}${isToday ? ", today" : ""}${
+              booked ? `, ${events.length} booked` : ""
+            }`
+          : undefined
+      }
+      aria-hidden={cell.active ? undefined : true}
+      className={cn(
+        "flex min-h-12 flex-col bg-mgh-surface p-1 sm:min-h-24 sm:p-2",
+        !cell.active && "bg-mgh-bg",
       )}
+    >
+      <span
+        aria-hidden="true"
+        className={cn(
+          "mx-auto grid size-7 place-items-center rounded-full text-[0.8rem] tabular-nums sm:mx-0",
+          cell.active ? "text-mgh-text" : "text-mgh-dim/60",
+          isToday && "ring-1 ring-mgh-gold text-mgh-gold",
+        )}
+      >
+        {cell.day}
+      </span>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-1">
-        {visible.map((event) => (
-          <div
-            key={event.id}
-            title={event.title}
-            className="w-full overflow-hidden truncate rounded-[3px] px-1.5 py-0.5 text-[0.62rem] leading-tight text-[#0A0A0A]"
-            style={{ backgroundColor: event.color }}
-          >
-            {event.title}
-          </div>
-        ))}
-        {extra > 0 ? (
-          <span className="mt-auto text-right text-[0.55rem] leading-none text-[#D4AF37]">
-            +{extra} more
-          </span>
+      {/* Phones: a gold rule under a booked day. The list below has the detail. */}
+      {booked && <span aria-hidden="true" className="mx-auto mt-1 h-0.5 w-4 rounded-full bg-mgh-gold sm:hidden" />}
+
+      <div aria-hidden="true" className="mt-1 hidden min-h-0 flex-1 flex-col gap-1 sm:flex">
+        {cell.active &&
+          visible.map((event) => (
+            <span
+              key={event.id}
+              title={event.title}
+              className="truncate border-l-2 border-mgh-gold bg-mgh-gold/10 px-1.5 py-0.5 text-[0.7rem] leading-tight text-mgh-text"
+            >
+              {event.title}
+            </span>
+          ))}
+        {cell.active && extra > 0 ? (
+          <span className="mt-auto text-[0.7rem] leading-none text-mgh-muted">+{extra} more</span>
         ) : null}
       </div>
-    </motion.div>
+    </div>
   );
 }
 
-// CalendarWidget: main calendar UI with header, navigation and the grid
+// CalendarWidget: month heading, navigation and the grid
 function CalendarWidget({ year, month, eventsByDate, onPrev, onNext }) {
   const cells = useMemo(() => buildCells(year, month), [year, month]);
+  const weeks = useMemo(() => {
+    const rows = [];
+    for (let i = 0; i < cells.length; i += 7) rows.push(cells.slice(i, i + 7));
+    return rows;
+  }, [cells]);
+
+  const navButton = cn(
+    "inline-flex h-10 items-center gap-1.5 rounded-control border border-mgh-line-strong px-3 text-sm text-mgh-muted transition-colors hover:border-mgh-muted hover:text-mgh-text",
+    focusRing,
+  );
 
   return (
-    <div className="rounded-[24px] border border-white/10 bg-[#161616] p-5 shadow-[0_30px_60px_rgba(0,0,0,0.45)] md:p-8">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <p className="mb-2 text-xs uppercase tracking-[0.3em] text-[#D4AF37]/80">
-            Event Calendar
-          </p>
-          <h3 className="text-3xl font-bold text-white md:text-4xl">
-            {MONTH_NAMES[month]}{" "}
-            <span className="font-normal text-white/70">{year}</span>
-          </h3>
-        </div>
+    <div className="rounded-card border border-mgh-line bg-mgh-surface p-4 sm:p-6 md:p-8">
+      <div className="mb-6 flex items-end justify-between gap-4">
+        <h3 aria-live="polite" className="font-serif text-3xl font-normal text-mgh-text md:text-4xl">
+          {MONTH_NAMES[month]} <span className="text-mgh-muted">{year}</span>
+        </h3>
 
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onPrev}
-            className="rounded-full border border-white/10 bg-black/30 px-4 py-2 text-xs uppercase tracking-[0.22em] text-white/80 transition hover:border-[#D4AF37]/40 hover:text-white"
-          >
-            Previous
+          <button type="button" onClick={onPrev} className={navButton}>
+            <ChevronLeft size={16} aria-hidden="true" />
+            <span className="max-sm:sr-only">Previous</span>
+            <span className="sr-only"> month</span>
           </button>
-          <button
-            type="button"
-            onClick={onNext}
-            className="rounded-full border border-white/10 bg-black/30 px-4 py-2 text-xs uppercase tracking-[0.22em] text-white/80 transition hover:border-[#D4AF37]/40 hover:text-white"
-          >
-            Next
+          <button type="button" onClick={onNext} className={navButton}>
+            <span className="max-sm:sr-only">Next</span>
+            <span className="sr-only"> month</span>
+            <ChevronRight size={16} aria-hidden="true" />
           </button>
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-white/10">
-        <div className="grid grid-cols-7 border-b border-white/10 bg-black/30">
+      <div role="grid" aria-label={`${MONTH_NAMES[month]} ${year}`} className="overflow-hidden rounded-control border border-mgh-line">
+        <div role="rowgroup">
+        <div role="row" className="grid grid-cols-7 border-b border-mgh-line">
           {DOW.map((day) => (
-            <div
+            <span
               key={day}
-              className="py-3 text-center text-xs font-bold uppercase tracking-[0.22em] text-white/70"
+              role="columnheader"
+              className="py-2.5 text-center text-[0.7rem] font-semibold uppercase tracking-[0.12em] text-mgh-muted sm:text-left sm:px-2"
             >
-              {day}
-            </div>
+              <span aria-hidden="true" className="sm:hidden">{day.slice(0, 1)}</span>
+              <span className="max-sm:sr-only">{day}</span>
+            </span>
           ))}
         </div>
+        </div>
 
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={`${year}-${month}`}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-            className="grid grid-cols-7 gap-px bg-white/10"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            role="rowgroup"
+            className="flex flex-col gap-px bg-mgh-line"
           >
-            {cells.map((cell, index) => (
-              <CalendarCell
-                key={cell.key}
-                cell={cell}
-                index={index}
-                eventsByDate={eventsByDate}
-              />
+            {weeks.map((week) => (
+              <div key={week[0].key} role="row" className="grid grid-cols-7 gap-px">
+                {week.map((cell) => (
+                  <CalendarCell
+                    key={cell.key}
+                    cell={cell}
+                    eventsByDate={eventsByDate}
+                    monthName={MONTH_NAMES[month]}
+                  />
+                ))}
+              </div>
             ))}
           </motion.div>
         </AnimatePresence>
@@ -248,7 +262,7 @@ function CalendarWidget({ year, month, eventsByDate, onPrev, onNext }) {
   );
 }
 
-// EventsSidebar: lists all events for the given month in a sidebar
+// EventsSidebar: the month's booked events as a list, led by their dates
 function EventsSidebar({ year, month, eventsByDate, loading, error }) {
   const monthEvents = useMemo(() => {
     const prefix = `${year}-${String(month + 1).padStart(2, "0")}-`;
@@ -263,55 +277,48 @@ function EventsSidebar({ year, month, eventsByDate, loading, error }) {
   }, [eventsByDate, year, month]);
 
   return (
-    <aside className="w-full rounded-[24px] border border-white/10 bg-[#161616] p-5 shadow-[0_30px_60px_rgba(0,0,0,0.45)] md:p-8 lg:max-w-[390px]">
-      <h3 className="mb-8 text-lg font-bold uppercase tracking-[0.08em] text-[#D4AF37]">
+    <aside aria-labelledby="month-events-title" className="w-full">
+      <h3 id="month-events-title" className="border-b border-mgh-line pb-4 font-serif text-2xl text-mgh-text">
         {MONTH_NAMES[month]} events
       </h3>
 
       {loading ? (
-        <p className="m-0 text-sm italic text-white/45">
-          Loading booked events...
-        </p>
+        <div role="status" className="flex flex-col gap-5 pt-6">
+          <span className="sr-only">Loading booked events...</span>
+          {[0, 1, 2].map((i) => (
+            <span key={i} aria-hidden="true" className="mgh-shimmer block h-12 rounded-control" />
+          ))}
+        </div>
       ) : error ? (
-        <p className="m-0 text-sm italic text-red-300">{error}</p>
+        <p role="alert" className="pt-6 text-sm text-mgh-danger">{error}</p>
       ) : monthEvents.length === 0 ? (
-        <p className="m-0 text-sm italic text-white/45">
-          No booked events this month.
-        </p>
+        <p className="pt-6 font-serif text-lg italic text-mgh-muted">No booked events this month.</p>
       ) : (
-        <motion.ul className="m-0 flex list-none flex-col gap-7 p-0" layout>
-          <AnimatePresence>
-            {monthEvents.map((event, index) => (
-              <motion.li
-                key={event.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3, delay: index * 0.05 }}
-                className="flex items-start gap-3"
-              >
-                <span
-                  className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: event.color }}
-                />
-                <div>
-                  <p className="mb-1 text-lg tracking-[0.04em] text-white/90">
-                    {event.day} {MONTH_NAMES[month].slice(0, 3)} -{" "}
-                    {event.title}
-                  </p>
-                  <p className="m-0 text-sm tracking-[0.1em] text-white/50">
-                    {event.time}
-                  </p>
-                  {event.location ? (
-                    <p className="m-0 mt-1 text-xs tracking-[0.08em] text-white/35">
-                      {event.location}
-                    </p>
-                  ) : null}
-                </div>
-              </motion.li>
-            ))}
-          </AnimatePresence>
-        </motion.ul>
+        <ul className="divide-y divide-mgh-line-soft">
+          {monthEvents.map((event, index) => (
+            <motion.li
+              key={event.id}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, delay: index * 0.04, ease: [0.22, 1, 0.36, 1] }}
+              className="flex items-start gap-5 py-5"
+            >
+              <span className="flex w-11 shrink-0 flex-col items-center">
+                <span className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-mgh-muted">
+                  {MONTH_NAMES[month].slice(0, 3)}
+                </span>
+                <span className="font-serif text-3xl leading-none tabular-nums text-mgh-text">{event.day}</span>
+              </span>
+              <div className="min-w-0 pt-0.5">
+                <p className="text-[15px] text-mgh-text">{event.title}</p>
+                <p className="mt-1 text-sm tabular-nums text-mgh-muted">{event.time}</p>
+                {event.location ? (
+                  <p className="mt-0.5 truncate text-sm text-mgh-dim">{event.location}</p>
+                ) : null}
+              </div>
+            </motion.li>
+          ))}
+        </ul>
       )}
     </aside>
   );
@@ -335,6 +342,7 @@ export default function Calendar() {
         setLoadingEvents(true);
         setEventsError(null);
 
+        const supabase = await getSupabase();
         const { data, error } = await supabase
           .from("orders")
           .select(
@@ -402,20 +410,21 @@ export default function Calendar() {
   };
 
   return (
-    <section
-      className={`w-full bg-[#0A0A0A] px-5 py-20 text-white md:px-8 md:py-28 ${playfair.className}`}
-    >
-      <div className="mx-auto w-full max-w-[1536px]">
-        <div className="mb-10 max-w-3xl">
-          <p className="mb-3 text-xs uppercase tracking-[0.3em] text-[#D4AF37]/80">
+    <section aria-labelledby="calendar-title" className="w-full bg-mgh-bg px-5 py-24 md:px-10 md:py-32">
+      <div className="mx-auto w-full max-w-[1280px]">
+        <div className="mb-12 max-w-2xl md:mb-16">
+          <p className="mb-4 text-[0.72rem] font-medium uppercase tracking-[0.28em] text-mgh-gold">
             Plan Ahead
           </p>
-          <h2 className="text-l font-regular md:text-xl">
+          <h2
+            id="calendar-title"
+            className="text-balance font-serif text-[2rem] font-normal leading-[1.15] text-mgh-text md:text-[2.75rem]"
+          >
             View upcoming dates and event details in one place.
           </h2>
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.75fr)] lg:items-start">
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,1.6fr)_minmax(18rem,0.8fr)] lg:gap-14">
           <CalendarWidget
             year={cursor.year}
             month={cursor.month}

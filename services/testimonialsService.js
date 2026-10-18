@@ -1,4 +1,6 @@
-import { supabase } from "@/services/supabaseClient";
+// Lazy: this module is also imported by the public homepage, which should not
+// load the Supabase client until it actually needs it.
+import { getSupabase } from "@/services/lazySupabase";
 
 /**
  * Reads for the testimonials feature, plus the "is migration 005 installed?"
@@ -81,6 +83,7 @@ function warnOnce(error, what) {
  * but not to a visitor.
  */
 export async function fetchPublicTestimonials(limit = 12, featuredOnly = true) {
+  const supabase = await getSupabase();
   const { data, error } = await supabase.rpc(PUBLIC_RPC, {
     p_featured_only: featuredOnly,
     p_limit: limit,

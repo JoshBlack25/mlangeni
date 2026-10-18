@@ -1,14 +1,22 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { CalendarClock, MessageSquareQuote, Star } from "lucide-react";
-import Link from "next/link";
+import { motion } from "framer-motion";
 import { supabase } from "@/services/supabaseClient";
 import { useNotifications } from "@/app/components/dashboard/shared/notifications/hooks/useNotifications";
 import { isSetupMissing } from "@/services/testimonialsService";
 import ReviewForm from "./ReviewForm";
 import ReviewCard from "./ReviewCard";
+import { EASE } from "@/app/components/dashboard/shared/motion";
+import {
+  Button,
+  ConfirmDialog,
+  EmptyState,
+  PageHeader,
+  Panel,
+  PanelHeader,
+  Skeleton,
+} from "@/app/components/dashboard/ui";
 
 const REVIEW_COLUMNS =
   "testimonial_id, order_id, rating, message, status, featured, created_at";
@@ -23,7 +31,7 @@ function orderLabel(order) {
         year: "numeric",
       })
     : null;
-  return date ? `${name} — ${date}` : name;
+  return date ? `${name}, ${date}` : name;
 }
 
 function todayISO() {
@@ -257,7 +265,7 @@ export default function ReviewsContent() {
     }
 
     setReviews((prev) => [data, ...prev]);
-    setNotice("Thank you — your review is with our team for approval.");
+    setNotice("Thank you. Your review is with our team for approval.");
 
     // Never gate success on the notification. If it fails the review is still
     // saved, and the customer should not be told otherwise.
@@ -303,47 +311,59 @@ export default function ReviewsContent() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6">
-      <header className="mb-8">
-        <h1 className="text-2xl font-semibold text-white sm:text-3xl">
-          Your reviews
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm text-[#A0A0A0]">
-          Reviews on our website come only from guests we&rsquo;ve actually
-          catered for. Once one of our team has approved yours, it may appear on
-          the homepage.
-        </p>
-      </header>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.2, ease: EASE }}
+    >
+      <PageHeader
+        title="Your reviews"
+        lead={
+          <>
+            Reviews on our website come only from guests we&rsquo;ve actually
+            catered for. Once one of our team has approved yours, it may appear
+            on the homepage.
+          </>
+        }
+      />
 
       {notice && (
-        <p className="mb-6 rounded-xl border border-[#D4AF37]/30 bg-[#D4AF37]/10 px-4 py-3 text-sm text-[#D4AF37]">
+        <p
+          role="status"
+          className="mb-8 flex items-center gap-2.5 rounded-control border border-mgh-line bg-mgh-surface px-4 py-3 text-sm text-mgh-text"
+        >
+          <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-mgh-ok" />
           {notice}
         </p>
       )}
 
       {(loadError || actionError) && (
-        <p className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+        <p
+          role="alert"
+          className="mb-8 rounded-control border border-mgh-danger/30 bg-mgh-danger/10 px-4 py-3 text-sm text-mgh-danger"
+        >
           {loadError ?? actionError}
         </p>
       )}
 
       {setupMissing && (
-        <p className="mb-6 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-[#A0A0A0]">
+        <p className="mb-8 rounded-control border border-mgh-line bg-mgh-surface px-4 py-3 text-sm text-mgh-muted">
           Reviews aren&rsquo;t switched on yet. Please check back soon.
         </p>
       )}
 
       {loading ? (
-        <div className="space-y-4" aria-hidden>
-          {[0, 1].map((i) => (
-            <div
-              key={i}
-              className="h-28 animate-pulse rounded-xl border border-[#1F1F1F] bg-white/5"
-            />
-          ))}
-        </div>
+        <Panel role="status">
+          <span className="sr-only">Loading your reviews…</span>
+          <Skeleton className="h-6 w-48" />
+          <Skeleton className="mt-3 h-4 w-72 max-w-full" />
+          <div className="mt-8 space-y-3">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-24 w-full" />
+          </div>
+        </Panel>
       ) : (
-        <div className="space-y-8">
+        <div className="flex flex-col gap-8 md:gap-10">
           {/* Write / edit */}
           {/* ReviewForm seeds its fields from props on mount only, so each
               distinct form needs its own key. Without one, switching from
@@ -379,131 +399,74 @@ export default function ReviewsContent() {
 
           {/* Nothing to review yet — say why, not just "nothing here" */}
           {!setupMissing && !editing && reviewable.length === 0 && (
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-center">
+            <Panel>
               {upcoming.length > 0 ? (
-                <>
-                  <CalendarClock className="mx-auto mb-4 text-[#D4AF37]" size={26} />
-                  <h2 className="text-base font-semibold text-white">
-                    Not just yet
-                  </h2>
-                  <p className="mx-auto mt-2 max-w-md text-sm text-[#A0A0A0]">
-                    Your {orderLabel(upcoming[0])} is still to come. Reviews open
-                    up once we&rsquo;ve catered the event.
-                  </p>
-                </>
+                <EmptyState title="Not just yet">
+                  Your {orderLabel(upcoming[0])} is still to come. Reviews open
+                  up once we&rsquo;ve catered the event.
+                </EmptyState>
               ) : reviews.length > 0 ? (
-                <>
-                  <Star className="mx-auto mb-4 text-[#D4AF37]" size={26} />
-                  <h2 className="text-base font-semibold text-white">
-                    You&rsquo;ve reviewed every event
-                  </h2>
-                  <p className="mx-auto mt-2 max-w-md text-sm text-[#A0A0A0]">
-                    Thank you — that genuinely helps other guests decide.
-                  </p>
-                </>
+                <EmptyState title={<>You&rsquo;ve reviewed every event</>}>
+                  Thank you. That genuinely helps other guests decide.
+                </EmptyState>
               ) : (
-                <>
-                  <MessageSquareQuote
-                    className="mx-auto mb-4 text-[#D4AF37]"
-                    size={26}
-                  />
-                  <h2 className="text-base font-semibold text-white">
-                    No events to review yet
-                  </h2>
-                  <p className="mx-auto mt-2 max-w-md text-sm text-[#A0A0A0]">
-                    Once we&rsquo;ve catered an event for you, you&rsquo;ll be
-                    able to review it here.
-                  </p>
-                  <Link
-                    href="/dashboard/customer/booking"
-                    className="mt-6 inline-block rounded-lg border border-[#D4AF37]/40 px-5 py-2.5 text-sm text-[#D4AF37] transition hover:bg-[#D4AF37]/10"
-                  >
-                    Plan an event
-                  </Link>
-                </>
+                <EmptyState
+                  title="No events to review yet"
+                  action={
+                    <Button href="/dashboard/customer/booking">
+                      Plan an event
+                    </Button>
+                  }
+                >
+                  Once we&rsquo;ve catered an event for you, you&rsquo;ll be
+                  able to review it here.
+                </EmptyState>
               )}
-            </div>
+            </Panel>
           )}
 
           {/* Existing reviews */}
           {reviews.length > 0 && (
-            <section>
-              <h2 className="mb-4 text-sm font-medium uppercase tracking-[0.2em] text-[#A0A0A0]">
-                Reviews you&rsquo;ve left
-              </h2>
-              <div className="space-y-4">
-                <AnimatePresence initial={false}>
-                  {reviews.map((review) => (
-                    <motion.div
-                      key={review.testimonial_id}
-                      layout
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, height: 0 }}
-                    >
-                      <ReviewCard
-                        review={review}
-                        orderLabel={orderLabelById.get(review.order_id)}
-                        onEdit={(r) => {
-                          setEditing(r);
-                          setSubmitError(null);
-                          setNotice(null);
-                        }}
-                        onDelete={(r) => setConfirmDelete(r)}
-                      />
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
+            <Panel>
+              <PanelHeader title={<>Reviews you&rsquo;ve left</>} />
+              <div className="divide-y divide-mgh-line-soft">
+                {reviews.map((review) => (
+                  <ReviewCard
+                    key={review.testimonial_id}
+                    review={review}
+                    orderLabel={orderLabelById.get(review.order_id)}
+                    onEdit={(r) => {
+                      setEditing(r);
+                      setSubmitError(null);
+                      setNotice(null);
+                    }}
+                    onDelete={(r) => setConfirmDelete(r)}
+                  />
+                ))}
               </div>
-            </section>
+            </Panel>
           )}
         </div>
       )}
 
       {/* Delete confirmation */}
-      <AnimatePresence>
-        {confirmDelete && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
-            onClick={() => setConfirmDelete(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.96, y: 8 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.96, y: 8 }}
-              onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-md rounded-2xl border border-[#1F1F1F] bg-[#0F0F0F] p-6"
-            >
-              <h3 className="text-base font-semibold text-white">
-                Delete this review?
-              </h3>
-              <p className="mt-2 text-sm text-[#A0A0A0]">
-                This can&rsquo;t be undone. You can write a new review for the
-                same event afterwards.
-              </p>
-              <div className="mt-6 flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setConfirmDelete(null)}
-                  className="rounded-lg border border-white/10 px-4 py-2 text-sm text-[#A0A0A0] transition hover:border-white/30 hover:text-white"
-                >
-                  Keep it
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDelete(confirmDelete)}
-                  className="rounded-lg bg-red-500/90 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-500"
-                >
-                  Delete
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+      <ConfirmDialog
+        open={!!confirmDelete}
+        onOpenChange={(o) => {
+          if (!o) setConfirmDelete(null);
+        }}
+        title="Delete this review?"
+        description={
+          <>
+            This can&rsquo;t be undone. You can write a new review for the same
+            event afterwards.
+          </>
+        }
+        confirmLabel="Delete"
+        cancelLabel="Keep it"
+        tone="danger"
+        onConfirm={() => handleDelete(confirmDelete)}
+      />
+    </motion.div>
   );
 }

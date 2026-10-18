@@ -1,15 +1,10 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import {
-  MessageCircleMore,
-  ClipboardList,
-  CalendarClock,
-  CalendarCheck,
-} from "lucide-react";
 import { useInView } from "framer-motion";
 import { supabase } from "@/services/supabaseClient";
 import AnimatedNumber from "../../../shared/AnimatedNumber";
+import { Figure, FigureRow, Blank } from "@/app/components/dashboard/ui";
 import {
   BOOKED_ORDER_STATUSES,
   getCustomerForUser,
@@ -22,14 +17,10 @@ import {
 } from "@/app/utils/dummyInvoicePayments";
 
 const statConfig = [
-  {
-    key: "pendingConsultations",
-    label: "Pending Bookings",
-    icon: MessageCircleMore,
-  },
-  { key: "activeOrders", label: "Active Booking", icon: ClipboardList },
-  { key: "upcomingEvents", label: "Booked Event", icon: CalendarClock },
-  { key: "totalBookings", label: "Total Bookings", icon: CalendarCheck },
+  { key: "pendingConsultations", label: "Pending Bookings" },
+  { key: "activeOrders", label: "Active Booking" },
+  { key: "upcomingEvents", label: "Booked Event" },
+  { key: "totalBookings", label: "Total Bookings" },
 ];
 
 export default function Stats() {
@@ -139,57 +130,27 @@ export default function Stats() {
   }, []);
 
   return (
-    <section ref={sectionRef} className="mt-10">
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        {statConfig.map(({ key, label, icon }) => (
-          <StatCard
+    <section
+      ref={sectionRef}
+      aria-label="Your bookings at a glance"
+      className="border-y border-mgh-line py-6"
+    >
+      <FigureRow>
+        {statConfig.map(({ key, label }) => (
+          <Figure
             key={key}
             label={label}
-            icon={icon}
-            value={values ? values[key] : null}
-            error={error}
-            start={isInView}
+            loading={!error && !values}
+            value={
+              error ? (
+                <Blank label="Unavailable" />
+              ) : values ? (
+                <AnimatedNumber value={values[key]} start={isInView} />
+              ) : null
+            }
           />
         ))}
-      </div>
+      </FigureRow>
     </section>
-  );
-}
-
-function StatCard({ label, value, icon: Icon, error, start }) {
-  return (
-    <div
-      className="
-        group
-        rounded-2xl
-        border
-        border-white/10
-        bg-white/5
-        p-6
-        backdrop-blur-md
-        transition-all
-        duration-300
-        hover:border-[#D4AF37]
-        hover:bg-white/10
-        hover:-translate-y-1
-        hover:shadow-[0_0_30px_rgba(212,175,55,0.15)]
-      "
-    >
-      <div className="mb-5 inline-flex rounded-xl bg-[#D4AF37]/10 p-3 text-[#D4AF37] transition-all duration-300 group-hover:bg-[#D4AF37] group-hover:text-black">
-        <Icon size={22} />
-      </div>
-
-      {error ? (
-        <p className="text-sm text-red-400">—</p>
-      ) : value === null ? (
-        <div className="h-9 w-12 animate-pulse rounded bg-white/10" />
-      ) : (
-        <p className="text-3xl font-bold text-white">
-          <AnimatedNumber value={value} start={start} />
-        </p>
-      )}
-
-      <p className="mt-2 text-sm text-[#A0A0A0]">{label}</p>
-    </div>
   );
 }

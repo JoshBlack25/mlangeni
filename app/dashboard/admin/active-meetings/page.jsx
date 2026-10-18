@@ -1,16 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { motion } from "framer-motion";
-import {
-  ArrowLeft,
-  CalendarCheck,
-  ClipboardList,
-  MapPin,
-  Search,
-} from "lucide-react";
+import { ArrowLeft, ClipboardList, MapPin, Search } from "lucide-react";
 import { supabase } from "@/services/supabaseClient";
+import {
+  PageHeader,
+  Panel,
+  PanelHeader,
+  Button,
+  Field,
+  Input,
+  Figure,
+  FigureRow,
+  EngravedDate,
+  EmptyState,
+  SkeletonRows,
+} from "@/app/components/dashboard/ui";
 
 function formatDate(dateString) {
   if (!dateString) return "TBC";
@@ -70,6 +75,18 @@ function mapConsultationToMeeting(consultation) {
     location: getMeetingLocation(consultation.note, order?.event_location),
     orderTotal: order?.total_price,
   };
+}
+
+// The `next` hairline marks only the first meeting that is still ahead
+// (the list is already ordered by meeting date).
+function findNextMeetingId(meetings) {
+  const now = Date.now();
+  return (
+    meetings.find((meeting) => {
+      const time = new Date(meeting.meetingDate).getTime();
+      return !Number.isNaN(time) && time >= now;
+    })?.id ?? null
+  );
 }
 
 function getSearchText(meeting) {
@@ -169,201 +186,179 @@ export default function AdminActiveMeetingsPage() {
     };
   }, []);
 
+  const nextMeetingId = findNextMeetingId(activeMeetings);
+
   return (
-    <main className="min-h-screen bg-[#0A0A0A] px-6 py-10 text-white md:px-10 lg:px-14">
-      <div className="mx-auto max-w-[1300px]">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between"
-        >
-          <div>
-            <Link
-              href="/dashboard/admin"
-              className="mb-5 inline-flex items-center gap-2 text-sm font-medium text-[#A0A0A0] transition hover:text-[#D4AF37]"
-            >
-              <ArrowLeft size={16} />
-              Back to dashboard
-            </Link>
+    <div className="flex flex-col gap-6">
+      <div>
+        <Button variant="quiet" size="sm" href="/dashboard/admin" className="-ml-3">
+          <ArrowLeft size={16} aria-hidden="true" className="text-mgh-dim" />
+          Back to dashboard
+        </Button>
+      </div>
 
-            <div className="mb-4 flex items-center gap-2 text-sm uppercase tracking-[0.25em] text-[#D4AF37]">
-              <CalendarCheck size={17} />
-              <span>Active Meetings</span>
-            </div>
-
-            <h1 className="font-serif text-4xl font-medium tracking-tight text-white md:text-5xl">
-              Scheduled Client Meetings
-            </h1>
-
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-[#A0A0A0] md:text-base">
-              Review meetings that were scheduled from consultation requests and
-              prepare invoices once meeting details are confirmed.
-            </p>
-          </div>
-
-          <div className="border-l-2 border-[#D4AF37] bg-white/[0.03] px-4 py-3 text-sm text-[#D4AF37]">
+      <PageHeader
+        density="dense"
+        className="mb-0 md:mb-0"
+        title="Scheduled Client Meetings"
+        lead="Review meetings that were scheduled from consultation requests and prepare invoices once meeting details are confirmed."
+        actions={
+          <p className="text-sm tabular-nums text-mgh-muted">
             {meetings === null ? "..." : meetingCount} meetings awaiting invoice
             creation
-          </div>
-        </motion.div>
+          </p>
+        }
+      />
 
-        <motion.section
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, delay: 0.1 }}
-          className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-3"
-        >
-          <OverviewCard
-            label="Meetings"
-            value={meetings === null ? "..." : meetingCount}
-            caption="Scheduled with customers"
-          />
-        </motion.section>
+      <FigureRow>
+        <Figure
+          label="Meetings"
+          value={meetingCount}
+          loading={meetings === null}
+          hint="Scheduled with customers"
+        />
+      </FigureRow>
 
-        <motion.section
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, delay: 0.18 }}
-          className="mt-8 rounded-2xl border border-[#1F1F1F] bg-white/5 p-5 backdrop-blur-md md:p-6"
-        >
-          <div className="mb-5 flex flex-col gap-3 border-b border-white/10 pb-5 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-[#A0A0A0]">
-                Meeting List
-              </p>
-              <h2 className="mt-2 text-xl font-semibold text-white">
-                Active Meetings
-              </h2>
-            </div>
+      <Panel density="dense">
+        <PanelHeader density="dense" title="Active Meetings" />
 
-            <p className="border-l border-white/10 pl-3 text-xs uppercase tracking-[0.16em] text-[#797676]">
-              Scheduled meetings
-            </p>
-          </div>
+        <div className="mb-4">
+          <Field label="Search order details" className="w-full md:max-w-md">
+            <SearchInput
+              id="active-meetings-search"
+              type="search"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Search by client, event, date, guests, or location"
+            />
+          </Field>
+        </div>
 
-          <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <label
-              htmlFor="active-meetings-search"
-              className="text-xs uppercase tracking-[0.18em] text-[#A0A0A0]"
+        {error && (
+          <p
+            role="alert"
+            className="mb-4 rounded-control border border-mgh-danger/30 bg-mgh-danger/10 px-4 py-3 text-sm text-mgh-danger"
+          >
+            {error}
+          </p>
+        )}
+
+        {meetings === null ? (
+          <SkeletonRows rows={4} label="Loading active meetings" />
+        ) : filteredMeetings.length === 0 ? (
+          <EmptyState
+            title={normalizedSearch ? "No matches" : "No active meetings"}
+          >
+            {normalizedSearch
+              ? "No active meetings match your search."
+              : "No active meetings have been scheduled yet."}
+          </EmptyState>
+        ) : (
+          <>
+            <div
+              aria-hidden="true"
+              className="hidden h-10 grid-cols-[2.75rem_minmax(0,1.3fr)_minmax(0,0.8fr)_minmax(0,1fr)_4.5rem_auto] items-center gap-4 border-b border-mgh-line text-label font-semibold uppercase text-mgh-dim lg:grid"
             >
-              Search order details
-            </label>
-            <div className="relative w-full md:max-w-md">
-              <Search
-                size={16}
-                className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#D4AF37]"
-              />
-              <input
-                id="active-meetings-search"
-                type="search"
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Search by client, event, date, guests, or location"
-                className="h-12 w-full rounded-lg border border-white/10 bg-[#0A0A0A]/50 pl-11 pr-4 text-sm text-white outline-none transition placeholder:text-[#4F4F4F] focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20"
-              />
+              <span className="sr-only">Date</span>
+              <span>Client</span>
+              <span>Meeting</span>
+              <span>Event</span>
+              <span className="text-right">Guests</span>
+              <span className="text-right">Action</span>
             </div>
-          </div>
 
-          {error && (
-            <div className="mb-5 border border-red-400/20 bg-red-400/5 px-4 py-4 text-sm text-red-300">
-              {error}
-            </div>
-          )}
-
-          <div className="hidden grid-cols-[1fr_0.85fr_0.85fr_0.7fr_0.75fr] gap-4 border-b border-white/10 px-4 pb-3 text-xs uppercase tracking-[0.18em] text-[#797676] lg:grid">
-            <span>Client</span>
-            <span>Meeting</span>
-            <span>Event</span>
-            <span>Guests</span>
-            <span className="text-right">Action</span>
-          </div>
-
-          <div className="mt-3 space-y-3">
-            {meetings === null ? (
-              [...Array(4)].map((_, index) => (
-                <div
-                  key={index}
-                  className="h-20 animate-pulse rounded-xl border border-[#1F1F1F] bg-[#0A0A0A]/40"
-                />
-              ))
-            ) : filteredMeetings.length === 0 ? (
-              <div className="border border-white/10 bg-[#0A0A0A]/40 px-4 py-8 text-center text-sm text-[#A0A0A0]">
-                {normalizedSearch
-                  ? "No active meetings match your search."
-                  : "No active meetings have been scheduled yet."}
-              </div>
-            ) : (
-              filteredMeetings.map((meeting, index) => (
-                <motion.article
+            <ul className="divide-y divide-mgh-line-soft">
+              {filteredMeetings.map((meeting) => (
+                <li
                   key={meeting.id}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: 0.22 + index * 0.04 }}
-                  className="grid grid-cols-1 gap-4 rounded-xl border border-[#1F1F1F] bg-[#0A0A0A]/40 p-4 transition-all duration-300 hover:border-[#D4AF37]/70 hover:bg-white/[0.04] lg:grid-cols-[1fr_0.85fr_0.85fr_0.7fr_0.75fr] lg:items-center"
+                  className="grid grid-cols-[2.75rem_minmax(0,1fr)] items-center gap-x-4 gap-y-3 py-3 lg:grid-cols-[2.75rem_minmax(0,1.3fr)_minmax(0,0.8fr)_minmax(0,1fr)_4.5rem_auto]"
                 >
-                  <div>
-                    <p className="text-sm font-semibold text-white md:text-base">
+                  <EngravedDate
+                    date={meeting.meetingDate}
+                    size="sm"
+                    next={meeting.id === nextMeetingId}
+                    className="row-span-2 self-start lg:row-span-1 lg:self-center"
+                  />
+
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-mgh-text">
                       {meeting.customerName}
                     </p>
-                    <p className="mt-1 flex items-center gap-2 text-xs text-[#797676]">
-                      <MapPin size={13} className="text-[#D4AF37]" />
-                      {meeting.location}
+                    <p className="mt-0.5 flex items-center gap-1.5 text-caption text-mgh-muted">
+                      <MapPin size={16} aria-hidden="true" className="shrink-0 text-mgh-dim" />
+                      <span className="truncate">{meeting.location}</span>
                     </p>
                   </div>
 
-                  <div>
-                    <p className="text-sm font-medium text-white">
-                      {formatDate(meeting.meetingDate)}
-                    </p>
-                    <p className="mt-1 text-xs text-[#797676]">
-                      {formatTime(meeting.meetingTime)}
-                    </p>
-                  </div>
+                  {/* Phones: meeting, event and guests share one stacked block. */}
+                  <dl className="col-start-2 grid grid-cols-2 gap-x-4 gap-y-1.5 lg:contents">
+                    <div className="min-w-0">
+                      <dt className="text-label font-semibold uppercase text-mgh-dim lg:sr-only">
+                        Meeting
+                      </dt>
+                      <dd className="text-sm tabular-nums text-mgh-text">
+                        {formatDate(meeting.meetingDate)}
+                        <span className="text-mgh-muted">
+                          {" · "}
+                          {formatTime(meeting.meetingTime)}
+                        </span>
+                      </dd>
+                    </div>
 
-                  <div>
-                    <p className="text-sm text-[#A0A0A0]">
-                      {meeting.eventType}
-                    </p>
-                    <p className="mt-1 text-xs text-[#797676]">
-                      {formatDate(meeting.eventDate)}
-                    </p>
-                  </div>
+                    <div className="min-w-0">
+                      <dt className="text-label font-semibold uppercase text-mgh-dim lg:sr-only">
+                        Event
+                      </dt>
+                      <dd className="text-sm">
+                        <span className="block truncate text-mgh-text">
+                          {meeting.eventType}
+                        </span>
+                        <span className="block text-caption tabular-nums text-mgh-muted">
+                          {formatDate(meeting.eventDate)}
+                        </span>
+                      </dd>
+                    </div>
 
-                  <div className="border-l border-white/10 pl-3">
-                    <p className="text-sm font-medium text-white">
-                      {meeting.guests}
-                    </p>
-                    <p className="mt-1 text-xs text-[#797676]">Guests</p>
-                  </div>
+                    <div className="min-w-0 lg:text-right">
+                      <dt className="text-label font-semibold uppercase text-mgh-dim lg:sr-only">
+                        Guests
+                      </dt>
+                      <dd className="text-sm tabular-nums text-mgh-text">
+                        {meeting.guests}
+                      </dd>
+                    </div>
+                  </dl>
 
-                  <div className="flex lg:justify-end">
-                    <Link
+                  <div className="col-span-2 lg:col-span-1 lg:justify-self-end">
+                    <Button
+                      variant="secondary"
+                      size="sm"
                       href={`/dashboard/admin/invoices/create?consultationId=${meeting.id}`}
-                      className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[#D4AF37]/40 px-4 text-sm font-medium text-[#D4AF37] transition-all duration-300 hover:border-[#D4AF37] hover:bg-[#D4AF37] hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A]"
+                      className="h-10 w-full sm:w-auto lg:h-8"
                     >
-                      <ClipboardList size={15} />
+                      <ClipboardList size={16} aria-hidden="true" className="text-mgh-dim" />
                       Create Invoice
-                    </Link>
+                    </Button>
                   </div>
-                </motion.article>
-              ))
-            )}
-          </div>
-        </motion.section>
-      </div>
-    </main>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </Panel>
+    </div>
   );
 }
 
-function OverviewCard({ label, value, caption }) {
+function SearchInput(props) {
   return (
-    <div className="group rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-[#D4AF37] hover:bg-white/10 hover:shadow-[0_0_30px_rgba(212,175,55,0.15)]">
-      <p className="text-xs uppercase tracking-[0.2em] text-[#A0A0A0]">
-        {label}
-      </p>
-      <p className="mt-3 text-2xl font-bold text-white">{value}</p>
-      <p className="mt-2 text-sm text-[#797676]">{caption}</p>
+    <div className="relative">
+      <Search
+        size={16}
+        aria-hidden="true"
+        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-mgh-dim"
+      />
+      <Input {...props} className="pl-9" />
     </div>
   );
 }

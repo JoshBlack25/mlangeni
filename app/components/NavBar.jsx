@@ -1,99 +1,81 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
+import { motion } from "framer-motion";
+import { Dialog as DialogPrimitive } from "radix-ui";
+import { cn } from "@/lib/utils";
 
+// Every link goes somewhere real: a section of the homepage ("#..."), or a page
+// that exists. The booking pages need an account, so signed-out visitors are
+// sent to sign in first.
 const NAV_COLUMNS = [
   {
     title: "Mlangeni Events",
-    cta: "START PLANNING",
-    image:
-      "https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=700&q=80",
+    cta: { label: "Start Planning", href: "#contact" },
+    image: "/images/events-thumbnail.png",
     links: [
-      { label: "Wedding", href: "#wedding" },
-      { label: "Corporate", href: "#corporate" },
-      { label: "Private Party", href: "#private-party" },
-      { label: "Office Catering", href: "#office-catering" },
-      { label: "Charity", href: "#charity" },
-      { label: "Testimonials", href: "#testimonials" },
-      { label: "Venues", href: "#venues" },
-      { label: "Catering", href: "#catering" },
-      { label: "Menus", href: "#menus" },
-      { label: "Real Events", href: "#real-events" },
+      { label: "Check Availability", href: "#calendar" },
+      { label: "Make an Enquiry", href: "#contact" },
+      { label: "Book an Event", href: "/dashboard/customer/booking" },
+      { label: "Build Your Menu", href: "/dashboard/customer/booking/menubuilder" },
+      { label: "Our Menu", href: "/dashboard/customer/menu" },
     ],
   },
   {
-    title: "Hospitality Collection",
-    cta: "VIEW MENUS",
-    image:
-      "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=700&q=80",
+    title: "Our Work",
+    cta: { label: "View Gallery", href: "#gallery" },
+    image: "/images/gallery_images/gallery-hero.png",
     links: [
-      { label: "Restaurants, Bars & Cafés", href: "#restaurants" },
-      { label: "Managed Locations", href: "#managed-locations" },
-      { label: "Workplaces", href: "#workplaces" },
-      { label: "Exclusive Event Venues", href: "#exclusive-venues" },
-      { label: "Partnerships", href: "#partnerships" },
+      { label: "Gallery", href: "#gallery" },
+      { label: "A Taste of Our Work", href: "#our-work" },
+      { label: "A Night in Motion", href: "#showreel" },
     ],
   },
   {
     title: "Why Mlangeni?",
-    cta: "About Us",
-    image:
-      "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=700&q=80",
+    cta: { label: "About Us", href: "#about" },
+    image: "/images/gallery_images/food_6.jpg",
     links: [
-      { label: "People", href: "#people" },
-      { label: "Sustainability", href: "#sustainability" },
-      { label: "Creative Studio", href: "#creative-studio" },
-      { label: "Latest News", href: "#latest-news" },
+      { label: "Our Story", href: "#about" },
+      { label: "Testimonials", href: "#testimonials" },
     ],
   },
   {
     title: "Get in Touch",
-    cta: "Contact",
-    image:
-      "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=700&q=80",
+    cta: { label: "Contact", href: "#contact" },
+    image: "/images/auth-bg.png",
     links: [
-      { label: "Plan an Event", href: "#plan-event" },
-      { label: "Business Enquiries", href: "#business-enquiries" },
-      { label: "Careers", href: "#careers" },
+      { label: "Plan an Event", href: "#contact" },
+      { label: "Client Sign In", href: "/login" },
+      { label: "Create an Account", href: "/register" },
     ],
   },
 ];
 
-const containerVariants = {
-  hidden: { opacity: 0, y: -20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] },
-  },
-  exit: {
-    opacity: 0,
-    y: -20,
-    transition: { duration: 0.3, ease: "easeInOut" },
-  },
-};
+const EASE = [0.22, 1, 0.36, 1];
 
-const colVariants = {
-  hidden: { opacity: 0, y: 30 },
-  visible: (i) => ({
-    opacity: 1,
-    y: 0,
-    transition: {
-      delay: i * 0.1,
-      duration: 0.6,
-      ease: [0.22, 1, 0.36, 1],
-    },
-  }),
-};
+const focusRing =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mgh-gold focus-visible:ring-offset-2 focus-visible:ring-offset-mgh-bg";
 
-const gold = "text-[#D4AF37]";
+// On the homepage, "#contact" scrolls to a section. Every other page has no
+// such section, so the same link has to go back to the homepage first.
+function resolveHref(href, solid) {
+  return solid && href.startsWith("#") ? `/${href}` : href;
+}
 
-export default function Navbar() {
+/**
+ * `solid` is for pages without the homepage hero: the bar is opaque with its
+ * logo from the start, and section links point back to the homepage.
+ */
+export default function Navbar({ solid = false }) {
   const [open, setOpen] = useState(false);
   const [inHero, setInHero] = useState(true);
   const [activeIndex, setActiveIndex] = useState(null);
+  // A section picked from the open menu; we go there once the menu has
+  // closed and released the page's scroll lock.
+  const pendingHash = useRef(null);
 
   useEffect(() => {
     const hero = document.getElementById("hero");
@@ -106,230 +88,308 @@ export default function Navbar() {
     return () => observer.disconnect();
   }, []);
 
-  // Nav accent flips from white (over the hero) to gold once you scroll past it.
-  const pastHero = !inHero;
-  const navAccentText = pastHero
-    ? "text-[#D4AF37] group-hover:text-white"
-    : "text-white group-hover:text-[#D4AF37]";
-  const navAccentBg = pastHero
-    ? "bg-[#D4AF37] group-hover:bg-white"
-    : "bg-white group-hover:bg-[#D4AF37]";
-  const navGlow = pastHero
-    ? "drop-shadow-[0_0_10px_rgba(212,175,55,0.85)] group-hover:drop-shadow-[0_0_10px_rgba(255,255,255,0.85)]"
-    : "drop-shadow-[0_0_10px_rgba(255,255,255,0.85)] group-hover:drop-shadow-[0_0_10px_rgba(212,175,55,0.85)]";
+  const close = (hash) => {
+    pendingHash.current = typeof hash === "string" && hash.startsWith("#") ? hash : null;
+    setOpen(false);
+    setActiveIndex(null);
+  };
+
+  const goToPendingSection = (event) => {
+    const hash = pendingHash.current;
+    pendingHash.current = null;
+    const target = hash && document.querySelector(hash);
+    if (!target) return;
+    event.preventDefault();
+    window.history.replaceState(null, "", hash);
+    target.scrollIntoView({ block: "start" });
+    if (!target.hasAttribute("tabindex")) target.setAttribute("tabindex", "-1");
+    target.focus({ preventScroll: true });
+  };
+
+  // Over the hero the bar is clear and the hero's own crest stands in for the
+  // logo; once you scroll past, the bar settles onto the page with its mark.
+  const overHero = !solid && inHero && !open;
 
   return (
-    <nav className="font-[Playfair_Display]">
-      {/* NAVBAR */}
+    <nav aria-label="Main">
       <header
-        className={`fixed top-0 left-0 right-0 z-50 h-18 md:h-20 flex items-center justify-between px-8 md:px-12 transition-all duration-500 
-        ${
-          inHero && !open
-            ? "bg-transparent border-transparent"
-            : "bg-[#0a0a0a] border-white/10 "
-        }`}
+        className={cn(
+          "fixed inset-x-0 top-0 z-50 border-b transition-[background-color,border-color] duration-500 ease-mgh",
+          overHero
+            ? "border-transparent bg-linear-to-b from-mgh-bg/70 to-transparent"
+            : "border-mgh-line bg-mgh-bg/90 backdrop-blur-md",
+        )}
       >
-        <a
-          href="#hero"
-          onClick={(e) => {
-            e.preventDefault(); // stop instant jump
-
-            const el = document.getElementById("hero");
-            if (el) {
-              el.scrollIntoView({
-                behavior: "smooth",
-                block: "start",
-              });
-            }
-
-            setOpen(false);
-            setActiveIndex(null);
-          }}
-        >
-          <motion.img
-            src="/logos/logoPNG.png"
-            alt="Logo"
-            initial={false}
-            animate={{
-              opacity: inHero && !open ? 0 : 1,
-              y: inHero && !open ? -20 : 0,
-              pointerEvents: inHero && !open ? "none" : "auto",
-            }}
-            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            className="h-24 md:h-32 object-contain brightness-110 pt-2 cursor-pointer"
-          />
-        </a>
-
-        <div className="flex items-center gap-8">
-          {/* LOGIN */}
-          <Link
-            href="/login"
-            className="group relative pb-1 text-[0.7rem] tracking-[0.3em] uppercase font-medium cursor-pointer"
+        <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between px-5 md:h-[72px] md:px-10">
+          <a
+            href={solid ? "/" : "#hero"}
+            onClick={() => close()}
+            aria-label={solid ? "Mlangeni Grand Hospitality, home" : "Mlangeni Grand Hospitality, back to top"}
+            aria-hidden={overHero || undefined}
+            tabIndex={overHero ? -1 : undefined}
+            className={cn("rounded-control", focusRing)}
           >
-            <span
-              className={`transition-all duration-300 ${navAccentText} ${navGlow}`}
+            <motion.span
+              className="block"
+              initial={false}
+              animate={{ opacity: overHero ? 0 : 1, y: overHero ? -8 : 0 }}
+              transition={{ duration: 0.5, ease: EASE }}
+              style={{ pointerEvents: overHero ? "none" : "auto" }}
+            >
+              <Image
+                src="/logos/logo2.png"
+                alt=""
+                width={1303}
+                height={777}
+                sizes="72px"
+                className="h-10 w-auto md:h-11"
+              />
+            </motion.span>
+          </a>
+
+          <div className="flex items-center gap-2 md:gap-4">
+            <Link
+              href="/login"
+              className={cn(
+                "group relative rounded-control px-3 py-2 text-[0.72rem] font-medium uppercase tracking-[0.28em] text-mgh-text transition-colors hover:text-mgh-gold",
+                focusRing,
+              )}
             >
               Login
-            </span>
-
-            <span
-              aria-hidden
-              className={`absolute left-0 -bottom-0 h-px w-full transition-colors duration-300 ${navAccentBg}`}
-            />
-          </Link>
-
-          {/* HAMBURGER / X */}
-          <button
-            onClick={() => setOpen((v) => !v)}
-            className="flex flex-col justify-center items-center w-8 h-8 group transition-all duration-300"
-            aria-label="Toggle menu"
-          >
-            {open ? (
               <span
-                className={`text-[1.8rem] leading-none font-light transition-all duration-300 ${gold} group-hover:text-white drop-shadow-[0_0_10px_rgba(212,175,55,0.85)] group-hover:drop-shadow-[0_0_10px_rgba(255,255,255,0.85)]`}
-              >
-                ✕
-              </span>
-            ) : (
-              <div className="space-y-1.5">
-                <span
-                  className={`block w-6 h-[1px] transition-all duration-300 group-hover:w-8 ${navAccentBg} ${navGlow}`}
-                />
-                <span
-                  className={`block w-8 h-[1px] transition-all duration-300 ${navAccentBg} ${navGlow}`}
-                />
-                <span
-                  className={`block w-5 h-[1px] transition-all duration-300 group-hover:w-8 ${navAccentBg} ${navGlow}`}
-                />
-              </div>
-            )}
-          </button>
+                aria-hidden="true"
+                className="absolute inset-x-3 bottom-1 h-px origin-left scale-x-0 bg-mgh-gold transition-transform duration-300 ease-mgh group-hover:scale-x-100"
+              />
+            </Link>
+
+            <MenuButton open={false} onClick={() => setOpen(true)} />
+          </div>
         </div>
       </header>
 
-      {/* OVERLAY */}
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            key="overlay"
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            className="fixed inset-0 z-40 bg-[#0a0a0a] text-white overflow-y-auto"
-            style={{ paddingTop: 110 }}
+      <DialogPrimitive.Root open={open} onOpenChange={(next) => (next ? setOpen(true) : close())}>
+        <DialogPrimitive.Portal>
+          <DialogPrimitive.Content
+            aria-describedby={undefined}
+            onCloseAutoFocus={goToPendingSection}
+            className={cn(
+              "mgh-warm fixed inset-0 z-[60] overflow-y-auto bg-mgh-bg text-mgh-text",
+              "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 duration-300",
+            )}
           >
-            <div className="max-w-400 mx-auto px-8 md:px-12 pb-16">
-              {/* MOBILE */}
-              <div className="md:hidden py-4">
+            <DialogPrimitive.Title className="sr-only">Site menu</DialogPrimitive.Title>
+
+            <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between px-5 md:h-[72px] md:px-10">
+              <Image
+                src="/logos/logo2.png"
+                alt=""
+                width={1303}
+                height={777}
+                sizes="72px"
+                className="h-10 w-auto md:h-11"
+              />
+              <DialogPrimitive.Close asChild>
+                <MenuButton open />
+              </DialogPrimitive.Close>
+            </div>
+
+            <div className="mx-auto max-w-[1440px] px-5 pb-16 pt-6 md:px-10 md:pt-10">
+              {/* Phones: one column at a time. */}
+              <div className="md:hidden">
                 {NAV_COLUMNS.map((col, i) => {
                   const isOpen = activeIndex === i;
+                  const panelId = `nav-col-${i}`;
                   return (
-                    <div key={col.title} className="border-b border-white/10">
-                      <button
-                        onClick={() => setActiveIndex(isOpen ? null : i)}
-                        className="w-full flex items-center justify-between py-5 text-left"
-                      >
-                        <span
-                          className={`text-[0.85rem] tracking-[0.25em] uppercase ${
-                            isOpen ? gold : "text-white/70"
-                          }`}
+                    <div key={col.title} className="border-b border-mgh-line">
+                      <h2>
+                        <button
+                          type="button"
+                          aria-expanded={isOpen}
+                          aria-controls={panelId}
+                          onClick={() => setActiveIndex(isOpen ? null : i)}
+                          className={cn(
+                            "flex w-full items-center justify-between gap-4 py-5 text-left",
+                            focusRing,
+                          )}
                         >
-                          {col.title}
-                        </span>
-                        <span
-                          className={`${gold} text-xl transition-transform duration-300 ${
-                            isOpen ? "rotate-45" : ""
-                          }`}
-                        >
-                          +
-                        </span>
-                      </button>
-
-                      <AnimatePresence>
-                        {isOpen && (
-                          <motion.ul
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: "auto", opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            className="overflow-hidden pb-6 space-y-3"
+                          <span className={cn("font-serif text-2xl", isOpen ? "text-mgh-text" : "text-mgh-muted")}>
+                            {col.title}
+                          </span>
+                          <span
+                            aria-hidden="true"
+                            className={cn(
+                              "relative size-4 shrink-0 transition-transform duration-300 ease-mgh",
+                              isOpen && "rotate-45",
+                            )}
                           >
-                            {col.links.map((link) => (
-                              <li key={link.label}>
-                                <a
-                                  href={link.href}
-                                  onClick={() => {
-                                    setOpen(false);
-                                    setActiveIndex(null);
-                                  }}
-                                  className="text-[0.9rem] text-white/60 hover:text-[#D4AF37]"
-                                >
-                                  {link.label}
-                                </a>
-                              </li>
-                            ))}
-                          </motion.ul>
-                        )}
-                      </AnimatePresence>
+                            <span className="absolute inset-x-0 top-1/2 h-px bg-mgh-gold" />
+                            <span className="absolute inset-y-0 left-1/2 w-px bg-mgh-gold" />
+                          </span>
+                        </button>
+                      </h2>
+
+                      <motion.div
+                        id={panelId}
+                        initial={false}
+                        animate={{ height: isOpen ? "auto" : 0, opacity: isOpen ? 1 : 0 }}
+                        transition={{ duration: 0.35, ease: EASE }}
+                        className="overflow-hidden"
+                        inert={!isOpen || undefined}
+                      >
+                        <ul className="space-y-1 pb-6">
+                          {col.links.map((link) => (
+                            <li key={link.label}>
+                              <NavLink href={resolveHref(link.href, solid)} onNavigate={close}>
+                                {link.label}
+                              </NavLink>
+                            </li>
+                          ))}
+                          <li className="pt-3">
+                            <CtaLink href={resolveHref(col.cta.href, solid)} onNavigate={close}>
+                              {col.cta.label}
+                            </CtaLink>
+                          </li>
+                        </ul>
+                      </motion.div>
                     </div>
                   );
                 })}
               </div>
 
-              {/* DESKTOP */}
-              <div className="hidden md:grid md:grid-cols-4 gap-6 lg:gap-10 pt-4">
+              {/* Larger screens: the four columns side by side. */}
+              <div className="hidden gap-6 md:grid md:grid-cols-4 lg:gap-10">
                 {NAV_COLUMNS.map((col, i) => (
-                  <motion.div
+                  <motion.section
                     key={col.title}
-                    custom={i}
-                    variants={colVariants}
-                    initial="hidden"
-                    animate="visible"
+                    aria-labelledby={`nav-title-${i}`}
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.08 + i * 0.07, duration: 0.6, ease: EASE }}
                     className="flex flex-col"
                   >
-                    <div className="relative h-55 lg:h-65 overflow-hidden mb-6">
-                      <div className="peer absolute bottom-6 left-6 right-6 z-10">
-                        <h3 className="text-[1.5rem] text-white mb-2">
-                          {col.title}
-                        </h3>
-                        <span
-                          className={`text-[0.6rem] tracking-[0.3em] uppercase ${gold} border-b border-[#D4AF37] pb-1`}
-                        >
-                          {col.cta}
-                        </span>
-                      </div>
-
-                      <img
+                    <div className="group relative mb-6 aspect-[4/5] overflow-hidden rounded-card">
+                      <Image
                         src={col.image}
-                        alt={col.title}
-                        className="w-full h-full object-cover grayscale-[0.3] peer-hover:grayscale-0 transition-all duration-700 peer-hover:scale-105"
+                        alt=""
+                        fill
+                        sizes="(min-width: 1440px) 320px, 25vw"
+                        className="object-cover transition-transform duration-[1200ms] ease-mgh group-hover:scale-[1.04]"
                       />
-                      <div className="absolute inset-0 bg-linear-to-t from-[#0a0a0a]/90 via-[#0a0a0a]/40 to-transparent" />
+                      <div
+                        aria-hidden="true"
+                        className="absolute inset-0 bg-linear-to-t from-mgh-bg via-mgh-bg/40 to-transparent"
+                      />
+                      <div className="absolute inset-x-5 bottom-5">
+                        <h2 id={`nav-title-${i}`} className="font-serif text-2xl leading-tight text-mgh-text">
+                          {col.title}
+                        </h2>
+                        <CtaLink href={resolveHref(col.cta.href, solid)} onNavigate={close} className="mt-3">
+                          {col.cta.label}
+                        </CtaLink>
+                      </div>
                     </div>
 
-                    <ul className="flex flex-col space-y-4">
+                    <ul className="space-y-0.5">
                       {col.links.map((link) => (
                         <li key={link.label}>
-                          <a
-                            href={link.href}
-                            onClick={() => {
-                              setOpen(false);
-                              setActiveIndex(null);
-                            }}
-                            className="text-[0.9rem] text-white/60 hover:text-[#D4AF37]"
-                          >
+                          <NavLink href={resolveHref(link.href, solid)} onNavigate={close}>
                             {link.label}
-                          </a>
+                          </NavLink>
                         </li>
                       ))}
                     </ul>
-                  </motion.div>
+                  </motion.section>
                 ))}
               </div>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </DialogPrimitive.Content>
+        </DialogPrimitive.Portal>
+      </DialogPrimitive.Root>
     </nav>
+  );
+}
+
+function MenuButton({ open, ...props }) {
+  return (
+    <button
+      type="button"
+      aria-label={open ? "Close menu" : "Open menu"}
+      aria-expanded={open}
+      aria-haspopup="dialog"
+      className={cn(
+        "group grid size-11 place-items-center rounded-control text-mgh-text transition-colors hover:text-mgh-gold",
+        focusRing,
+      )}
+      {...props}
+    >
+      <span aria-hidden="true" className="relative block h-3 w-7">
+        <span
+          className={cn(
+            "absolute left-0 top-0 h-px w-7 bg-current transition-transform duration-300 ease-mgh",
+            open && "top-1.5 rotate-45",
+          )}
+        />
+        <span
+          className={cn(
+            "absolute bottom-0 right-0 h-px w-5 bg-current transition-[transform,width] duration-300 ease-mgh group-hover:w-7",
+            open && "bottom-1.5 w-7 -rotate-45",
+          )}
+        />
+      </span>
+    </button>
+  );
+}
+
+/** In-page links close the menu first, then travel (see goToPendingSection). */
+function MenuLink({ href, onNavigate, className, children }) {
+  if (href.startsWith("/")) {
+    return (
+      <Link href={href} onClick={() => onNavigate()} className={className}>
+        {children}
+      </Link>
+    );
+  }
+  return (
+    <a
+      href={href}
+      onClick={(e) => {
+        e.preventDefault();
+        onNavigate(href);
+      }}
+      className={className}
+    >
+      {children}
+    </a>
+  );
+}
+
+function NavLink({ href, onNavigate, children }) {
+  return (
+    <MenuLink
+      href={href}
+      onNavigate={onNavigate}
+      className={cn(
+        "inline-block rounded-control py-1.5 text-[15px] text-mgh-muted transition-colors hover:text-mgh-text",
+        focusRing,
+      )}
+    >
+      {children}
+    </MenuLink>
+  );
+}
+
+function CtaLink({ href, onNavigate, className, children }) {
+  return (
+    <MenuLink
+      href={href}
+      onNavigate={onNavigate}
+      className={cn(
+        "inline-flex items-center rounded-control border-b border-mgh-gold pb-1 text-[0.7rem] font-medium uppercase tracking-[0.28em] text-mgh-gold transition-colors hover:text-mgh-text",
+        focusRing,
+        className,
+      )}
+    >
+      {children}
+    </MenuLink>
   );
 }
