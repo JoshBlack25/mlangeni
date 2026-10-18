@@ -16,11 +16,17 @@ const tools = [
     href: "/dashboard/admin/tools/menu-editor",
   },
   {
+    title: "Package editor",
+    description: "Create packages",
+    href: "/dashboard/admin/tools/premade-menu"
+  },
+  {
     title: "Testimonials",
     description:
       "Approve or reject customer reviews, and choose which ones appear on the homepage.",
     href: "/dashboard/admin/tools/testimonials",
   },
+  
 ];
 
 export default function ToolsOverview() {
