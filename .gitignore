@@ -51,30 +51,41 @@ next-env.d.ts
 .env.local
 .env
 
-# ── Claude Code / agent tooling ───────────────────────────────────────────────
-#
-# TRACKED ON PURPOSE — do not add these. They are the shared, reviewable config
-# every teammate should get on clone:
-#   .mcp.json          the Supabase MCP server definition
-#   skills-lock.json   which agent skills this project uses, pinned by hash
-#   CLAUDE.md          re-added by `next dev`; committing it keeps the tree clean
-#   AGENTS.md          ditto
-#   .claude/settings.json   team-wide settings, if one is ever added
+# ── AI / agent tooling ────────────────────────────────────────────────────────
+# Kept local only. Nothing an AI assistant reads or writes belongs in the repo.
 
-# Personal, machine-specific settings. NEVER commit this one: it grants
-# unprompted migration writes against the production Supabase project, and
-# committing it would hand that to everyone who clones the repo.
-.claude/settings.local.json
+# Claude Code
+.claude/
+CLAUDE.md
+CLAUDE.local.md
+.mcp.json
 
-# Downloaded third-party skill content. Reproducible from the hashes in
-# skills-lock.json, so treat it like node_modules and keep it out of the diff:
-#   npx skills experimental_install     (restores from the lockfile)
-#   npx skills add supabase/agent-skills    (fallback — the command originally used)
-.agents/skills/
+# Generic agent files (AGENTS.md is re-added by `next dev`)
+AGENTS.md
+.agents/
+skills-lock.json
 
-# Symlinks pointing into .agents/skills. Machine-local and would dangle for
-# anyone who cloned without running the restore above.
-.claude/skills/
+# OpenAI Codex
+.codex/
 
-# Git worktrees, if Claude Code creates any here. Never belongs in a commit.
-.claude/worktrees/
+# Impeccable design tooling
+.impeccable/
+PRODUCT.md
+DESIGN.md
+
+# Other assistants, in case anyone uses them
+.cursor/
+.cursorrules
+.cursorignore
+.windsurf/
+.windsurfrules
+.github/copilot-instructions.md
+.gemini/
+GEMINI.md
+.aider*
+.continue/
+.clinerules
+.roo/
+
+# User guide screenshots, kept locally only.
+user-guide-images/
