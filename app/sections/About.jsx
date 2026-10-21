@@ -81,7 +81,7 @@ export default function About() {
           className="relative aspect-[4/5] overflow-hidden rounded-card lg:col-span-5 lg:mt-24 lg:self-start"
         >
           <Image
-            src="/images/image1.png"
+            src="/images/wine.jpg"
             alt="A host pouring white wine at a candlelit table"
             fill
             sizes="(min-width: 1024px) 34vw, 100vw"
