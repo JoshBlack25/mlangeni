@@ -14,6 +14,10 @@ import {
   sectionTitle,
 } from "@/lib/email/layout";
 import { firstName, sanitize } from "@/lib/email/theme";
+import {
+  SESSION_OPTIONS,
+  normalizeSession,
+} from "@/app/components/constants/sessions";
 
 /**
  * Public enquiry form → admin notification + enquirer confirmation.
@@ -24,7 +28,9 @@ import { firstName, sanitize } from "@/lib/email/theme";
  * table-based shell, and one failed send no longer 500s the whole request.
  */
 
-const VALID_SESSIONS = ["Morning", "Afternoon", "Evening/Night"];
+// Same source of truth as the form's session dropdown, so the two can't drift
+// apart again (the form sends "morning" | "afternoon" | "evening" | "full_day").
+const VALID_SESSIONS: string[] = SESSION_OPTIONS.map((s) => s.value);
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -96,16 +102,20 @@ export async function POST(req: Request) {
         { status: 400 },
       );
     }
-    if (!VALID_SESSIONS.includes(session)) {
+    // normalizeSession also accepts the old labels ("Morning", "Evening/Night").
+    const sessionValue = normalizeSession(session);
+    if (!VALID_SESSIONS.includes(sessionValue)) {
       return NextResponse.json(
         { error: "Invalid session selected" },
         { status: 400 },
       );
     }
+    const sessionLabel =
+      SESSION_OPTIONS.find((s) => s.value === sessionValue)?.label ?? sessionValue;
 
     const rows = [
       { label: "Event Date", value: String(eventDate) },
-      { label: "Session", value: String(session) },
+      { label: "Session", value: sessionLabel },
       { label: "Number of Guests", value: String(guests) },
       { label: "Message", value: message ? String(message) : "No message provided" },
     ];
