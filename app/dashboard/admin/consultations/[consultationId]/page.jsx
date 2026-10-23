@@ -247,6 +247,7 @@ export default function AdminConsultationDetailsPage() {
             note,
             customer:customer_id (
               customer_id,
+              user_id,
               first_name,
               last_name,
               email,
@@ -394,6 +395,22 @@ export default function AdminConsultationDetailsPage() {
           meetingDate,
         )} at ${formatTime(meetingDate)}`,
       });
+
+      // Non-blocking: notify the customer their meeting has been scheduled.
+      const customerUserId = consultation?.customer?.user_id;
+      if (customerUserId) {
+        supabase.auth.getUser().then(({ data: { user } }) => {
+          if (!user) return;
+          return supabase.from("notifications").insert({
+            user_id: customerUserId,
+            sender_id: user.id,
+            category: "consultation",
+            title: "Meeting Scheduled",
+            message: `Your in-person meeting has been scheduled for ${formatDate(meetingDate)} at ${formatTime(meetingDate)}. We look forward to seeing you.`,
+            link_url: "/dashboard/customer/enquiry",
+          });
+        }).catch((err) => console.error("Meeting notification failed:", err));
+      }
     } catch (err) {
       setActionError(err.message || "Unable to schedule this meeting.");
     } finally {

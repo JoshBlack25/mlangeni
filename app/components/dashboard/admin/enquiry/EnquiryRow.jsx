@@ -82,6 +82,33 @@ export default function EnquiryRow({ enquiry, onStatusChange, layout = "table" }
     }
 
     onStatusChange(enquiry.id, newStatus);
+
+    // Notify the customer when their enquiry is confirmed or cancelled.
+    // Guest enquiries have no user_id — nothing to deliver to.
+    if (enquiry.user_id && (newStatus === "confirmed" || newStatus === "cancelled")) {
+      const title = newStatus === "confirmed" ? "Enquiry Confirmed" : "Enquiry Cancelled";
+      const message =
+        newStatus === "confirmed"
+          ? "Your event enquiry has been confirmed. Our team will be in touch shortly."
+          : "Your event enquiry has been cancelled. Contact us if you have any questions.";
+
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (!user) return;
+        supabase
+          .from("notifications")
+          .insert({
+            user_id: enquiry.user_id,
+            sender_id: user.id,
+            category: "enquiry",
+            title,
+            message,
+            link_url: "/dashboard/customer/enquiry",
+          })
+          .then(({ error: notifError }) => {
+            if (notifError) console.error("Enquiry notification failed:", notifError);
+          });
+      });
+    }
   }
 
   const customer = (

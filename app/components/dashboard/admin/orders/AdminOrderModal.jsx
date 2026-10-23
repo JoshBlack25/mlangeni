@@ -69,7 +69,28 @@ export default function AdminOrderModal ({order, onClose, onConsultCreated}){
     setNote("");
     onConsultCreated?.();
 
-
+    // Non-blocking: notify the customer a consultation has been scheduled.
+    supabase
+      .from("customer")
+      .select("user_id")
+      .eq("customer_id", order.customer_id)
+      .single()
+      .then(({ data: customerRow }) => {
+        if (!customerRow?.user_id) return;
+        return supabase.auth.getUser().then(({ data: { user } }) => {
+          if (!user) return;
+          return supabase.from("notifications").insert({
+            user_id: customerRow.user_id,
+            sender_id: user.id,
+            category: "consultation",
+            title: "Consultation Scheduled",
+            message:
+              "A consultation has been scheduled for your booking. Our team will be in touch with the meeting details.",
+            link_url: "/dashboard/customer/enquiry",
+          });
+        });
+      })
+      .catch((err) => console.error("Consultation notification failed:", err));
     }
   const customerName = [order.customer?.first_name, order.customer?.last_name]
     .filter(Boolean)
