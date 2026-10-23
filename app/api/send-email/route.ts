@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { getEmailConfig } from "@/lib/email/config";
 import { deliverEmail } from "@/lib/email/send";
+import { deliverGmail, getGmailConfig } from "@/lib/email/gmail";
 import { clientIp, isRateLimited } from "@/lib/email/rateLimit";
 import { isCrossSiteRequest } from "@/lib/http/sameOrigin";
 import {
@@ -45,8 +46,9 @@ export async function POST(req: Request) {
     }
 
     const config = getEmailConfig();
-    if (!config.enabled) {
-      console.warn("[send-email] RESEND_API_KEY is not set; skipping send.");
+    const gmailConfig = getGmailConfig();
+    if (!config.enabled && !gmailConfig.enabled) {
+      console.warn("[send-email] No email provider configured (set RESEND_API_KEY or GMAIL_USER/GMAIL_APP_PASSWORD).");
       return NextResponse.json(
         { success: false, error: "Email is not configured." },
         { status: 503 },
@@ -142,32 +144,53 @@ export async function POST(req: Request) {
       ].join(""),
     });
 
-    const resend = new Resend(process.env.RESEND_API_KEY);
+    let admin: string;
+    let enquirer: string;
 
-    const [admin, enquirer] = await Promise.all([
-      deliverEmail(
-        resend,
-        {
-          to: config.adminTo,
+    if (config.enabled) {
+      const resend = new Resend(process.env.RESEND_API_KEY);
+      [admin, enquirer] = await Promise.all([
+        deliverEmail(
+          resend,
+          {
+            to: config.adminTo,
+            subject: `New Enquiry — ${sanitize(name)}`,
+            html: adminHtml,
+            replyTo: String(email),
+          },
+          config,
+          "enquiry admin",
+        ),
+        deliverEmail(
+          resend,
+          {
+            to: String(email),
+            subject: `We have received your enquiry, ${firstName(String(name))}`,
+            html: customerHtml,
+            redirectInSandbox: true,
+          },
+          config,
+          "enquiry confirmation",
+        ),
+      ]);
+    } else {
+      // Gmail fallback (GMAIL_USER + GMAIL_APP_PASSWORD)
+      const [adminResult, enquirerResult] = await Promise.all([
+        deliverGmail({
+          to: gmailConfig.adminTo,
           subject: `New Enquiry — ${sanitize(name)}`,
           html: adminHtml,
           replyTo: String(email),
-        },
-        config,
-        "enquiry admin",
-      ),
-      deliverEmail(
-        resend,
-        {
+        }),
+        deliverGmail({
           to: String(email),
           subject: `We have received your enquiry, ${firstName(String(name))}`,
           html: customerHtml,
-          redirectInSandbox: true,
-        },
-        config,
-        "enquiry confirmation",
-      ),
-    ]);
+        }),
+      ]);
+      admin = adminResult.ok ? "sent" : "failed";
+      enquirer = enquirerResult.ok ? "sent" : "failed";
+    }
 
     // The admin copy is the one that matters — the enquiry is lost without it.
     if (admin === "failed") {

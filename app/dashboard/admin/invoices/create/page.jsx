@@ -157,6 +157,7 @@ function AdminCreateInvoiceContent() {
   const [invoiceNote, setInvoiceNote] = useState("");
   const [loading, setLoading] = useState(Boolean(consultationId));
   const [sending, setSending] = useState(false);
+  const [customerUserId, setCustomerUserId] = useState(null);
   const [error, setError] = useState(null);
   const [draftMessage, setDraftMessage] = useState("");
 
@@ -194,6 +195,7 @@ function AdminCreateInvoiceContent() {
             meeting_date,
             note,
             customer:customer_id (
+              user_id,
               first_name,
               last_name,
               email,
@@ -236,6 +238,7 @@ function AdminCreateInvoiceContent() {
         const mapped = mapConsultation(data);
 
         if (mounted) {
+          setCustomerUserId(data?.customer?.user_id ?? null);
           setInvoiceData(mapped);
           setItems(mapped.items);
           setDueDate(getLatestInvoiceDueDate(mapped.order.eventDate));
@@ -346,6 +349,23 @@ function AdminCreateInvoiceContent() {
       }
 
       setDraftMessage("Invoice sent to the customer's payment page.");
+
+      // Non-blocking: notify the customer their invoice is ready.
+      if (customerUserId) {
+        supabase.auth.getUser().then(({ data: { user } }) => {
+          if (!user) return;
+          return supabase.from("notifications").insert({
+            user_id: customerUserId,
+            sender_id: user.id,
+            category: "invoice",
+            title: "Invoice Ready",
+            message:
+              "Your invoice is ready. Please review and complete payment by the due date to secure your event.",
+            link_url: "/dashboard/customer/payments",
+          });
+        }).catch((err) => console.error("Invoice notification failed:", err));
+      }
+
       router.push("/dashboard/admin/invoices");
     } catch (err) {
       setError(err.message || "Unable to send this invoice right now.");

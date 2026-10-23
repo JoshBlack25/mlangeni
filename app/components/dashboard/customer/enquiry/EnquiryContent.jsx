@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Send } from "lucide-react";
 import { supabase } from "@/services/supabaseClient";
+import { useNotifications } from "@/app/components/dashboard/shared/notifications/hooks/useNotifications";
 import PendingEnquiries from "./PendingEnquiries";
 import {
   SESSION_OPTIONS,
@@ -17,13 +18,31 @@ import {
   Field,
   Input,
   Select,
+  Tabs,
   Textarea,
   StatusBadge,
+  EngravedDate,
   EmptyState,
+  Skeleton,
   formatDate,
 } from "@/app/components/dashboard/ui";
 
+const TAB_ITEMS = [
+  { value: "new", label: "New Enquiry" },
+  { value: "history", label: "My Enquiries" },
+];
+
+function sessionLabel(session) {
+  const normalized = normalizeSession(session);
+  const match = SESSION_OPTIONS.find((o) => o.value === normalized);
+  return match ? match.label : String(session ?? "").replace(/_/g, " ");
+}
+
 export default function EnquiryContent() {
+  const { notifyAllAdmins } = useNotifications();
+
+  const [tab, setTab] = useState("new");
+
   const [customer, setCustomer] = useState(null);
   const [loadError, setLoadError] = useState(null);
 
@@ -39,12 +58,48 @@ export default function EnquiryContent() {
 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
-  const [submitted, setSubmitted] = useState(false);
+
+  // history tab
+  const [history, setHistory] = useState(null); // null = not yet loaded
+  const [historyError, setHistoryError] = useState(null);
 
   if (eventDate !== prevEventDate) {
     setPrevEventDate(eventDate);
     setSession("");
   }
+
+  // Load enquiry history when the history tab is first opened.
+  useEffect(() => {
+    if (tab !== "history" || history !== null) return;
+
+    let active = true;
+
+    async function loadHistory() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        if (active) setHistory([]);
+        return;
+      }
+
+      const { data, error: fetchError } = await supabase
+        .from("enquiries")
+        .select("id, event_date, session, guests, status, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (!active) return;
+
+      if (fetchError) {
+        setHistoryError("Couldn't load your enquiries.");
+        setHistory([]);
+      } else {
+        setHistory(data ?? []);
+      }
+    }
+
+    loadHistory();
+    return () => { active = false; };
+  }, [tab, history]);
 
   useEffect(() => {
     async function loadCustomer() {
@@ -133,22 +188,42 @@ export default function EnquiryContent() {
       return;
     }
 
-    setSubmitted(true);
+    // Notify all admins of the new enquiry (non-blocking).
+    notifyAllAdmins({
+      category: "enquiry",
+      title: "New Enquiry Received",
+      message: `${customer.first_name ?? "A customer"} submitted an enquiry for ${formatDate(eventDate)}.`,
+      linkUrl: "/dashboard/admin/enquiries",
+    }).catch((err) => console.error("Admin enquiry notification failed:", err));
+
+    // Reset form and switch to history so they can see what they sent.
+    setEventDate("");
+    setSession("");
+    setGuests("");
+    setMessage("");
+    setHistory(null); // force history to reload with the new entry
+    setTab("history");
   }
 
   return (
     <div>
       <PageHeader
-        title="Tell us what you need"
+        title="Enquiries"
         lead={
-          loadError || submitted
-            ? undefined
-            : customer
-              ? `We already have your details on file${
-                  customer.first_name ? `, ${customer.first_name}` : ""
-                }. Just fill in the event specifics below.`
-              : "Loading your details…"
+          tab === "new" && !loadError && customer
+            ? `We already have your details on file${
+                customer.first_name ? `, ${customer.first_name}` : ""
+              }. Just fill in the event specifics below.`
+            : undefined
         }
+      />
+
+      <Tabs
+        items={TAB_ITEMS}
+        value={tab}
+        onChange={setTab}
+        label="Enquiry sections"
+        className="mb-8"
       />
 
       {loadError ? (
@@ -160,11 +235,46 @@ export default function EnquiryContent() {
             {loadError}
           </p>
         </Panel>
-      ) : submitted ? (
+      ) : tab === "history" ? (
         <Panel>
-          <EmptyState title="Enquiry sent">
-            Thanks. Our team will be in touch shortly to discuss your event.
-          </EmptyState>
+          <PanelHeader title="My Enquiries" className="mb-4" />
+          {history === null ? (
+            <ul className="divide-y divide-mgh-line-soft">
+              {[...Array(3)].map((_, i) => (
+                <li key={i} className="flex items-center gap-4 py-4">
+                  <Skeleton className="h-10 w-10 rounded" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-3.5 w-40 rounded" />
+                    <Skeleton className="h-3 w-24 rounded" />
+                  </div>
+                  <Skeleton className="h-6 w-16 rounded-full" />
+                </li>
+              ))}
+            </ul>
+          ) : historyError ? (
+            <p role="alert" className="text-sm text-mgh-danger">{historyError}</p>
+          ) : history.length === 0 ? (
+            <EmptyState title="No enquiries yet">
+              Submit your first enquiry using the New Enquiry tab.
+            </EmptyState>
+          ) : (
+            <ul className="divide-y divide-mgh-line-soft">
+              {history.map((enquiry) => (
+                <li key={enquiry.id} className="flex items-center gap-4 py-4">
+                  <EngravedDate date={enquiry.event_date} size="sm" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm tabular-nums text-mgh-text">
+                      {sessionLabel(enquiry.session)} · {enquiry.guests} guests
+                    </p>
+                    <p className="mt-0.5 text-caption text-mgh-dim">
+                      Submitted {formatDate(enquiry.created_at)}
+                    </p>
+                  </div>
+                  <StatusBadge status={enquiry.status} />
+                </li>
+              ))}
+            </ul>
+          )}
         </Panel>
       ) : (
         <div className="grid grid-cols-1 gap-8 md:gap-10 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
