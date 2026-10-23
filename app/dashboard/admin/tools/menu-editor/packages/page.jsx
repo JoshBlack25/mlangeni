@@ -1,32 +1,7 @@
-import {
-  Button,
-  EmptyState,
-  PageHeader,
-  Panel,
-} from "@/app/components/dashboard/ui";
+import { redirect } from "next/navigation";
 
-export const metadata = {
-  title: "Menu packages",
-  description: "Pre-made menus offered as packages.",
-  robots: { index: false, follow: false },
-};
-
+// Package editing now lives in the Tools section (premade-menu). This old
+// placeholder route redirects there so existing links don't dead-end.
 export default function PackagesPage() {
-  return (
-    <div>
-      <PageHeader density="dense" title="Packages" />
-      <Panel density="dense">
-        <EmptyState
-          title="Packages"
-          action={
-            <Button variant="secondary" href="/dashboard/admin/tools/menu-editor">
-              Back to menu editor
-            </Button>
-          }
-        >
-          Package editing isn&apos;t available here yet.
-        </EmptyState>
-      </Panel>
-    </div>
-  );
+  redirect("/dashboard/admin/tools/premade-menu");
 }
