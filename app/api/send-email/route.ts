@@ -147,7 +147,11 @@ export async function POST(req: Request) {
     let admin: string;
     let enquirer: string;
 
-    if (config.enabled) {
+    // Gmail SMTP is preferred when configured: Resend is still in sandbox mode
+    // (no verified domain), so it can only deliver to the account owner and
+    // customers would never get their confirmation. Resend stays as the
+    // fallback, and the quote and chat emails keep using it.
+    if (!gmailConfig.enabled) {
       const resend = new Resend(process.env.RESEND_API_KEY);
       [admin, enquirer] = await Promise.all([
         deliverEmail(

@@ -17,8 +17,9 @@ const tools = [
   },
   {
     title: "Package editor",
-    description: "Create packages",
-    href: "/dashboard/admin/tools/premade-menu"
+    description:
+      "Build the pre-made menus customers can book as packages.",
+    href: "/dashboard/admin/tools/premade-menu",
   },
   {
     title: "Testimonials",
@@ -26,7 +27,6 @@ const tools = [
       "Approve or reject customer reviews, and choose which ones appear on the homepage.",
     href: "/dashboard/admin/tools/testimonials",
   },
-  
 ];
 
 export default function ToolsOverview() {
