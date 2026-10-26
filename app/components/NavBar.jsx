@@ -114,10 +114,10 @@ export default function Navbar({ solid = false }) {
     <nav aria-label="Main">
       <header
         className={cn(
-          "fixed inset-x-0 top-0 z-50 border-b transition-[background-color,border-color] duration-500 ease-mgh",
+          "fixed inset-x-0 top-0 z-50 transition-[background-color] duration-500 ease-mgh",
           overHero
-            ? "border-transparent bg-linear-to-b from-mgh-bg/70 to-transparent"
-            : "border-mgh-line bg-mgh-bg/90 backdrop-blur-md",
+            ? "bg-linear-to-b from-mgh-bg/70 to-transparent"
+            : "bg-mgh-bg/90 backdrop-blur-md",
         )}
       >
         <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between px-5 md:h-[72px] md:px-10">
