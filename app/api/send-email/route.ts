@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { getEmailConfig } from "@/lib/email/config";
 import { deliverEmail } from "@/lib/email/send";
+import { deliverGmail, getGmailConfig } from "@/lib/email/gmail";
 import { clientIp, isRateLimited } from "@/lib/email/rateLimit";
 import { isCrossSiteRequest } from "@/lib/http/sameOrigin";
 import {
@@ -13,6 +14,10 @@ import {
   sectionTitle,
 } from "@/lib/email/layout";
 import { firstName, sanitize } from "@/lib/email/theme";
+import {
+  SESSION_OPTIONS,
+  normalizeSession,
+} from "@/app/components/constants/sessions";
 
 /**
  * Public enquiry form → admin notification + enquirer confirmation.
@@ -23,7 +28,9 @@ import { firstName, sanitize } from "@/lib/email/theme";
  * table-based shell, and one failed send no longer 500s the whole request.
  */
 
-const VALID_SESSIONS = ["Morning", "Afternoon", "Evening/Night"];
+// Same source of truth as the form's session dropdown, so the two can't drift
+// apart again (the form sends "morning" | "afternoon" | "evening" | "full_day").
+const VALID_SESSIONS: string[] = SESSION_OPTIONS.map((s) => s.value);
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -45,8 +52,9 @@ export async function POST(req: Request) {
     }
 
     const config = getEmailConfig();
-    if (!config.enabled) {
-      console.warn("[send-email] RESEND_API_KEY is not set; skipping send.");
+    const gmailConfig = getGmailConfig();
+    if (!config.enabled && !gmailConfig.enabled) {
+      console.warn("[send-email] No email provider configured (set RESEND_API_KEY or GMAIL_USER/GMAIL_APP_PASSWORD).");
       return NextResponse.json(
         { success: false, error: "Email is not configured." },
         { status: 503 },
@@ -94,16 +102,20 @@ export async function POST(req: Request) {
         { status: 400 },
       );
     }
-    if (!VALID_SESSIONS.includes(session)) {
+    // normalizeSession also accepts the old labels ("Morning", "Evening/Night").
+    const sessionValue = normalizeSession(session);
+    if (!VALID_SESSIONS.includes(sessionValue)) {
       return NextResponse.json(
         { error: "Invalid session selected" },
         { status: 400 },
       );
     }
+    const sessionLabel =
+      SESSION_OPTIONS.find((s) => s.value === sessionValue)?.label ?? sessionValue;
 
     const rows = [
       { label: "Event Date", value: String(eventDate) },
-      { label: "Session", value: String(session) },
+      { label: "Session", value: sessionLabel },
       { label: "Number of Guests", value: String(guests) },
       { label: "Message", value: message ? String(message) : "No message provided" },
     ];
@@ -142,32 +154,57 @@ export async function POST(req: Request) {
       ].join(""),
     });
 
-    const resend = new Resend(process.env.RESEND_API_KEY);
+    let admin: string;
+    let enquirer: string;
 
-    const [admin, enquirer] = await Promise.all([
-      deliverEmail(
-        resend,
-        {
-          to: config.adminTo,
+    // Gmail SMTP is preferred when configured: Resend is still in sandbox mode
+    // (no verified domain), so it can only deliver to the account owner and
+    // customers would never get their confirmation. Resend stays as the
+    // fallback, and the quote and chat emails keep using it.
+    if (!gmailConfig.enabled) {
+      const resend = new Resend(process.env.RESEND_API_KEY);
+      [admin, enquirer] = await Promise.all([
+        deliverEmail(
+          resend,
+          {
+            to: config.adminTo,
+            subject: `New Enquiry — ${sanitize(name)}`,
+            html: adminHtml,
+            replyTo: String(email),
+          },
+          config,
+          "enquiry admin",
+        ),
+        deliverEmail(
+          resend,
+          {
+            to: String(email),
+            subject: `We have received your enquiry, ${firstName(String(name))}`,
+            html: customerHtml,
+            redirectInSandbox: true,
+          },
+          config,
+          "enquiry confirmation",
+        ),
+      ]);
+    } else {
+      // Gmail fallback (GMAIL_USER + GMAIL_APP_PASSWORD)
+      const [adminResult, enquirerResult] = await Promise.all([
+        deliverGmail({
+          to: gmailConfig.adminTo,
           subject: `New Enquiry — ${sanitize(name)}`,
           html: adminHtml,
           replyTo: String(email),
-        },
-        config,
-        "enquiry admin",
-      ),
-      deliverEmail(
-        resend,
-        {
+        }),
+        deliverGmail({
           to: String(email),
           subject: `We have received your enquiry, ${firstName(String(name))}`,
           html: customerHtml,
-          redirectInSandbox: true,
-        },
-        config,
-        "enquiry confirmation",
-      ),
-    ]);
+        }),
+      ]);
+      admin = adminResult.ok ? "sent" : "failed";
+      enquirer = enquirerResult.ok ? "sent" : "failed";
+    }
 
     // The admin copy is the one that matters — the enquiry is lost without it.
     if (admin === "failed") {

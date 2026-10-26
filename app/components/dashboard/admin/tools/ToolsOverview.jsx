@@ -16,6 +16,12 @@ const tools = [
     href: "/dashboard/admin/tools/menu-editor",
   },
   {
+    title: "Package editor",
+    description:
+      "Build the pre-made menus customers can book as packages.",
+    href: "/dashboard/admin/tools/premade-menu",
+  },
+  {
     title: "Testimonials",
     description:
       "Approve or reject customer reviews, and choose which ones appear on the homepage.",

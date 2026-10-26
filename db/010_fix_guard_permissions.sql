@@ -1,0 +1,46 @@
+-- =============================================================================
+-- 010 — Fix: let the 009 guard triggers call is_untrusted_writer()
+-- =============================================================================
+--
+-- WHY
+-- 009 added guard triggers on orders, testimonials, enquiries, consultations,
+-- order_items, customer_menu_items and customer. Every guard calls
+-- public.is_untrusted_writer(), but 009 also ran
+--
+--   revoke all on function public.is_untrusted_writer() from public, anon, authenticated;
+--
+-- Trigger functions run as the calling role, so for every non-admin write the
+-- guard's call to the helper failed with
+--
+--   42501  permission denied for function is_untrusted_writer
+--
+-- That broke the public enquiry form, menu builder and package orders, reviews,
+-- consultation requests and customer profile edits. Admin writes still worked.
+--
+-- HOW
+-- Give execute back to the two client roles. The helper only reports whether
+-- the caller is a non-admin, so exposing it reveals nothing and changes nothing.
+--
+-- Do NOT make the helper SECURITY DEFINER instead: it reads current_user, which
+-- would then be the function owner, so it would always return false and every
+-- guard would silently switch off.
+--
+-- Checked before applying (live database, 23 Oct 2026):
+--   * anon and authenticated can execute public.is_admin()      -> yes
+--   * enquiries has an INSERT policy for anon, authenticated   -> yes
+--     ("anyone can submit an enquiry")
+--
+-- Safe to re-run.
+-- =============================================================================
+
+grant execute on function public.is_untrusted_writer() to anon, authenticated;
+
+
+-- =============================================================================
+-- VERIFY
+-- =============================================================================
+--   select has_function_privilege('anon', 'public.is_untrusted_writer()', 'execute');           -- expect true
+--   select has_function_privilege('authenticated', 'public.is_untrusted_writer()', 'execute');  -- expect true
+-- Then submit the public enquiry form while logged out: it should succeed and
+-- the new row should have status 'pending'.
+-- =============================================================================
