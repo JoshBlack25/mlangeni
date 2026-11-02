@@ -183,7 +183,7 @@ export default function LoginPage() {
                   Password
                 </label>
                 <Link
-                  href="#"
+                  href="/forgot-password"
                   className={cn("rounded-sm text-[13px] text-mgh-muted underline-offset-4 transition-colors hover:text-mgh-text hover:underline", focusRing)}
                 >
                   Forgot password?
