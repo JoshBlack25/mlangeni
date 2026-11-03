@@ -1,18 +1,6 @@
-"use client";
-
-import Link from "next/link";
+﻿"use client";
 import { useParams } from "next/navigation";
-import { motion } from "framer-motion";
-import {
-  ArrowLeft,
-  CalendarCheck,
-  ClipboardList,
-  Mail,
-  MapPin,
-  Phone,
-  UserRound,
-  UtensilsCrossed,
-} from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useCustomerConsultations } from "@/app/components/dashboard/customer/consultations/useCustomerConsultations";
 import ConsultationChat from "@/app/components/dashboard/shared/consultations/ConsultationChat";
 import {
@@ -21,20 +9,18 @@ import {
   formatConsultationTime,
   getConsultationCustomerName,
   getConsultationOrderItems,
-  isActiveConsultation,
 } from "@/app/utils/consultationPresentation";
-
-const currency = new Intl.NumberFormat("en-ZA", {
-  style: "currency",
-  currency: "ZAR",
-});
-
-function orderStatusLabel(status) {
-  return (status ?? "pending")
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-}
+import {
+  PageHeader,
+  Panel,
+  PanelHeader,
+  Button,
+  StatusBadge,
+  SkeletonRows,
+  EmptyState,
+  formatCurrency,
+  statusLabel,
+} from "@/app/components/dashboard/ui";
 
 export default function CustomerConsultationDetailsPage() {
   const { consultationId } = useParams();
@@ -42,289 +28,156 @@ export default function CustomerConsultationDetailsPage() {
   const consultation = consultations?.[0];
   const customer = consultation?.customer;
   const order = consultation?.order;
-  const orderItems = getConsultationOrderItems(order);
-  const loading = consultations === null;
-
+  const items = getConsultationOrderItems(order);
   return (
-    <main className="min-h-screen bg-[#0A0A0A] px-6 py-10 text-white md:px-10 lg:px-14">
-      <div className="mx-auto max-w-[1400px]">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between"
-        >
-          <div className="min-w-0">
-            <Link
-              href="/dashboard/customer/consultations"
-              className="mb-5 inline-flex items-center gap-2 text-sm font-medium text-[#A0A0A0] transition hover:text-[#D4AF37]"
-            >
-              <ArrowLeft size={16} />
-              Back to consultations
-            </Link>
-            <div className="mb-4 flex items-center gap-2 text-sm uppercase tracking-[0.25em] text-[#D4AF37]">
-              <CalendarCheck size={17} />
-              <span>Consultation Request</span>
-            </div>
-            <h1 className="break-words font-serif text-4xl font-medium text-white md:text-5xl">
-              {loading
-                ? "Loading request"
-                : getConsultationCustomerName(customer)}
-            </h1>
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-[#A0A0A0] md:text-base">
-              Your event details and consultation conversation.
-            </p>
-          </div>
-          {consultation && (
-            <div className="border-l-2 border-[#D4AF37] bg-white/[0.03] px-4 py-3 text-sm text-[#D4AF37]">
-              {consultationStatusLabel(consultation)}
-              <p className="mt-2 text-xs text-[#797676]">
+    <div>
+      <PageHeader
+        title="Consultation details"
+        lead="Your event details and conversation with our team."
+        actions={
+          <Button href="/dashboard/customer/consultations" variant="quiet">
+            <ArrowLeft size={16} />
+            Back to consultations
+          </Button>
+        }
+      />
+      {error ? (
+        <Panel>
+          <p role="alert" className="text-sm text-mgh-danger">
+            {error}
+          </p>
+        </Panel>
+      ) : consultations === null ? (
+        <Panel>
+          <SkeletonRows rows={5} label="Loading consultation" />
+        </Panel>
+      ) : !consultation ? (
+        <Panel>
+          <EmptyState title="Consultation not found">
+            This consultation is no longer available for your account.
+          </EmptyState>
+        </Panel>
+      ) : (
+        <div className="flex flex-col gap-6">
+          <Panel className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="font-serif text-title text-mgh-text">
+                {order?.event_type?.event_name ?? "Event booking"}
+              </p>
+              <p className="mt-1 text-caption tabular-nums text-mgh-dim">
                 ORD-{consultation.order_id.slice(0, 8).toUpperCase()}
               </p>
             </div>
-          )}
-        </motion.div>
-
-        {loading ? (
-          <div className="mt-10 grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
-            <div className="h-64 animate-pulse rounded-2xl border border-[#1F1F1F] bg-white/5" />
-            <div className="h-64 animate-pulse rounded-2xl border border-[#1F1F1F] bg-white/5" />
-          </div>
-        ) : error ? (
-          <div
-            role="alert"
-            className="mt-10 flex min-h-64 flex-col items-center justify-center border border-red-400/20 bg-red-400/5 px-6 text-center"
-          >
-            <p className="text-sm font-semibold text-red-300">
-              We could not load this consultation
-            </p>
-            <p className="mt-2 max-w-lg text-sm leading-6 text-[#A0A0A0]">
-              {error}
-            </p>
-          </div>
-        ) : !consultation ? (
-          <div className="mt-10 flex min-h-64 flex-col items-center justify-center border border-white/10 bg-white/5 px-6 text-center">
-            <ClipboardList size={28} className="text-[#D4AF37]" />
-            <h2 className="mt-4 text-lg font-semibold text-white">
-              Consultation not found
-            </h2>
-            <p className="mt-2 max-w-lg text-sm leading-6 text-[#A0A0A0]">
-              This consultation is no longer available for your account.
-            </p>
-          </div>
-        ) : (
-          <>
-            <motion.section
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45, delay: 0.1 }}
-              className="mt-10 grid grid-cols-1 gap-6 xl:grid-cols-[0.85fr_1.15fr]"
-            >
-              <InfoPanel
-                icon={UserRound}
-                eyebrow="Customer"
-                title="Customer Details"
+            <StatusBadge
+              status={consultation.status}
+              label={consultationStatusLabel(consultation)}
+            />
+          </Panel>
+          <div className="grid items-start gap-6 lg:grid-cols-2">
+            <Panel>
+              <PanelHeader title="Customer details" />
+              <dl className="divide-y divide-mgh-line-soft">
+                <Detail
+                  label="Name"
+                  value={getConsultationCustomerName(customer)}
+                />
+                <Detail label="Email" value={customer?.email} />
+                <Detail label="Phone" value={customer?.phone_number} />
+              </dl>
+            </Panel>
+            <Panel>
+              <PanelHeader title="Event details" />
+              <dl className="divide-y divide-mgh-line-soft">
+                <Detail
+                  label="Event date"
+                  value={formatConsultationDate(order?.event_date)}
+                />
+                <Detail
+                  label="Event time"
+                  value={`${formatConsultationTime(order?.start_time)} – ${formatConsultationTime(order?.end_time)}`}
+                />
+                <Detail label="Guests" value={order?.number_of_guest} />
+                <Detail label="Location" value={order?.event_location} />
+                <Detail
+                  label="Order total"
+                  value={formatCurrency(order?.total_price)}
+                />
+                <Detail
+                  label="Order status"
+                  value={statusLabel(order?.status)}
+                />
+              </dl>
+              <Button
+                className="mt-4"
+                href={`/dashboard/customer/orders/${consultation.order_id}`}
+                variant="quiet"
+                size="sm"
               >
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <DetailField
-                    label="First Name"
-                    value={customer?.first_name || "First name pending"}
-                  />
-                  <DetailField
-                    label="Last Name"
-                    value={customer?.last_name || "Last name pending"}
-                  />
-                </div>
-                <div className="mt-5 grid grid-cols-1 gap-3">
-                  <ContactRow
-                    icon={Mail}
-                    label="Email"
-                    value={customer?.email || "Email pending"}
-                  />
-                  <ContactRow
-                    icon={Phone}
-                    label="Phone"
-                    value={customer?.phone_number || "Phone pending"}
-                  />
-                </div>
-              </InfoPanel>
-              <InfoPanel
-                icon={ClipboardList}
-                eyebrow="Order"
-                title="Submitted Event Details"
-              >
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <DetailField
-                    label="Event Type"
-                    value={
-                      order?.event_type?.event_name ?? "Event type pending"
-                    }
-                  />
-                  <DetailField
-                    label="Guest Count"
-                    value={
-                      order?.number_of_guest != null
-                        ? `${order.number_of_guest} guests`
-                        : "Guest count pending"
-                    }
-                  />
-                  <DetailField
-                    label="Event Date"
-                    value={formatConsultationDate(order?.event_date)}
-                  />
-                  <DetailField
-                    label="Event Time"
-                    value={`${formatConsultationTime(order?.start_time)} - ${formatConsultationTime(order?.end_time)}`}
-                  />
-                  <DetailField
-                    label="Order Total"
-                    value={currency.format(Number(order?.total_price ?? 0))}
-                  />
-                  <DetailField
-                    label="Order Status"
-                    value={orderStatusLabel(order?.status)}
-                  />
-                </div>
-                <div className="mt-4 flex items-center gap-2 border border-white/10 bg-[#0A0A0A]/50 px-4 py-3 text-sm text-[#A0A0A0]">
-                  <MapPin size={16} className="shrink-0 text-[#D4AF37]" />
-                  <span className="min-w-0 break-words">
-                    {order?.event_location || "Event location pending"}
-                  </span>
-                </div>
-              </InfoPanel>
-            </motion.section>
-
-            <motion.section
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45, delay: 0.16 }}
-              className="mt-6 rounded-2xl border border-[#1F1F1F] bg-white/5 p-6 backdrop-blur-md"
-            >
-              <div className="mb-5 flex items-start justify-between gap-4 border-b border-white/10 pb-5">
-                <div className="min-w-0">
-                  <p className="text-xs uppercase tracking-[0.2em] text-[#A0A0A0]">
-                    Ordered Items
-                  </p>
-                  <h2 className="mt-2 text-xl font-semibold text-white">
-                    Customer Menu Selection
-                  </h2>
-                </div>
-                <div className="inline-flex shrink-0 rounded-xl bg-[#D4AF37]/10 p-3 text-[#D4AF37]">
-                  <UtensilsCrossed size={21} />
-                </div>
-              </div>
-              {orderItems.length === 0 ? (
-                <div className="border border-white/10 bg-[#0A0A0A]/50 px-4 py-6 text-sm text-[#A0A0A0]">
-                  No menu items were found for this order yet.
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-                  {orderItems.map((item) => (
-                    <div
-                      key={item.id}
-                      className="grid grid-cols-1 gap-3 rounded-xl border border-white/10 bg-[#0A0A0A]/50 p-4 md:grid-cols-[minmax(0,1fr)_auto]"
-                    >
-                      <div className="min-w-0">
-                        <p className="break-words text-sm font-semibold text-white">
-                          {item.name}
-                        </p>
-                        <p className="mt-1 break-words text-xs text-[#797676]">
-                          {item.note}
-                        </p>
-                      </div>
-                      <div className="text-sm font-medium text-[#D4AF37] md:text-right">
-                        <p>Qty {item.quantity}</p>
-                        {item.price != null && (
-                          <p className="mt-1 text-xs text-[#A0A0A0]">
-                            {currency.format(Number(item.price))}
-                          </p>
-                        )}
-                      </div>
+                View order
+              </Button>
+            </Panel>
+          </div>
+          <Panel>
+            <PanelHeader title="Menu selection" />
+            {!items.length ? (
+              <p className="text-sm text-mgh-muted">
+                No menu items were found for this order yet.
+              </p>
+            ) : (
+              <ul className="divide-y divide-mgh-line-soft">
+                {items.map((item) => (
+                  <li
+                    key={item.id}
+                    className="flex items-start justify-between gap-4 py-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm text-mgh-text">
+                        {item.name} × {item.quantity}
+                      </p>
+                      <p className="mt-1 text-caption text-mgh-dim">
+                        {item.note}
+                      </p>
                     </div>
-                  ))}
-                </div>
+                    {item.price != null && (
+                      <span className="shrink-0 text-sm tabular-nums text-mgh-text">
+                        {formatCurrency(item.price)}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Panel>
+          {(consultation.note || consultation.meeting_date) && (
+            <Panel>
+              <PanelHeader title="Meeting details" />
+              {consultation.meeting_date && (
+                <p className="text-sm text-mgh-text">
+                  {formatConsultationDate(consultation.meeting_date)} at{" "}
+                  {formatConsultationTime(consultation.meeting_date)}
+                </p>
               )}
               {consultation.note && (
-                <div className="mt-5 border border-[#D4AF37]/20 bg-[#D4AF37]/5 px-4 py-4">
-                  <p className="text-xs uppercase tracking-[0.18em] text-[#D4AF37]">
-                    Consultation Notes
-                  </p>
-                  <p className="mt-2 whitespace-pre-line break-words text-sm leading-6 text-[#A0A0A0]">
-                    {consultation.note}
-                  </p>
-                </div>
+                <p className="mt-3 whitespace-pre-line break-words text-sm leading-relaxed text-mgh-muted">
+                  {consultation.note}
+                </p>
               )}
-              {!isActiveConsultation(consultation) && (
-                <div className="mt-5 border-l-2 border-[#D4AF37] bg-[#D4AF37]/5 px-4 py-4">
-                  <p className="text-sm font-semibold text-[#D4AF37]">
-                    Meeting Scheduled
-                  </p>
-                  <p className="mt-2 text-sm text-[#A0A0A0]">
-                    {formatConsultationDate(consultation.meeting_date)} at{" "}
-                    {formatConsultationTime(consultation.meeting_date)}
-                  </p>
-                </div>
-              )}
-            </motion.section>
-
-            <motion.div
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45, delay: 0.22 }}
-              className="mt-6"
-            >
-              <ConsultationChat
-                key={consultation.consultations_id}
-                consultation={consultation}
-              />
-            </motion.div>
-          </>
-        )}
-      </div>
-    </main>
-  );
-}
-
-function InfoPanel({ icon: Icon, eyebrow, title, children }) {
-  return (
-    <section className="min-w-0 rounded-2xl border border-[#1F1F1F] bg-white/5 p-6 backdrop-blur-md">
-      <div className="mb-5 flex items-start justify-between gap-4 border-b border-white/10 pb-5">
-        <div className="min-w-0">
-          <p className="text-xs uppercase tracking-[0.2em] text-[#A0A0A0]">
-            {eyebrow}
-          </p>
-          <h2 className="mt-2 text-xl font-semibold text-white">{title}</h2>
+            </Panel>
+          )}
+          <ConsultationChat
+            key={consultation.consultations_id}
+            consultation={consultation}
+          />
         </div>
-        <div className="inline-flex shrink-0 rounded-xl bg-[#D4AF37]/10 p-3 text-[#D4AF37]">
-          <Icon size={21} />
-        </div>
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function DetailField({ label, value }) {
-  return (
-    <div className="min-w-0 border border-white/10 bg-[#0A0A0A]/50 px-4 py-3">
-      <p className="text-xs uppercase tracking-[0.18em] text-[#797676]">
-        {label}
-      </p>
-      <p className="mt-2 break-words text-sm font-medium text-white">{value}</p>
+      )}
     </div>
   );
 }
-
-function ContactRow({ icon: Icon, label, value }) {
+function Detail({ label, value }) {
   return (
-    <div className="flex items-center gap-3 border border-white/10 bg-[#0A0A0A]/50 px-4 py-3">
-      <Icon size={16} className="shrink-0 text-[#D4AF37]" />
-      <div className="min-w-0">
-        <p className="text-xs uppercase tracking-[0.18em] text-[#797676]">
-          {label}
-        </p>
-        <p className="mt-1 break-words text-sm text-white">{value}</p>
-      </div>
+    <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-3 py-2.5 text-sm">
+      <dt className="text-mgh-dim">{label}</dt>
+      <dd className="break-words text-mgh-text">{value ?? "TBC"}</dd>
     </div>
   );
 }

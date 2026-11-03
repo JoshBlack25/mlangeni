@@ -7,6 +7,7 @@ import Invoices from "./Invoices/Invoices";
 import Enquiries from "./Enquiries/Enquiries";
 import Testimonials from "./Testimonials/Testimonials";
 import RecentOrders from "./RecentOrders/RecentOrders";
+import Consultations from "./Consultations/Consultations";
 import DashboardFooter from "./DashboardFooter";
 
 /**
@@ -24,6 +25,8 @@ export default function DashboardContent() {
       </div>
 
       <Stats />
+
+      <Consultations />
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <RecentOrders />

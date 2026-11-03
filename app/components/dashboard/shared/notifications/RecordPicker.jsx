@@ -30,7 +30,7 @@ const categoryConfig = {
         .eq("customer_id", customerId)
         .order("meeting_date", { ascending: false }),
     formatLabel: (row) =>
-      `${new Date(row.meeting_date).toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" })}, ${row.status}`,
+      `${row.meeting_date ? new Date(row.meeting_date).toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" }) : "Meeting not scheduled"}, ${row.status}`,
     linkPrefix: "/consultations",
   },
   invoice: {
@@ -125,14 +125,7 @@ export default function RecordPicker({
               return;
             }
             const id = record[config.idField];
-            // Enquiry has no per-record customer view; use the enquiry list page.
-            // When basePath points at the admin dashboard, use the deep-link param.
-            const linkUrl =
-              category === "enquiry"
-                ? basePath.includes("/admin")
-                  ? `${basePath}/enquiries?enquiryId=${id}`
-                  : `${basePath}/enquiry`
-                : `${basePath}${config.linkPrefix}`;
+            const linkUrl = getNotificationDestination(basePath, category, id);
             onChange({
               id,
               label: config.formatLabel(record),
@@ -150,4 +143,18 @@ export default function RecordPicker({
       )}
     </Field>
   );
+}
+
+function getNotificationDestination(basePath, category, id) {
+  if (category === "consultation") return `${basePath}/consultations/${id}`;
+  if (category === "enquiry") {
+    return basePath === "/dashboard/admin"
+      ? `${basePath}/enquiries?enquiryId=${id}`
+      : `${basePath}/enquiry`;
+  }
+  if (category === "order") return `${basePath}/orders`;
+  if (category === "invoice") {
+    return `${basePath}${basePath === "/dashboard/customer" ? "/payments" : "/invoices"}`;
+  }
+  return null;
 }

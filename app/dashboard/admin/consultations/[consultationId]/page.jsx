@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/services/supabaseClient";
 import { cn } from "@/lib/utils";
+import ConsultationChat from "@/app/components/dashboard/shared/consultations/ConsultationChat";
 import {
   Button,
   Dialog,
@@ -95,7 +96,8 @@ function toTimeInput(value) {
 function getCustomerName(customer) {
   if (!customer) return "Unknown customer";
 
-  const name = `${customer.first_name ?? ""} ${customer.last_name ?? ""}`.trim();
+  const name =
+    `${customer.first_name ?? ""} ${customer.last_name ?? ""}`.trim();
 
   return name || customer.email || "Unknown customer";
 }
@@ -105,7 +107,6 @@ function getReference(id) {
 
   return `REQ-${id.slice(0, 8).toUpperCase()}`;
 }
-
 
 function buildMeetingDates() {
   const dates = [];
@@ -130,7 +131,8 @@ function getOrderItems(order) {
 
   const customItems = (order.customer_menu_items ?? [])
     .map((item) => ({
-      id: item.custom_menu_id ?? item.menu_item?.item_id ?? item.menu_item?.name,
+      id:
+        item.custom_menu_id ?? item.menu_item?.item_id ?? item.menu_item?.name,
       name: item.menu_item?.name ?? "Menu item",
       quantity: item.quantity ?? 1,
       note: item.menu_item?.description ?? "Custom menu selection",
@@ -399,17 +401,20 @@ export default function AdminConsultationDetailsPage() {
       // Non-blocking: notify the customer their meeting has been scheduled.
       const customerUserId = consultation?.customer?.user_id;
       if (customerUserId) {
-        supabase.auth.getUser().then(({ data: { user } }) => {
-          if (!user) return;
-          return supabase.from("notifications").insert({
-            user_id: customerUserId,
-            sender_id: user.id,
-            category: "consultation",
-            title: "Meeting Scheduled",
-            message: `Your in-person meeting has been scheduled for ${formatDate(meetingDate)} at ${formatTime(meetingDate)}. We look forward to seeing you.`,
-            link_url: "/dashboard/customer/enquiry",
-          });
-        }).catch((err) => console.error("Meeting notification failed:", err));
+        supabase.auth
+          .getUser()
+          .then(({ data: { user } }) => {
+            if (!user) return;
+            return supabase.from("notifications").insert({
+              user_id: customerUserId,
+              sender_id: user.id,
+              category: "consultation",
+              title: "Meeting Scheduled",
+              message: `Your in-person meeting has been scheduled for ${formatDate(meetingDate)} at ${formatTime(meetingDate)}. We look forward to seeing you.`,
+              link_url: `/dashboard/customer/consultations/${consultationId}`,
+            });
+          })
+          .catch((err) => console.error("Meeting notification failed:", err));
       }
     } catch (err) {
       setActionError(err.message || "Unable to schedule this meeting.");
@@ -767,12 +772,19 @@ export default function AdminConsultationDetailsPage() {
                     className="w-full"
                   >
                     <Trash2 size={16} />
-                    {savingAction === "cancel" ? "Cancelling..." : "Cancel Event"}
+                    {savingAction === "cancel"
+                      ? "Cancelling..."
+                      : "Cancel Event"}
                   </Button>
                 </div>
               </div>
             </Panel>
           </div>
+          <ConsultationChat
+            key={consultation.consultations_id}
+            consultation={consultation}
+            isAdmin
+          />
         </div>
       )}
 
@@ -791,7 +803,11 @@ export default function AdminConsultationDetailsPage() {
           {...actionConfirmation}
           onClose={() => {
             setActionConfirmation(null);
-            router.replace("/dashboard/admin");
+            router.replace(
+              consultation?.status === "scheduled"
+                ? "/dashboard/admin/active-meetings"
+                : "/dashboard/admin/consultations",
+            );
             router.refresh();
           }}
         />
@@ -901,8 +917,12 @@ function AdminActionConfirmationDialog({
       )}
 
       <div className="mt-6 flex justify-end">
-        <Button variant="primary" onClick={onClose} className="w-full sm:w-auto">
-          Back to dashboard
+        <Button
+          variant="primary"
+          onClick={onClose}
+          className="w-full sm:w-auto"
+        >
+          Continue
         </Button>
       </div>
     </Dialog>

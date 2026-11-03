@@ -12,13 +12,17 @@ function mergeMessages(current, incoming) {
     current.map((message) => [message.message_id, message]),
   );
   for (const message of incoming) merged.set(message.message_id, message);
+  // Polling an unchanged conversation must not jump someone reading history.
   if (merged.size === current.length) return current;
   return [...merged.values()].sort(
     (a, b) => new Date(a.created_at) - new Date(b.created_at),
   );
 }
 
-export default function ConsultationChat({ consultation, isAdmin = false }) {
+export default function ConsultationChat({
+  consultation,
+  isAdmin = false,
+}) {
   const consultationId = consultation.consultations_id;
   const [conversationId, setConversationId] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -34,12 +38,16 @@ export default function ConsultationChat({ consultation, isAdmin = false }) {
   const pagePosition = useRef({ left: 0, top: 0 });
   const scrollDistance = useRef(0);
   const messageViewport = useRef(null);
-  const inlineHeight = "h-[946px] sm:h-[816px] md:h-[728px] lg:h-[455px]";
-  const closed = !isActiveConsultation(consultation);
-  const adminStarted = messages.some((message) => message.sender_id !== userId);
-  const waitingForAdmin = !isAdmin && !adminStarted;
-  const canSend =
-    !loading && Boolean(conversationId) && !closed && !waitingForAdmin;
+  const inlineHeight = "h-[min(40rem,80dvh)] min-h-96";
+  const { closed, waitingForAdmin, canSend } =
+    getConsultationChatState({
+      consultation,
+      messages,
+      userId,
+      isAdmin,
+      loading,
+      conversationId,
+    });
   const closeFullScreen = useCallback(() => setExpanded(false), []);
 
   useFocusTrap(panelRef, { active: expanded, onEscape: closeFullScreen });
@@ -195,16 +203,16 @@ export default function ConsultationChat({ consultation, isAdmin = false }) {
       aria-label={expanded ? "Consultation Chat" : undefined}
       className={
         expanded
-          ? "fixed inset-0 z-[100] flex h-[100dvh] min-w-0 flex-col bg-[#101010] p-4 text-white sm:p-6"
-          : `flex ${inlineHeight} min-w-0 flex-col rounded-2xl border border-[#1F1F1F] bg-white/5 p-6 backdrop-blur-md`
+          ? `${isAdmin ? "" : "mgh-warm "}fixed inset-0 z-[100] flex h-[100dvh] min-w-0 flex-col bg-mgh-surface p-4 text-mgh-text sm:p-6`
+          : `flex ${inlineHeight} min-w-0 flex-col rounded-card border border-mgh-line bg-mgh-surface p-5 md:p-7`
       }
     >
-      <div className="mb-5 flex items-start justify-between gap-4 border-b border-white/10 pb-5">
+      <div className="mb-5 flex items-start justify-between gap-4 border-b border-mgh-line pb-5">
         <div className="min-w-0">
-          <p className="text-xs uppercase tracking-[0.2em] text-[#A0A0A0]">
+          <p className="text-xs uppercase tracking-[0.2em] text-mgh-muted">
             Communication
           </p>
-          <h2 className="mt-2 text-xl font-semibold text-white">
+          <h2 className="mt-2 font-serif text-title font-medium text-mgh-text">
             Consultation Chat
           </h2>
         </div>
@@ -213,15 +221,22 @@ export default function ConsultationChat({ consultation, isAdmin = false }) {
           type="button"
           onClick={() => {
             if (!expanded) {
-              pagePosition.current = { left: window.scrollX, top: window.scrollY };
+              pagePosition.current = {
+                left: window.scrollX,
+                top: window.scrollY,
+              };
             }
             setExpanded((current) => !current);
           }}
-          aria-label={expanded ? "Exit full-screen chat" : "Expand consultation chat"}
-          title={expanded ? "Exit full-screen chat" : "Expand consultation chat"}
+          aria-label={
+            expanded ? "Exit full-screen chat" : "Expand consultation chat"
+          }
+          title={
+            expanded ? "Exit full-screen chat" : "Expand consultation chat"
+          }
           aria-expanded={expanded}
           aria-haspopup="dialog"
-          className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-[#D4AF37]/20 bg-[#D4AF37]/10 text-[#D4AF37] transition hover:bg-[#D4AF37] hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37]"
+          className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-control border border-mgh-gold/20 bg-mgh-gold/10 text-mgh-gold transition hover:bg-mgh-gold hover:text-mgh-gold-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mgh-gold"
         >
           {expanded ? <Minimize2 size={21} /> : <Maximize2 size={21} />}
         </button>
@@ -237,13 +252,13 @@ export default function ConsultationChat({ consultation, isAdmin = false }) {
           scrollDistance.current =
             viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop;
         }}
-        className="min-h-0 flex-1 space-y-3 overflow-y-auto border border-white/10 bg-[#0A0A0A]/50 p-4"
+        className="min-h-0 flex-1 space-y-3 overflow-y-auto border border-mgh-line bg-mgh-surface-2 p-4"
       >
         {loading ? (
-          <p className="text-sm text-[#A0A0A0]">Loading conversation...</p>
+          <p className="text-sm text-mgh-muted">Loading conversation...</p>
         ) : messages.length === 0 ? (
           <div className="flex h-full items-center justify-center text-center">
-            <p className="text-sm text-[#797676]">
+            <p className="text-sm text-mgh-dim">
               {error ? "Chat is currently unavailable." : "No messages yet."}
             </p>
           </div>
@@ -256,20 +271,21 @@ export default function ConsultationChat({ consultation, isAdmin = false }) {
                 className={`flex ${mine ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[85%] min-w-0 rounded-lg px-4 py-3 text-sm leading-6 ${mine ? "bg-[#D4AF37] text-black" : "border border-white/10 bg-white/5 text-white"}`}
+                  className={`max-w-[85%] min-w-0 rounded-control px-4 py-3 text-sm leading-6 ${mine ? "bg-mgh-gold text-mgh-gold-ink" : "border border-mgh-line bg-mgh-surface-2 text-mgh-text"}`}
                 >
                   <p className="whitespace-pre-wrap break-words">
                     {message.body}
                   </p>
                   <time
                     dateTime={message.created_at}
-                    className={`mt-1 block text-[10px] ${mine ? "text-black/60" : "text-[#797676]"}`}
+                    className={`mt-1 block text-[10px] ${mine ? "text-mgh-gold-ink/60" : "text-mgh-dim"}`}
                   >
                     {new Date(message.created_at).toLocaleString("en-ZA", {
                       day: "numeric",
                       month: "short",
                       hour: "2-digit",
                       minute: "2-digit",
+                      timeZone: "Africa/Johannesburg",
                     })}
                   </time>
                 </div>
@@ -280,18 +296,18 @@ export default function ConsultationChat({ consultation, isAdmin = false }) {
       </div>
 
       {error && (
-        <p role="alert" className="mt-3 text-xs text-red-300">
+        <p role="alert" className="mt-3 text-xs text-mgh-danger">
           {error}
         </p>
       )}
       {!loading && (closed || waitingForAdmin) && (
         <p
           role="status"
-          className="mt-3 flex items-start gap-2 text-xs leading-5 text-[#A0A0A0]"
+          className="mt-3 flex items-start gap-2 text-xs leading-5 text-mgh-muted"
         >
-          <LockKeyhole size={15} className="mt-0.5 shrink-0 text-[#D4AF37]" />
+          <LockKeyhole size={15} className="mt-0.5 shrink-0 text-mgh-gold" />
           {closed
-            ? "Meeting scheduled. This consultation is now read-only."
+            ? "This consultation is closed. You can still read the conversation."
             : "Waiting for the admin's first message."}
         </p>
       )}
@@ -301,7 +317,11 @@ export default function ConsultationChat({ consultation, isAdmin = false }) {
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={(event) => {
-            if (event.key === "Enter" && !event.shiftKey) {
+            if (
+              event.key === "Enter" &&
+              !event.shiftKey &&
+              !event.nativeEvent.isComposing
+            ) {
               event.preventDefault();
               sendMessage(event);
             }
@@ -316,14 +336,14 @@ export default function ConsultationChat({ consultation, isAdmin = false }) {
           }
           maxLength={4000}
           rows={2}
-          className="min-h-12 min-w-0 flex-1 resize-none rounded-xl border border-white/10 bg-[#101010] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[#4F4F4F] focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 disabled:cursor-not-allowed disabled:opacity-50"
+          className="min-h-12 min-w-0 flex-1 resize-none rounded-control border border-mgh-line bg-mgh-surface px-4 py-3 text-sm text-mgh-text outline-none transition placeholder:text-mgh-dim focus:border-mgh-gold focus:ring-2 focus:ring-mgh-gold/20 disabled:cursor-not-allowed disabled:opacity-50"
         />
         <button
           type="submit"
           title="Send message"
           aria-label="Send message"
           disabled={!canSend || sending || !draft.trim()}
-          className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-[#D4AF37] text-black transition hover:bg-[#e0bd4a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-control bg-mgh-gold text-mgh-gold-ink transition hover:bg-mgh-gold-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mgh-gold disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Send size={18} />
         </button>
@@ -339,4 +359,32 @@ export default function ConsultationChat({ consultation, isAdmin = false }) {
   ) : (
     chat
   );
+}
+
+// A conversation belongs to one consultation. Any admin can start it, and
+// customers can reply only after that first admin message while it is active.
+function getConsultationChatState({
+  consultation,
+  messages,
+  userId,
+  isAdmin,
+  loading,
+  conversationId,
+}) {
+  const customerUserId = isAdmin ? consultation?.customer?.user_id : userId;
+  const adminStarted =
+    Boolean(customerUserId) &&
+    messages.some((message) => message.sender_id !== customerUserId);
+  const closed = !isActiveConsultation(consultation);
+  const waitingForAdmin = !isAdmin && !adminStarted;
+  return {
+    adminStarted,
+    closed,
+    waitingForAdmin,
+    canSend:
+      !loading &&
+      Boolean(userId && conversationId) &&
+      !closed &&
+      !waitingForAdmin,
+  };
 }
