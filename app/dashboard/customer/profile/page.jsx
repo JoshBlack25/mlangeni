@@ -3,10 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  BadgeCheck,
   Check,
   ChevronRight,
-  LockKeyhole,
   PencilLine,
   Trash2,
   X,
@@ -50,11 +48,6 @@ export default function ProfilePage() {
   const [savingProfile, setSavingProfile] = useState(false);
 
   // Change-password
-  const [showPwModal, setShowPwModal] = useState(false);
-  const [pwForm, setPwForm] = useState({ newPassword: "", confirmPassword: "" });
-  const [pwError, setPwError] = useState(null);
-  const [pwSuccess, setPwSuccess] = useState(null);
-  const [savingPw, setSavingPw] = useState(false);
 
   // Address one line edit
   const [editingAddress, setEditingAddress] = useState(false);
@@ -191,39 +184,6 @@ export default function ProfilePage() {
     setProfileSuccess("Profile updated successfully.");
   }
 
-  async function handlePasswordChange(e) {
-    e.preventDefault();
-    setPwError(null);
-    setPwSuccess(null);
-
-    if (pwForm.newPassword !== pwForm.confirmPassword) {
-      setPwError("Passwords do not match.");
-      return;
-    }
-
-    if (pwForm.newPassword.length < 6) {
-      setPwError("Password must be at least 6 characters.");
-      return;
-    }
-
-    setSavingPw(true);
-    const { error } = await supabase.auth.updateUser({
-      password: pwForm.newPassword,
-    });
-    setSavingPw(false);
-
-    if (error) {
-      setPwError(error.message);
-      return;
-    }
-
-    setPwSuccess("Password updated successfully.");
-    setTimeout(() => {
-      setShowPwModal(false);
-      setPwForm({ newPassword: "", confirmPassword: "" });
-      setPwSuccess(null);
-    }, 2000);
-  }
 
   // Deleting an account removes its orders, invoices and payment history, so
   // it is handled by staff on request rather than with one click here.
@@ -511,73 +471,11 @@ export default function ProfilePage() {
                 </button>
               </div>
 
-              <ul className="mt-6 divide-y divide-mgh-line-soft border-t border-mgh-line-soft">
-                <li>
-                  <SettingRow icon={LockKeyhole} label="Change password" onClick={() => setShowPwModal(true)} />
-                </li>
-                <li>
-                  <SettingRow icon={BadgeCheck} label="Two-factor authentication" />
-                </li>
-              </ul>
             </Panel>
 
           </div>
         </div>
       </div>
-
-      {/** Customer Change Password */}
-      <Dialog
-        open={showPwModal}
-        onOpenChange={(o) => {
-          if (!o) {
-            setShowPwModal(false);
-            setPwError(null);
-            setPwForm({ newPassword: "", confirmPassword: "" });
-          }
-        }}
-        title="Change password"
-        size="md"
-        dismissible={!savingPw}
-      >
-        <form onSubmit={handlePasswordChange} className="flex flex-col gap-5">
-          {pwError && (
-            <p role="alert" className="rounded-control border border-mgh-danger/30 bg-mgh-danger/5 px-4 py-3 text-sm text-mgh-danger">
-              {pwError}
-            </p>
-          )}
-          {pwSuccess && (
-            <p role="status" className="flex items-center gap-2 text-sm text-mgh-ok">
-              <Check size={16} aria-hidden="true" />
-              {pwSuccess}
-            </p>
-          )}
-
-          <Field label="New password" hint="At least 6 characters." required>
-            <Input
-              id="new-password"
-              type="password"
-              autoComplete="new-password"
-              value={pwForm.newPassword}
-              onChange={(e) => setPwForm({ ...pwForm, newPassword: e.target.value })}
-            />
-          </Field>
-
-          <Field label="Confirm new password" required>
-            <Input
-              id="confirm-password"
-              type="password"
-              autoComplete="new-password"
-              value={pwForm.confirmPassword}
-              onChange={(e) => setPwForm({ ...pwForm, confirmPassword: e.target.value })}
-            />
-          </Field>
-
-          <Button type="submit" variant="primary" loading={savingPw} className="mt-1 w-full">
-            {savingPw ? "Saving…" : "Update password"}
-          </Button>
-        </form>
-      </Dialog>
-
       <DashboardFooter />
     </div>
   );
@@ -593,21 +491,3 @@ function SummaryItem({ label, value, caption }) {
   );
 }
 
-function SettingRow({ icon: Icon, label, onClick }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "flex min-h-12 w-full items-center justify-between gap-3 rounded-control py-3 text-left transition-colors hover:text-mgh-text",
-        focusRing,
-      )}
-    >
-      <span className="flex items-center gap-3">
-        <Icon size={16} className="text-mgh-dim" aria-hidden="true" />
-        <span className="text-sm font-medium text-mgh-text">{label}</span>
-      </span>
-      <ChevronRight size={16} className="text-mgh-dim" aria-hidden="true" />
-    </button>
-  );
-}
