@@ -4,12 +4,8 @@ import { useState } from "react";
 import { MessageCircle } from "lucide-react";
 import { supabase } from "@/services/supabaseClient";
 import { Button, formatDate, toDate, Blank, NOT_SET } from "@/app/components/dashboard/ui";
+import { buildAdminWhatsAppLink } from "@/utils/whatsappRedirect";
 import StatusDropdown from "./StatusDropdown";
-
-function toWhatsAppLink(phone) {
-  const digitsOnly = phone.replace(/[^\d+]/g, "").replace(/^\+/, "");
-  return `https://wa.me/${digitsOnly}`;
-}
 
 const relativeFormatter = new Intl.RelativeTimeFormat("en-ZA", {
   numeric: "auto",
@@ -153,12 +149,13 @@ export default function EnquiryRow({ enquiry, onStatusChange, layout = "table" }
     <StatusDropdown value={enquiry.status} onChange={handleStatusChange} />
   );
 
-  // phone is nullable — no number, no WhatsApp button.
-  const whatsApp = enquiry.phone ? (
+  // phone is nullable — no usable number, no WhatsApp button.
+  const whatsAppLink = buildAdminWhatsAppLink(enquiry);
+  const whatsApp = whatsAppLink ? (
     <Button
       variant="quiet"
       size="sm"
-      href={toWhatsAppLink(enquiry.phone)}
+      href={whatsAppLink}
       target="_blank"
       rel="noopener noreferrer"
       aria-label={`Open WhatsApp chat with ${enquiry.name}`}

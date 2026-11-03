@@ -11,7 +11,7 @@ const focusRing =
  * the table. A real dialog (focus moves in, Escape closes, the page behind
  * is inert), and it only states what actually happened.
  */
-export default function SuccessModal({ isOpen, onClose, name }) {
+export default function SuccessModal({ isOpen, onClose, name, whatsAppLink }) {
   const firstName = name.split(" ")[0];
 
   return (
@@ -34,17 +34,39 @@ export default function SuccessModal({ isOpen, onClose, name }) {
               in touch shortly. A confirmation has been sent to your email.
             </DialogPrimitive.Description>
 
-            <p className="mt-6 flex w-full items-start gap-3 rounded-control border border-mgh-line bg-mgh-surface-2 px-4 py-3.5 text-left text-sm leading-relaxed text-mgh-muted">
-              <MessageCircle size={16} aria-hidden="true" className="mt-0.5 shrink-0 text-mgh-ok" />
-              A WhatsApp message has also been opened in a new tab for us to
-              follow up with you directly.
-            </p>
+            {whatsAppLink && (
+              <p className="mt-6 flex w-full items-start gap-3 rounded-control border border-mgh-line bg-mgh-surface-2 px-4 py-3.5 text-left text-sm leading-relaxed text-mgh-muted">
+                <MessageCircle size={16} aria-hidden="true" className="mt-0.5 shrink-0 text-mgh-ok" />
+                Prefer WhatsApp? Send your enquiry straight to our team and
+                we&apos;ll follow up with you there. If a WhatsApp tab didn&apos;t
+                open, use the button below.
+              </p>
+            )}
 
-            <DialogPrimitive.Close
-              className={`mt-8 h-12 w-full rounded-control bg-mgh-gold text-[0.75rem] font-semibold uppercase tracking-[0.22em] text-mgh-gold-ink transition-[background-color,transform] duration-200 hover:bg-mgh-gold-hover active:scale-[0.98] ${focusRing}`}
-            >
-              Done
-            </DialogPrimitive.Close>
+            {whatsAppLink ? (
+              <>
+                <a
+                  href={whatsAppLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`mt-8 flex h-12 w-full items-center justify-center gap-2 rounded-control bg-mgh-gold text-[0.75rem] font-semibold uppercase tracking-[0.22em] text-mgh-gold-ink transition-[background-color,transform] duration-200 hover:bg-mgh-gold-hover active:scale-[0.98] ${focusRing}`}
+                >
+                  <MessageCircle size={16} aria-hidden="true" />
+                  Continue to WhatsApp
+                </a>
+                <DialogPrimitive.Close
+                  className={`mt-3 h-12 w-full rounded-control border border-mgh-line-strong text-[0.75rem] font-semibold uppercase tracking-[0.22em] text-mgh-muted transition-[color,border-color,transform] duration-200 hover:border-mgh-gold hover:text-mgh-text active:scale-[0.98] ${focusRing}`}
+                >
+                  Done
+                </DialogPrimitive.Close>
+              </>
+            ) : (
+              <DialogPrimitive.Close
+                className={`mt-8 h-12 w-full rounded-control bg-mgh-gold text-[0.75rem] font-semibold uppercase tracking-[0.22em] text-mgh-gold-ink transition-[background-color,transform] duration-200 hover:bg-mgh-gold-hover active:scale-[0.98] ${focusRing}`}
+              >
+                Done
+              </DialogPrimitive.Close>
+            )}
           </div>
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
