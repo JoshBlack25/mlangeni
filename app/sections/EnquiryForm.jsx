@@ -7,7 +7,7 @@ import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getSupabase } from "@/services/lazySupabase";
 import { sendEnquiryEmail } from "@/services/emailService";
-import { redirectToWhatsApp } from "@/utils/whatsappRedirect";
+import { buildVisitorWhatsAppLink, redirectToWhatsApp } from "@/utils/whatsappRedirect";
 import DatePicker from "@/app/components/contact/DatePicker";
 import PhoneInputField from "@/app/components/contact/PhoneInputField";
 import SessionDropDown from "@/app/components/contact/SessionDropDown";
@@ -33,6 +33,7 @@ export default function EnquiryForm() {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [whatsAppLink, setWhatsAppLink] = useState(null);
   const [bookedSessions, setBookedSessions] = useState([]);
   const [submitError, setSubmitError] = useState(null);
 
@@ -126,7 +127,9 @@ export default function EnquiryForm() {
         console.error("Enquiry email failed:", err),
       );
 
-      redirectToWhatsApp(enquiryData);
+      const link = buildVisitorWhatsAppLink(enquiryData);
+      setWhatsAppLink(link);
+      redirectToWhatsApp(link);
       setShowModal(true);
     } catch (error) {
       console.error("Submission error:", error);
@@ -414,7 +417,12 @@ export default function EnquiryForm() {
         </div>
       </section>
 
-      <SuccessModal isOpen={showModal} onClose={handleModalClose} name={formData.name} />
+      <SuccessModal
+        isOpen={showModal}
+        onClose={handleModalClose}
+        name={formData.name}
+        whatsAppLink={whatsAppLink}
+      />
     </>
   );
 }
