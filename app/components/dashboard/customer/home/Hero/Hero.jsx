@@ -73,14 +73,19 @@ export default function Hero() {
           </p>
         </div>
 
-        <Button
-          href="/dashboard/customer/booking"
-          variant="secondary"
-          size="lg"
-          className="w-full border-mgh-text/25 bg-mgh-bg/40 backdrop-blur-sm hover:bg-mgh-bg/70 md:w-auto"
-        >
-          Plan an event
-        </Button>
+        <div className="flex flex-col gap-2 md:shrink-0">
+          <Button
+            href="/dashboard/customer/booking"
+            variant="secondary"
+            size="lg"
+            className="w-full border-mgh-text/25 bg-mgh-bg/40 backdrop-blur-sm hover:bg-mgh-bg/70 md:w-auto"
+          >
+            Plan an event
+          </Button>
+          <Button href="/dashboard/customer/consultations" variant="quiet">
+            View consultations
+          </Button>
+        </div>
       </div>
     </header>
   );

@@ -47,7 +47,8 @@ function formatTime(dateString) {
 function getCustomerName(customer) {
   if (!customer) return "Unknown customer";
 
-  const name = `${customer.first_name ?? ""} ${customer.last_name ?? ""}`.trim();
+  const name =
+    `${customer.first_name ?? ""} ${customer.last_name ?? ""}`.trim();
 
   return name || customer.email || "Unknown customer";
 }
@@ -139,8 +140,9 @@ export default function AdminActiveMeetingsPage() {
               email,
               phone_number
             ),
-            order:order_id (
+            order:order_id!inner (
               order_id,
+              status,
               total_price,
               event_date,
               event_location,
@@ -155,6 +157,7 @@ export default function AdminActiveMeetingsPage() {
           )
           .eq("status", "scheduled")
           .not("order_id", "is", null)
+          .neq("order.status", "cancelled")
           .order("meeting_date", { ascending: true });
 
         if (meetingsError) {
@@ -191,7 +194,12 @@ export default function AdminActiveMeetingsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <Button variant="quiet" size="sm" href="/dashboard/admin" className="-ml-3">
+        <Button
+          variant="quiet"
+          size="sm"
+          href="/dashboard/admin"
+          className="-ml-3"
+        >
           <ArrowLeft size={16} aria-hidden="true" className="text-mgh-dim" />
           Back to dashboard
         </Button>
@@ -285,7 +293,11 @@ export default function AdminActiveMeetingsPage() {
                       {meeting.customerName}
                     </p>
                     <p className="mt-0.5 flex items-center gap-1.5 text-caption text-mgh-muted">
-                      <MapPin size={16} aria-hidden="true" className="shrink-0 text-mgh-dim" />
+                      <MapPin
+                        size={16}
+                        aria-hidden="true"
+                        className="shrink-0 text-mgh-dim"
+                      />
                       <span className="truncate">{meeting.location}</span>
                     </p>
                   </div>
@@ -329,14 +341,25 @@ export default function AdminActiveMeetingsPage() {
                     </div>
                   </dl>
 
-                  <div className="col-span-2 lg:col-span-1 lg:justify-self-end">
+                  <div className="col-span-2 flex flex-wrap gap-2 lg:col-span-1 lg:justify-self-end">
+                    <Button
+                      variant="quiet"
+                      size="sm"
+                      href={`/dashboard/admin/consultations/${meeting.id}`}
+                    >
+                      View consultation
+                    </Button>
                     <Button
                       variant="secondary"
                       size="sm"
                       href={`/dashboard/admin/invoices/create?consultationId=${meeting.id}`}
                       className="h-10 w-full sm:w-auto lg:h-8"
                     >
-                      <ClipboardList size={16} aria-hidden="true" className="text-mgh-dim" />
+                      <ClipboardList
+                        size={16}
+                        aria-hidden="true"
+                        className="text-mgh-dim"
+                      />
                       Create Invoice
                     </Button>
                   </div>

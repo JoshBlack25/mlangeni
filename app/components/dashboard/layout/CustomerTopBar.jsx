@@ -22,7 +22,7 @@ export default function CustomerTopBar() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-mgh-line bg-mgh-bg/90 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-customer items-center gap-6 px-4 sm:px-6 md:px-10 lg:h-[72px]">
+      <div className="mx-auto flex h-16 max-w-customer items-center gap-6 px-4 sm:px-6 md:px-10 lg:h-[72px] lg:gap-3 xl:gap-6">
         <BrandMark href={NAV.customer.home} className="shrink-0" />
 
         <nav aria-label="Dashboard" className="hidden h-full flex-1 items-stretch justify-center lg:flex">
@@ -38,7 +38,7 @@ export default function CustomerTopBar() {
                         href={item.href}
                         aria-current={isActive ? "page" : undefined}
                         className={cn(
-                          "my-auto rounded-control px-3 py-2 text-sm transition-colors duration-[var(--mgh-dur-fast)]",
+                          "my-auto rounded-control px-2.5 py-2 text-sm transition-colors duration-[var(--mgh-dur-fast)] xl:px-3",
                           isActive ? "text-mgh-text" : "text-mgh-muted hover:text-mgh-text",
                           focusRing,
                         )}
