@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { parseISO, startOfMonth } from "date-fns";
 import { Check } from "lucide-react";
 import { supabase } from "@/services/supabaseClient";
 import { useNotifications } from "@/app/components/dashboard/shared/notifications/hooks/useNotifications";
@@ -38,9 +39,16 @@ import {
   getMinimumEventDate,
   isBeforeMinimumEventDate,
 } from "@/app/utils/customerBookingRules";
+import {
+  SESSION_OPTIONS,
+  SESSION_WINDOWS,
+} from "@/app/components/constants/sessions";
+import { findConflicts } from "@/app/components/menu/availability";
+import {
+  useAvailability,
+  rangesForDate,
+} from "@/app/components/menu/useAvailability";
 
-// Carousel arrows sit under the cards (not in the gutter) so nothing
-// overflows on phones.
 const carouselNavClass =
   "static size-10 rounded-control border-mgh-line-strong bg-mgh-surface text-mgh-text hover:bg-mgh-surface-2 hover:text-mgh-text dark:bg-mgh-surface dark:hover:bg-mgh-surface-2";
 
@@ -59,8 +67,7 @@ export default function Packages() {
   const [selectedMenuId, setSelectedMenuId] = useState(null);
   const [eventTypeId, setEventTypeId] = useState("");
   const [eventDate, setEventDate] = useState("");
-  const [startTime, setStartTime] = useState("09:00");
-  const [endTime, setEndTime] = useState("17:00");
+  const [session, setSession] = useState("");
   const [eventLocation, setEventLocation] = useState("");
   const [numberOfGuest, setNumberOfGuest] = useState("");
 
@@ -68,7 +75,54 @@ export default function Packages() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const minimumEventDate = getMinimumEventDate();
+
+  const minimumEventDate = useMemo(() => getMinimumEventDate(), []);
+
+  const sessionWindow = SESSION_WINDOWS[session] ?? null;
+
+  const selectedDate = useMemo(
+    () => (eventDate ? parseISO(eventDate) : null),
+    [eventDate],
+  );
+
+  // Look up bookings for the month of the chosen date (or the first bookable month).
+  const availabilityMonth = useMemo(
+    () => startOfMonth(selectedDate ?? minimumEventDate),
+    [selectedDate, minimumEventDate],
+  );
+
+  const { byDate, unsupported } = useAvailability({ month: availabilityMonth });
+
+  const dayRanges = useMemo(
+    () =>
+      unsupported || !selectedDate ? [] : rangesForDate(byDate, selectedDate),
+    [byDate, selectedDate, unsupported],
+  );
+
+  const sessionOptions = useMemo(
+    () =>
+      SESSION_OPTIONS.map((opt) => {
+        const w = SESSION_WINDOWS[opt.value];
+        const taken =
+          !unsupported &&
+          !!selectedDate &&
+          !!w &&
+          findConflicts(dayRanges, w.start, w.end).length > 0;
+
+        return {
+          ...opt,
+          disabled: taken,
+          label: taken ? `${opt.label} (unavailable)` : opt.label,
+        };
+      }),
+    [dayRanges, selectedDate, unsupported],
+  );
+
+  const sessionTaken =
+    !!sessionWindow &&
+    !unsupported &&
+    !!selectedDate &&
+    findConflicts(dayRanges, sessionWindow.start, sessionWindow.end).length > 0;
 
   useEffect(() => {
     let mounted = true;
@@ -173,8 +227,18 @@ export default function Packages() {
       setError("Event type, date, and location are all required.");
       return;
     }
+    if (!sessionWindow) {
+      setError("Please choose a session.");
+      return;
+    }
     if (isBeforeMinimumEventDate(eventDate, minimumEventDate)) {
       setError(getAdvanceBookingMessage(minimumEventDate));
+      return;
+    }
+    if (sessionTaken) {
+      setError(
+        "That session is already booked on this date. Please choose another.",
+      );
       return;
     }
     if (activeBooking) {
@@ -236,8 +300,8 @@ export default function Packages() {
         event_type_id: eventTypeId,
         premade_menu_id: selectedMenuId,
         event_date: eventDate,
-        start_time: startTime,
-        end_time: endTime,
+        start_time: sessionWindow.start,
+        end_time: sessionWindow.end,
         event_location: eventLocation,
         number_of_guest: numberOfGuest,
         total_price: total,
@@ -250,7 +314,7 @@ export default function Packages() {
 
       if (orderError.code === "23P01") {
         setError(
-          "That date and time is already booked. Please pick a different slot.",
+          "That session is already booked on this date. Please choose another.",
         );
       } else {
         setError(orderError.message);
@@ -264,7 +328,7 @@ export default function Packages() {
         order_id: order.order_id,
         customer_id: orderCustomerId,
         status: "requested",
-        meeting_date: `${eventDate}T${startTime || "09:00"}:00`,
+        meeting_date: `${eventDate}T${sessionWindow.start}:00`,
         note: "Customer submitted a package order request and is awaiting admin consultation.",
       });
 
@@ -289,6 +353,7 @@ export default function Packages() {
     setSelectedMenuId(null);
     setEventTypeId("");
     setEventDate("");
+    setSession("");
     setEventLocation("");
     setNumberOfGuest("");
   }
@@ -454,16 +519,16 @@ export default function Packages() {
             </span>
             <div role="group" aria-labelledby="package-event-date-label">
               <PackageCalendar
-                value={eventDate ? new Date(eventDate) : undefined} //setting up eventDate value
+                value={selectedDate ?? undefined}
                 minDate={minimumEventDate}
-                onChange={(selectedDate) => {
-                  if (selectedDate) {
-                    const yyyy = selectedDate.getFullYear();
-                    const mm = String(selectedDate.getMonth() + 1).padStart(
+                onChange={(selectedDay) => {
+                  if (selectedDay) {
+                    const yyyy = selectedDay.getFullYear();
+                    const mm = String(selectedDay.getMonth() + 1).padStart(
                       2,
                       "0",
                     );
-                    const dd = String(selectedDate.getDate()).padStart(2, "0");
+                    const dd = String(selectedDay.getDate()).padStart(2, "0");
                     setEventDate(`${yyyy}-${mm}-${dd}`);
                   }
                 }}
@@ -471,30 +536,37 @@ export default function Packages() {
             </div>
           </div>
 
-          <Field label="Start Time">
-            <Input
-              type="time"
-              value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
-            />
-          </Field>
-
-          <Field label="End Time">
-            <Input
-              type="time"
-              value={endTime}
-              onChange={(e) => setEndTime(e.target.value)}
-            />
-          </Field>
-
-          <Field label="Event Location">
-            <Input
-              type="text"
-              placeholder="Venue or address"
-              value={eventLocation}
-              onChange={(e) => setEventLocation(e.target.value)}
-            />
-          </Field>
+          <div className="flex flex-col gap-1.5">
+            <Field label="Session">
+              <Select
+                value={session}
+                onChange={(e) => setSession(e.target.value)}
+              >
+                <option value="">Select a time of day…</option>
+                {sessionOptions.map((opt) => (
+                  <option
+                    key={opt.value}
+                    value={opt.value}
+                    disabled={opt.disabled}
+                  >
+                    {opt.label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            {sessionWindow && (
+              <p
+                className={cn(
+                  "text-xs",
+                  sessionTaken ? "text-mgh-danger" : "text-mgh-dim",
+                )}
+              >
+                {sessionTaken
+                  ? "That session is already booked on this date."
+                  : `${sessionWindow.start} - ${sessionWindow.end}`}
+              </p>
+            )}
+          </div>
 
           <Field label="Number Of Guest">
             <Input
@@ -505,6 +577,17 @@ export default function Packages() {
               onChange={(e) => setNumberOfGuest(e.target.value)}
             />
           </Field>
+
+          <div className="sm:col-span-2">
+            <Field label="Event Location">
+              <Input
+                type="text"
+                placeholder="Venue or address"
+                value={eventLocation}
+                onChange={(e) => setEventLocation(e.target.value)}
+              />
+            </Field>
+          </div>
 
           <div className="flex flex-col gap-4 border-t border-mgh-line-soft pt-6 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0 text-sm">
