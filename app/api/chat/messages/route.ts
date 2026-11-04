@@ -1,12 +1,20 @@
 import { NextResponse } from "next/server";
-import { Resend } from "resend";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/services/supabaseConfig";
-import { getEmailConfig } from "@/lib/email/config";
-import { deliverEmail } from "@/lib/email/send";
-import { button, emailShell, sectionTitle } from "@/lib/email/layout";
-import { sanitize } from "@/lib/email/theme";
+import { deliverGmail, getGmailConfig } from "@/lib/email/gmail";
+import { chatMessageEmail } from "@/lib/email/chatMessage";
+import { SITE_URL } from "@/lib/site";
+
+// nodemailer needs the Node.js runtime (not Edge) on Vercel.
+export const runtime = "nodejs";
+
+function fullName(person?: {
+  first_name?: string | null;
+  last_name?: string | null;
+} | null): string {
+  return `${person?.first_name ?? ""} ${person?.last_name ?? ""}`.trim();
+}
 
 export async function POST(request: Request) {
   try {
@@ -52,64 +60,84 @@ export async function POST(request: Request) {
     const sentMessage = Array.isArray(message) ? message[0] : message;
     // Message delivery succeeded. Email is a secondary notification and must
     // not turn a saved message into an apparent failure (and duplicate retry).
+    // Sent through Gmail SMTP (GMAIL_USER / GMAIL_APP_PASSWORD) because the
+    // site has no verified domain for Resend.
     try {
-      const { data: adminRow } = await supabase
-        .from("admin")
-        .select("admin_id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      const { data: recipientsData } = await supabase.rpc(
-        "get_chat_recipient_emails",
-        { p_conversation_id: conversationId },
-      );
-      const recipients = (recipientsData ?? [])
-        .map((recipient: { email?: string | null }) => recipient.email)
-        .filter(Boolean);
-      const recipientLabel = adminRow ? "there" : "the Mlangeni team";
-      const { data: conversation } = await supabase
-        .from("chat_conversations")
-        .select("consultation_id")
-        .eq("conversation_id", conversationId)
-        .maybeSingle();
-      const recipientBase = adminRow
-        ? "/dashboard/customer"
-        : "/dashboard/admin";
-      const destination = conversation?.consultation_id
-        ? `${recipientBase}/consultations/${conversation.consultation_id}`
-        : recipientBase;
-
-      const config = getEmailConfig();
-      if (config.enabled && recipients.length > 0) {
-        const resend = new Resend(process.env.RESEND_API_KEY);
-        const html = emailShell({
-          preheader: `New message from ${user.email ?? "your Mlangeni contact"}`,
-          eyebrow: "New Chat Message",
-          title: "You have a new message",
-          intro: `A new message is waiting for you in your Mlangeni dashboard, ${recipientLabel}.`,
-          bodyHtml: [
-            sectionTitle("Message"),
-            `<p style="margin:0;padding:18px 20px;border:1px solid #1e1e1e;background:#0a0a0a;color:#cccccc;font-size:14px;line-height:1.7;white-space:pre-wrap;">${sanitize(cleanBody)}</p>`,
-          ].join(""),
-          ctaHtml: button(
-            `${config.siteUrl || ""}${destination}`,
-            "View conversation",
-          ),
-          footerNote:
-            "Please reply from your dashboard so the conversation stays together.",
-        });
-
-        await deliverEmail(
-          resend,
-          {
-            to: recipients,
-            subject: "New Mlangeni dashboard message",
-            html,
-            redirectInSandbox: true,
-          },
-          config,
-          "chat message",
+      const gmailConfig = getGmailConfig();
+      if (!gmailConfig.enabled) {
+        console.warn(
+          "[chat] email skipped: set GMAIL_USER and GMAIL_APP_PASSWORD to send chat notifications.",
         );
+      } else {
+        const { data: adminRow } = await supabase
+          .from("admin")
+          .select("admin_id, first_name, last_name")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        let senderName = fullName(adminRow);
+        if (!adminRow) {
+          const { data: customerRow } = await supabase
+            .from("customer")
+            .select("first_name, last_name, email")
+            .eq("user_id", user.id)
+            .maybeSingle();
+          senderName =
+            fullName(customerRow) || customerRow?.email || user.email || "";
+        }
+        senderName =
+          senderName || (adminRow ? "The Mlangeni team" : "A customer");
+
+        const { data: recipientsData } = await supabase.rpc(
+          "get_chat_recipient_emails",
+          { p_conversation_id: conversationId },
+        );
+        const recipients: string[] = Array.from(
+          new Set(
+            (recipientsData ?? [])
+              .map((recipient: { email?: string | null }) =>
+                recipient.email?.trim().toLowerCase(),
+              )
+              .filter(
+                (email: string | undefined): email is string =>
+                  Boolean(email) && email !== user.email?.toLowerCase(),
+              ),
+          ),
+        );
+
+        const { data: conversation } = await supabase
+          .from("chat_conversations")
+          .select("consultation_id")
+          .eq("conversation_id", conversationId)
+          .maybeSingle();
+        const recipientBase = adminRow
+          ? "/dashboard/customer"
+          : "/dashboard/admin";
+        const destination = conversation?.consultation_id
+          ? `${recipientBase}/consultations/${conversation.consultation_id}`
+          : recipientBase;
+
+        if (recipients.length > 0) {
+          const { subject, html } = chatMessageEmail({
+            senderName,
+            senderIsAdmin: Boolean(adminRow),
+            body: cleanBody,
+            sentAt: sentMessage?.created_at,
+            conversationUrl: `${SITE_URL}${destination}`,
+            logoUrl: `${SITE_URL}/logos/logo2.png`,
+          });
+
+          // One email per recipient so admins don't see each other's address.
+          const results = await Promise.all(
+            recipients.map((to) => deliverGmail({ to, subject, html })),
+          );
+          const failed = results.filter((result) => !result.ok).length;
+          if (failed > 0) {
+            console.error(
+              `[chat] ${failed} of ${recipients.length} notification emails failed.`,
+            );
+          }
+        }
       }
     } catch (notificationError) {
       console.error("[chat] email notification failed:", notificationError);
