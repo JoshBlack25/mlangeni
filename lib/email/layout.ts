@@ -16,6 +16,8 @@ const WIDTH = 600;
 export type ShellOptions = {
   /** Hidden preview text — the line shown next to the subject in inboxes. */
   preheader: string;
+  /** Absolute URL of the logo shown at the top of the email. */
+  logoUrl?: string;
   eyebrow: string;
   title: string;
   intro?: string;
@@ -29,6 +31,7 @@ const goldBar = `<tr><td style="height:2px;line-height:2px;font-size:0;backgroun
 export function emailShell(opts: ShellOptions): string {
   const {
     preheader,
+    logoUrl,
     eyebrow,
     title,
     intro,
@@ -58,6 +61,12 @@ export function emailShell(opts: ShellOptions): string {
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="${WIDTH}" style="width:100%;max-width:${WIDTH}px;background-color:${PALETTE.surface};border:1px solid ${PALETTE.line};" bgcolor="${PALETTE.surface}">
 
   ${goldBar}
+
+${
+  logoUrl
+    ? `<tr><td align="center" style="padding:36px 44px 0;"><img src="${sanitize(logoUrl)}" width="140" alt="${sanitize(BRAND.name)}" style="display:block;width:140px;max-width:140px;height:auto;border:0;outline:none;text-decoration:none;" /></td></tr>`
+    : ""
+}
 
   <tr>
     <td style="padding:40px 44px 30px;border-bottom:1px solid ${PALETTE.line};">
@@ -197,4 +206,13 @@ export function button(
   <a href="${sanitize(href)}" style="display:inline-block;padding:14px 30px;font-family:${FONT_STACK};font-size:9px;font-weight:bold;letter-spacing:0.25em;text-transform:uppercase;text-decoration:none;color:${solid ? PALETTE.goldInk : PALETTE.gold};">${sanitize(label)}</a>
 </td></tr>
 </table>`;
+}
+
+/**
+ * Public URL of the business logo for emails. Email clients can't load
+ * localhost images, so fall back to the live site when siteUrl isn't public.
+ */
+export function emailLogoUrl(siteUrl: string): string {
+  const base = /^https:\/\//.test(siteUrl) ? siteUrl : "https://mlangeni-zeta.vercel.app";
+  return `${base.replace(/\/+$/, "")}/logos/logoPNG.png`;
 }
