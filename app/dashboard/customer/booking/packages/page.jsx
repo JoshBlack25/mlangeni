@@ -189,6 +189,7 @@ export default function Packages() {
             )
           `,
           )
+           .eq("available", true) 
           .order("name"),
         supabase
           .from("event_type")
