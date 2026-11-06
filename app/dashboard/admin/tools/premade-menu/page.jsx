@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/services/supabaseClient";
 
@@ -14,6 +14,7 @@ const inputClass =
 
 export default function PremadeMenuPage() {
   const router = useRouter();
+  const formRef = useRef(null);
 
   const [checkingAdmin, setCheckingAdmin] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -21,15 +22,21 @@ export default function PremadeMenuPage() {
   const [packages, setPackages] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
 
+  // null = creating a new package, otherwise the id of the package being edited
+  const [editingId, setEditingId] = useState(null);
   const [newPackageName, setNewPackageName] = useState("");
   const [newPackageDescription, setNewPackageDescription] = useState("");
   const [selectedItemIds, setSelectedItemIds] = useState(new Set());
 
   const [saving, setSaving] = useState(false);
+  const [busyId, setBusyId] = useState(null); // package being retired/restored/deleted
+  const [deleteTarget, setDeleteTarget] = useState(null); // { id, name, orderCount }
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  // Gate: admins only
+  const isEditing = editingId !== null;
+
+
   useEffect(() => {
     async function checkAdmin() {
       const { data: userData } = await supabase.auth.getUser();
@@ -61,6 +68,7 @@ export default function PremadeMenuPage() {
           premade_menu_id,
           name,
           description,
+          available,
           premade_menu_items (
             menu_item ( item_id, name, price )
           )
@@ -69,14 +77,23 @@ export default function PremadeMenuPage() {
         .order("name"),
       supabase
         .from("menu_item")
-        .select("item_id, name, price, is_alcoholic, available, category:category(name)")
+        .select(
+          "item_id, name, price, is_alcoholic, available, category:category(name)",
+        )
         .order("name"),
     ]);
 
     if (packagesRes.error) setError(packagesRes.error.message);
     if (itemsRes.error) setError(itemsRes.error.message);
 
-    setPackages(packagesRes.data ?? []);
+    // Live packages first, retired ones after
+    const sorted = [...(packagesRes.data ?? [])].sort(
+      (a, b) =>
+        Number(b.available) - Number(a.available) ||
+        a.name.localeCompare(b.name),
+    );
+
+    setPackages(sorted);
     setMenuItems(itemsRes.data ?? []);
     setLoading(false);
   }
@@ -85,7 +102,6 @@ export default function PremadeMenuPage() {
     if (checkingAdmin) return;
     loadData();
   }, [checkingAdmin]);
-
 
   const itemsByCategory = useMemo(() => {
     const groups = {};
@@ -114,7 +130,36 @@ export default function PremadeMenuPage() {
     });
   }
 
-  async function addPackage(e) {
+  function resetForm() {
+    setEditingId(null);
+    setNewPackageName("");
+    setNewPackageDescription("");
+    setSelectedItemIds(new Set());
+  }
+
+  function startEdit(pkg) {
+    setError("");
+    setSuccess("");
+    setEditingId(pkg.premade_menu_id);
+    setNewPackageName(pkg.name ?? "");
+    setNewPackageDescription(pkg.description ?? "");
+    setSelectedItemIds(
+      new Set(
+        (pkg.premade_menu_items ?? [])
+          .map((pmi) => pmi.menu_item?.item_id)
+          .filter(Boolean),
+      ),
+    );
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function cancelEdit() {
+    setError("");
+    setSuccess("");
+    resetForm();
+  }
+
+  async function handleSubmit(e) {
     e.preventDefault();
     setError("");
     setSuccess("");
@@ -133,45 +178,128 @@ export default function PremadeMenuPage() {
 
     setSaving(true);
 
-
-    const { data: created, error: createError } = await supabase
-      .from("premade_menu")
-      .insert({ name, description })
-      .select("premade_menu_id")
-      .single();
-
-    if (createError || !created) {
-      setError(createError?.message ?? "Could not create the package.");
-      setSaving(false);
-      return;
-    }
-
-    const rows = [...selectedItemIds].map((itemId) => ({
-      premade_menu_id: created.premade_menu_id,
-      item_id: itemId,
-    }));
-
-    const { error: itemsError } = await supabase
-      .from("premade_menu_items")
-      .insert(rows);
-
-    if (itemsError) {
-  
-      await supabase
-        .from("premade_menu")
-        .delete()
-        .eq("premade_menu_id", created.premade_menu_id);
-
-      setError(itemsError.message);
-      setSaving(false);
-      return;
-    }
+    const itemIds = [...selectedItemIds];
+    const { error: rpcError } = isEditing
+      ? await supabase.rpc("update_premade_package", {
+          p_id: editingId,
+          p_name: name,
+          p_description: description,
+          p_item_ids: itemIds,
+        })
+      : await supabase.rpc("create_premade_package", {
+          p_name: name,
+          p_description: description,
+          p_item_ids: itemIds,
+        });
 
     setSaving(false);
-    setSuccess(`Package "${name}" created with ${rows.length} items.`);
-    setNewPackageName("");
-    setNewPackageDescription("");
-    setSelectedItemIds(new Set());
+
+    if (rpcError) {
+
+      setError(rpcError.message);
+      return;
+    }
+
+    setSuccess(
+      isEditing
+        ? `Package "${name}" updated.`
+        : `Package "${name}" created with ${itemIds.length} items.`,
+    );
+    resetForm();
+    loadData();
+  }
+
+
+  async function toggleAvailable(pkg) {
+    setError("");
+    setSuccess("");
+    setBusyId(pkg.premade_menu_id);
+
+    const makeAvailable = !pkg.available;
+
+  
+    const { data: updated, error: updateError } = await supabase
+      .from("premade_menu")
+      .update({ available: makeAvailable })
+      .eq("premade_menu_id", pkg.premade_menu_id)
+      .select("premade_menu_id");
+
+    setBusyId(null);
+
+    if (updateError) {
+      setError(updateError.message);
+      return;
+    }
+    if (!updated || updated.length === 0) {
+      setError(
+        "Couldn't update this package. It may have been deleted, or you may not have permission.",
+      );
+      loadData();
+      return;
+    }
+
+    setSuccess(
+      makeAvailable
+        ? `"${pkg.name}" is available to customers again.`
+        : `"${pkg.name}" retired. Customers no longer see it.`,
+    );
+    loadData();
+  }
+
+  async function askDelete(pkg) {
+    setError("");
+    setSuccess("");
+    setBusyId(pkg.premade_menu_id);
+
+    const { count, error: countError } = await supabase
+      .from("orders")
+      .select("order_id", { count: "exact", head: true })
+      .eq("premade_menu_id", pkg.premade_menu_id);
+
+    setBusyId(null);
+
+    if (countError) {
+      setError(countError.message);
+      return;
+    }
+
+    setDeleteTarget({
+      id: pkg.premade_menu_id,
+      name: pkg.name,
+      orderCount: count ?? 0,
+    });
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+
+    setBusyId(deleteTarget.id);
+
+    const { data: deleted, error: deleteError } = await supabase
+      .from("premade_menu")
+      .delete()
+      .eq("premade_menu_id", deleteTarget.id)
+      .select("premade_menu_id");
+
+    setBusyId(null);
+
+    if (deleteError) {
+      setError(deleteError.message);
+      setDeleteTarget(null);
+      return;
+    }
+    if (!deleted || deleted.length === 0) {
+      setError(
+        "Couldn't delete this package. It may already be gone, or you may not have permission.",
+      );
+      setDeleteTarget(null);
+      loadData();
+      return;
+    }
+
+    if (editingId === deleteTarget.id) resetForm();
+    setSuccess(`Package "${deleteTarget.name}" deleted.`);
+    setDeleteTarget(null);
     loadData();
   }
 
@@ -192,17 +320,36 @@ export default function PremadeMenuPage() {
           <div className="mt-4 h-px w-24 bg-gradient-to-r from-mgh-gold to-transparent" />
         </header>
 
+        {/*Create / edit a package*/}
         <form
-          onSubmit={addPackage}
-          className="rounded-2xl border border-mgh-line bg-mgh-surface p-6 sm:p-7"
+          ref={formRef}
+          onSubmit={handleSubmit}
+          className={`scroll-mt-6 rounded-2xl border bg-mgh-surface p-6 sm:p-7 ${
+            isEditing ? "border-mgh-gold" : "border-mgh-line"
+          }`}
         >
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-mgh-gold">
-            Create a new package
-          </h2>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-mgh-gold">
+              {isEditing ? "Edit package" : "Create a new package"}
+            </h2>
+
+            {isEditing && (
+              <button
+                type="button"
+                onClick={cancelEdit}
+                className="text-xs font-semibold uppercase tracking-wider text-mgh-muted transition hover:text-mgh-text"
+              >
+                Cancel edit
+              </button>
+            )}
+          </div>
 
           <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2">
             <div>
-              <label htmlFor="pkg-name" className="text-xs uppercase tracking-wider text-mgh-muted">
+              <label
+                htmlFor="pkg-name"
+                className="text-xs uppercase tracking-wider text-mgh-muted"
+              >
                 Name
               </label>
               <input
@@ -216,7 +363,10 @@ export default function PremadeMenuPage() {
             </div>
 
             <div>
-              <label htmlFor="pkg-desc" className="text-xs uppercase tracking-wider text-mgh-muted">
+              <label
+                htmlFor="pkg-desc"
+                className="text-xs uppercase tracking-wider text-mgh-muted"
+              >
                 Description
               </label>
               <input
@@ -244,7 +394,9 @@ export default function PremadeMenuPage() {
             <div className="mt-4 space-y-6">
               {Object.entries(itemsByCategory).map(([category, items]) => (
                 <div key={category}>
-                  <p className="text-sm font-semibold text-mgh-text">{category}</p>
+                  <p className="text-sm font-semibold text-mgh-text">
+                    {category}
+                  </p>
                   <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
                     {items.map((item) => {
                       const checked = selectedItemIds.has(item.item_id);
@@ -266,10 +418,16 @@ export default function PremadeMenuPage() {
                             <span>
                               {item.name}
                               {item.is_alcoholic && (
-                                <span className="text-mgh-muted"> (alcoholic)</span>
+                                <span className="text-mgh-muted">
+                                  {" "}
+                                  (alcoholic)
+                                </span>
                               )}
                               {!item.available && (
-                                <span className="text-mgh-danger"> (unavailable)</span>
+                                <span className="text-mgh-danger">
+                                  {" "}
+                                  (unavailable)
+                                </span>
                               )}
                             </span>
                           </span>
@@ -298,15 +456,27 @@ export default function PremadeMenuPage() {
               disabled={saving}
               className="rounded-xl border border-mgh-gold bg-mgh-gold px-8 py-3 text-xs font-semibold uppercase tracking-widest text-mgh-gold-ink transition-all hover:bg-transparent hover:text-mgh-gold disabled:opacity-50"
             >
-              {saving ? "Saving..." : "Save Package"}
+              {saving
+                ? "Saving..."
+                : isEditing
+                  ? "Update Package"
+                  : "Save Package"}
             </button>
           </div>
 
-          {error && <p className="mt-4 text-sm text-mgh-danger">{error}</p>}
-          {success && <p className="mt-4 text-sm text-mgh-gold">{success}</p>}
+          {error && (
+            <p role="alert" className="mt-4 text-sm text-mgh-danger">
+              {error}
+            </p>
+          )}
+          {success && (
+            <p role="status" className="mt-4 text-sm text-mgh-gold">
+              {success}
+            </p>
+          )}
         </form>
 
-
+        {/*Existing packages*/}
         <h2 className="mt-12 text-xs font-semibold uppercase tracking-widest text-mgh-gold">
           Current packages
         </h2>
@@ -323,30 +493,137 @@ export default function PremadeMenuPage() {
                 (sum, pmi) => sum + Number(pmi.menu_item?.price ?? 0),
                 0,
               );
+              const beingEdited = editingId === pkg.premade_menu_id;
+              const busy = busyId === pkg.premade_menu_id;
+              const retired = !pkg.available;
 
               return (
                 <article
                   key={pkg.premade_menu_id}
-                  className="rounded-xl border border-mgh-line bg-mgh-surface p-5"
+                  className={`flex flex-col rounded-xl border bg-mgh-surface p-5 transition-colors ${
+                    beingEdited ? "border-mgh-gold" : "border-mgh-line"
+                  } ${retired ? "opacity-70" : ""}`}
                 >
-                  <h3 className="font-serif text-lg font-medium">{pkg.name}</h3>
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 className="font-serif text-lg font-medium">
+                      {pkg.name}
+                    </h3>
+                    <span
+                      className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${
+                        retired
+                          ? "border-mgh-line-strong text-mgh-muted"
+                          : "border-mgh-gold/40 text-mgh-gold"
+                      }`}
+                    >
+                      {retired ? "Retired" : "Available"}
+                    </span>
+                  </div>
                   <p className="mt-1 text-sm text-mgh-dim">{pkg.description}</p>
 
-                  <ul className="mt-3 space-y-1 text-sm text-mgh-muted">
+                  <ul className="mt-3 flex-1 space-y-1 text-sm text-mgh-muted">
                     {items.map((pmi, i) => (
                       <li key={i}>{pmi.menu_item?.name}</li>
                     ))}
                   </ul>
 
-                  <p className="mt-3 text-sm font-semibold text-mgh-gold">
+                  <p className="mt-4 text-sm font-semibold text-mgh-gold">
                     {items.length} items · {currency.format(total)}
                   </p>
+
+                  <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-mgh-line-soft pt-4">
+                    <button
+                      type="button"
+                      onClick={() => startEdit(pkg)}
+                      disabled={saving || busy}
+                      className="rounded-lg border border-mgh-gold/40 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-mgh-gold transition hover:border-mgh-gold hover:bg-mgh-gold hover:text-mgh-gold-ink disabled:opacity-50"
+                    >
+                      {beingEdited ? "Editing…" : "Edit"}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => toggleAvailable(pkg)}
+                      disabled={saving || busy}
+                      className="rounded-lg border border-mgh-line-strong px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-mgh-muted transition hover:border-mgh-text hover:text-mgh-text disabled:opacity-50"
+                    >
+                      {retired ? "Restore" : "Retire"}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => askDelete(pkg)}
+                      disabled={saving || busy}
+                      className="ml-auto rounded-lg border border-mgh-danger/40 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-mgh-danger transition hover:border-mgh-danger hover:bg-mgh-danger/10 disabled:opacity-50"
+                    >
+                      Remove
+                    </button>
+                  </div>
                 </article>
               );
             })}
           </div>
         )}
       </section>
+
+      {/* Delete confirmation */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-pkg-title"
+            className="w-full max-w-md rounded-2xl border border-mgh-line bg-mgh-surface p-6"
+          >
+            <h2
+              id="delete-pkg-title"
+              className="font-serif text-xl font-medium text-mgh-text"
+            >
+              Delete package?
+            </h2>
+
+            <p className="mt-3 text-sm text-mgh-muted">
+              This permanently deletes{" "}
+              <span className="font-semibold text-mgh-text">
+                {deleteTarget.name}
+              </span>{" "}
+              and can&apos;t be undone.
+            </p>
+
+            {deleteTarget.orderCount > 0 ? (
+              <p className="mt-3 rounded-lg border border-mgh-danger/30 bg-mgh-danger/10 px-3 py-2 text-sm text-mgh-danger">
+                {deleteTarget.orderCount}{" "}
+                {deleteTarget.orderCount === 1 ? "order uses" : "orders use"}{" "}
+                this package. {deleteTarget.orderCount === 1 ? "It" : "They"}{" "}
+                will be kept, but will no longer be linked to a package. Retire
+                it instead if you only want to hide it from customers.
+              </p>
+            ) : (
+              <p className="mt-3 text-sm text-mgh-dim">
+                No orders use this package.
+              </p>
+            )}
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                disabled={busyId === deleteTarget.id}
+                className="rounded-lg border border-mgh-line-strong px-5 py-2 text-xs font-semibold uppercase tracking-wider text-mgh-muted transition hover:border-mgh-text hover:text-mgh-text disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDelete}
+                disabled={busyId === deleteTarget.id}
+                className="rounded-lg border border-mgh-danger bg-mgh-danger px-5 py-2 text-xs font-semibold uppercase tracking-wider text-white transition hover:bg-transparent hover:text-mgh-danger disabled:opacity-50"
+              >
+                {busyId === deleteTarget.id ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
